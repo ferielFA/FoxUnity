@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>FoxUnity - Events</title>
+    
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    
+    <style>
+        .cart-icon {
+            color: #ff7a00 !important;
+            position: relative;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .cart-icon:hover {
+            color: #ff9933 !important;
+            transform: translateY(-2px);
+        }
+        
+        .cart-icon i {
+            color: #ff7a00;
+            font-size: 18px;
+        }
+        
+        .cart-count {
+            background: linear-gradient(135deg, #ff7a00, #ff4f00);
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: 700;
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            min-width: 18px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(255, 122, 0, 0.4);
+        }
+    </style>
+    
+    <style>
+        .events-section { 
+            padding: 48px 24px;
+            background: linear-gradient(180deg, #0f0f11 0%, #111216 100%);
+            color: #fff;
+        }
+        
+        .events-header { 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            gap: 12px;
+        }
+        
+        .events-header h2 { 
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 1px;
+            margin: 0;
+        }
+
+        .nav-underline {
+            position: relative;
+        }
+
+        .nav-underline::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(135deg, #f5c242, #f39c12);
+            border-radius: 2px;
+            box-shadow: 0 2px 8px rgba(245, 194, 66, 0.4);
+        }
+        
+        .events-container { 
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .card-inner { 
+            position: relative; 
+            width: 100%; 
+            min-height: 260px;
+        }
+        
+
+
+        .card-face { 
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex; 
+            flex-direction: column;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+        }
+        
+        .card-front { 
+            background: linear-gradient(135deg, #16161a, #1b1b20);
+            padding: 18px; 
+        }
+        
+        .card-back { 
+            background: linear-gradient(135deg, #0b1220, #071226);
+            padding: 18px;
+            display: none;
+        }
+
+        .event-title { 
+            font-size: 1.06rem; 
+            font-weight: 700;
+            margin-bottom: 6px; 
+            color: #f5c242;
+        }
+        
+        .event-meta { 
+            font-size: 0.9rem; 
+            color: #cfd3d8;
+            margin-bottom: 12px; 
+        }
+        
+        .event-location { 
+            font-style: italic;
+        }
+
+        .event-desc { 
+            flex: 1;
+            color: #d7d9dd;
+            font-size: 0.95rem; 
+            margin-bottom: 12px; 
+        }
+
+        .card-footer { 
+            display: flex; 
+            gap: 8px; 
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .btn { 
+            display: inline-flex; 
+            align-items: center;
+            gap: 8px;
+            background: #ff6b6b;
+            color: #fff;
+            border: none; 
+            padding: 8px 12px; 
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+        }
+        
+        .btn.secondary { 
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #fff; 
+        }
+        
+        .btn.secondary:hover {
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: none;
+        }
+
+        .participants { 
+            display: inline-flex; 
+            gap: 8px;
+            align-items: center; 
+            color: #ffd9a8;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .countdown { 
+            font-size: 0.92rem; 
+            color: #bfe7ff;
+            font-weight: 600;
+        }
+
+        .event-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, padding 0.4s ease;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            margin-top: 0;
+        }
+
+        .event-details.show {
+            max-height: 500px;
+            padding: 16px;
+            margin-top: 12px;
+        }
+
+        .event-details h4 {
+            color: #f5c242;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .event-details p {
+            color: #cfd3d8;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .event-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .status-available {
+            background: rgba(46, 213, 115, 0.2);
+            color: #2ed573;
+            border: 1px solid #2ed573;
+        }
+
+        .status-full {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+            border: 1px solid #ff6b6b;
+        }
+
+        .status-expired {
+            background: rgba(150, 150, 150, 0.2);
+            color: #969696;
+            border: 1px solid #969696;
+        }
+
+        .event-dates {
+            font-size: 0.85rem;
+            color: #bfe7ff;
+            margin-bottom: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .event-dates span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        @media (max-width: 480px) { 
+            .events-header {
+                flex-direction: column; 
+                align-items: flex-start;
+            }
+            
+            .card-footer {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bubbles">
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+    </div>
+
+    <header class="site-header">
+        <div class="logo-section">
+            <img src="../images/Nine__1_-removebg-preview.png" alt="FoxUnity Logo" class="site-logo">
+            <span class="site-name">FoxUnity</span>
+        </div>
+        
+        <nav class="site-nav">
+            <a href="indexf.html">Home</a>
+            <a href="events.html" class="nav-underline">Events</a>
+            <a href="shop.html">Shop</a>
+            <a href="trading.html">Trading</a>
+            <a href="news.html">News</a>
+            <a href="reclamation.html">Support</a>
+            <a href="about.html">About Us</a>
+        </nav>
+        
+        <div class="header-right">
+            <a href="login.html" class="login-register-link">
+                <i class="fas fa-user"></i> Login / Register
+            </a>
+            <a href="profile.html" class="profile-icon">
+                <i class="fas fa-user-circle"></i>
+            </a>
+            <a href="panier.html" class="cart-icon">
+                <i class="fas fa-shopping-cart"></i> Cart
+                <span class="cart-count">0</span>
+            </a>
+        </div>
+    </header>
+
+    <main class="main-section">
+        <section class="events-section">
+            <div class="events-header">
+                <div>
+                    <h2>Upcoming Events</h2>
+                    <p class="intro-description">Browse upcoming community events — join, follow or learn more.</p>
+                </div>
+            </div>
+
+            <div id="eventsContainer" class="events-container">
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>FoxUnity</h4>
+                <p>Gaming for Good - Every action makes a difference</p>
+            </div>
+            <div class="footer-section">
+                <h4>Back to Top</h4>
+                <a href="#" class="back-to-top-link" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;">
+                    <i class="fas fa-arrow-up"></i> Scroll to Top
+                </a>
+            </div>
+            <div class="footer-section">
+                <h4>Support</h4>
+                <a href="reclamation.html">Contact Support</a>
+                <a href="#">FAQ</a>
+                <a href="#">Privacy Policy</a>
+            </div>
+            <div class="footer-section">
+                <h4>Follow Us</h4>
+                <div class="social-links">
+                    <a href="#"><i class="fab fa-discord"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+            <div class="footer-section">
+                <h4>Dashboard</h4>
+                <a href="../back/dashboard.html" class="dashboard-link">
+                    <i class="fas fa-tachometer-alt"></i> My Dashboard
+                </a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2025 FoxUnity. All rights reserved. Made with <span>♥</span> by gamers for gamers</p>
+        </div>
+    </footer>
+    
+    <script>
+        const events = [
+            {
+                id: 1,
+                title: 'Community Tournament',
+                start: new Date(Date.now() + 2*24*3600*1000 + 5*3600*1000).toISOString(),
+                end: new Date(Date.now() + 2*24*3600*1000 + 9*3600*1000).toISOString(),
+                location: 'Main Arena',
+                description: 'Join our 2v2 community tournament for prizes and glory!',
+                participants: 125,
+                maxParticipants: 150
+            },
+            {
+                id: 2,
+                title: 'Dev Workshop',
+                start: new Date(Date.now() + 6*3600*1000).toISOString(),
+                end: new Date(Date.now() + 10*3600*1000).toISOString(),
+                location: 'Online - Zoom',
+                description: 'Hands-on workshop with our dev team. Bring questions and code!',
+                participants: 50,
+                maxParticipants: 50
+            },
+            {
+                id: 3,
+                title: 'Charity Stream',
+                start: new Date(Date.now() + 5*24*3600*1000).toISOString(),
+                end: new Date(Date.now() + 5*24*3600*1000 + 4*3600*1000).toISOString(),
+                location: 'Twitch',
+                description: 'A 4-hour charity stream with special guests and giveaways.',
+                participants: 317,
+                maxParticipants: 500
+            },
+            {
+                id: 4,
+                title: 'Speedrun Marathon',
+                start: new Date(Date.now() + 7*24*3600*1000 + 14*3600*1000).toISOString(),
+                end: new Date(Date.now() + 7*24*3600*1000 + 20*3600*1000).toISOString(),
+                location: 'YouTube Live',
+                description: 'Watch the best speedrunners compete in a 6-hour marathon for charity!',
+                participants: 89,
+                maxParticipants: 200
+            },
+            {
+                id: 5,
+                title: 'Game Design Masterclass',
+                start: new Date(Date.now() + 10*24*3600*1000 + 10*3600*1000).toISOString(),
+                end: new Date(Date.now() + 10*24*3600*1000 + 13*3600*1000).toISOString(),
+                location: 'Discord - Voice Channel',
+                description: 'Learn game design fundamentals from industry professionals.',
+                participants: 56,
+                maxParticipants: 100
+            },
+            {
+                id: 6,
+                title: 'FoxUnity Annual Gala',
+                start: new Date(Date.now() + 14*24*3600*1000 + 18*3600*1000).toISOString(),
+                end: new Date(Date.now() + 14*24*3600*1000 + 23*3600*1000).toISOString(),
+                location: 'Grand Hall - Downtown',
+                description: 'Our biggest event of the year! Awards, performances, and networking.',
+                participants: 234,
+                maxParticipants: 300
+            },
+            {
+                id: 7,
+                title: 'Esports Bootcamp',
+                start: new Date(Date.now() + 18*24*3600*1000 + 9*3600*1000).toISOString(),
+                end: new Date(Date.now() + 20*24*3600*1000 + 17*3600*1000).toISOString(),
+                location: 'Gaming Center - Main Campus',
+                description: 'Intensive 3-day training for aspiring esports athletes with pro coaches.',
+                participants: 28,
+                maxParticipants: 30
+            },
+            {
+                id: 8,
+                title: 'Retro Gaming Night',
+                start: new Date(Date.now() - 2*24*3600*1000).toISOString(),
+                end: new Date(Date.now() - 2*24*3600*1000 + 4*3600*1000).toISOString(),
+                location: 'Arcade Lounge',
+                description: 'Relive the classics! Play vintage arcade games and console favorites.',
+                participants: 145,
+                maxParticipants: 150
+            },
+            {
+                id: 9,
+                title: 'VR Experience Day',
+                start: new Date(Date.now() + 25*24*3600*1000 + 11*3600*1000).toISOString(),
+                end: new Date(Date.now() + 25*24*3600*1000 + 16*3600*1000).toISOString(),
+                location: 'VR Center - Tech Hub',
+                description: 'Try the latest VR games and experiences. Free demos for all attendees!',
+                participants: 67,
+                maxParticipants: 80
+            },
+            {
+                id: 10,
+                title: 'Cosplay Competition',
+                start: new Date(Date.now() + 28*24*3600*1000 + 13*3600*1000).toISOString(),
+                end: new Date(Date.now() + 28*24*3600*1000 + 18*3600*1000).toISOString(),
+                location: 'Convention Center',
+                description: 'Show off your best gaming character cosplay and win amazing prizes!',
+                participants: 102,
+                maxParticipants: 120
+            }
+        ];
+
+        const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        
+        const formatDate = (start, end) => {
+            const opts = { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' };
+            return `${new Date(start).toLocaleString(undefined, opts)} — ${new Date(end).toLocaleString(undefined, opts)}`;
+        };
+
+        const getEventStatus = ev => {
+            const now = Date.now();
+            const endTime = Date.parse(ev.end);
+            
+            if (endTime < now) {
+                return { status: 'expired', label: 'Expired', class: 'status-expired' };
+            }
+            
+            if (ev.participants >= ev.maxParticipants) {
+                return { status: 'full', label: 'Full', class: 'status-full' };
+            }
+            
+            return { status: 'available', label: 'Available', class: 'status-available' };
+        };
+
+        const createCard = ev => {
+            const statusInfo = getEventStatus(ev);
+            const card = document.createElement('div');
+            card.className = 'event-card';
+            
+            const startDate = new Date(ev.start);
+            const endDate = new Date(ev.end);
+            const dateOptions = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+            
+            const joinButton = statusInfo.status === 'available' 
+                ? `<button class="btn join-btn">🔘 Join Now</button>` 
+                : `<button class="btn" disabled style="opacity:0.5;cursor:not-allowed">${statusInfo.label}</button>`;
+            
+            card.innerHTML = `
+                <div class="card-inner">
+                    <div class="card-face card-front">
+                        <div style="display:flex;flex-direction:column;height:100%">
+                            <div>
+                                <div class="event-status ${statusInfo.class}">${statusInfo.label}</div>
+                                <div class="event-title">${esc(ev.title)}</div>
+                                <div class="event-dates">
+                                    <span>📅 Start: ${startDate.toLocaleString(undefined, dateOptions)}</span>
+                                    <span>📅 End: ${endDate.toLocaleString(undefined, dateOptions)}</span>
+                                </div>
+                                <div class="event-meta event-location">📍 ${esc(ev.location)}</div>
+                            </div>
+                            <div class="event-desc">${esc(ev.description)}</div>
+                            <div class="event-details" id="details-${ev.id}">
+                                <h4>Event Details</h4>
+                                <p>${esc(ev.description)}</p>
+                            </div>
+                            <div class="card-footer">
+                                <div class="participants" data-participants="${ev.participants}">🔥 ${ev.participants} / ${ev.maxParticipants} participants</div>
+                                <div style="display:flex;gap:8px">
+                                    ${joinButton}
+                                    <button class="btn secondary learn-more-btn" data-event-id="${ev.id}">Learn More</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            
+            const joinBtn = card.querySelector('.join-btn');
+            if (joinBtn && statusInfo.status === 'available') {
+                joinBtn.onclick = () => {
+                    window.location.href = 'participation.html?event=' + encodeURIComponent(ev.title);
+                };
+            }
+
+            card.querySelectorAll('.learn-more-btn').forEach(btn => {
+                btn.onclick = () => {
+                    const detailsId = 'details-' + btn.dataset.eventId;
+                    const detailsDiv = document.getElementById(detailsId);
+                    if (detailsDiv) {
+                        detailsDiv.classList.toggle('show');
+                        btn.textContent = detailsDiv.classList.contains('show') ? 'Show Less' : 'Learn More';
+                    }
+                };
+            });
+
+            return card;
+        };
+
+        const updateCountdowns = () => {
+            const now = Date.now();
+            document.querySelectorAll('.countdown').forEach(el => {
+                const start = Date.parse(el.dataset.start);
+                if (!start) return el.textContent = 'Inconnu';
+                let diff = start - now;
+                if (diff <= 0) return el.textContent = 'Événement en cours ⏳';
+                
+                const d = Math.floor(diff / 86400000);
+                diff %= 86400000;
+                const h = Math.floor(diff / 3600000);
+                diff %= 3600000;
+                const m = Math.floor(diff / 60000);
+                const s = Math.floor((diff % 60000) / 1000);
+                
+                el.textContent = `L'événement commence dans ${d}j ${h}h ${m}m ${s}s ⏳`;
+            });
+        };
+
+        const init = () => {
+            const container = document.getElementById('eventsContainer');
+            events.forEach(ev => container.appendChild(createCard(ev)));
+            updateCountdowns();
+            setInterval(updateCountdowns, 1000);
+        };
+
+        document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', init) : init();
+    </script>
+</body>
+</html>
