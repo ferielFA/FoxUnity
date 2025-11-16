@@ -798,6 +798,7 @@ if ($currentUser && $currentUser->getImage()) {
             const cartCount = document.querySelector('.cart-count');
             if (cartCount) {
                 cartCount.textContent = cart.length;
+                
             }
         });
     </script>
