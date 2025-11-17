@@ -1,3 +1,38 @@
+<?php
+require_once __DIR__ . '/../../controller/EvenementController.php';
+require_once __DIR__ . '/../../controller/ParticipationController.php';
+
+$eventController = new EvenementController();
+$participationController = new ParticipationController();
+
+// Handle delete event
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
+    $eventController->supprimer((int)$_POST['id_evenement']);
+    header("Location: eventsb.php");
+    exit;
+}
+
+// Get all events with participant counts
+$evenements = $eventController->lireTous();
+
+// Calculate statistics
+$totalEvents = count($evenements);
+$upcomingEvents = 0;
+$expiredEvents = 0;
+$totalParticipants = 0;
+$now = new DateTime();
+
+foreach ($evenements as $item) {
+    $event = $item['evenement'];
+    $totalParticipants += $item['nb_participants'];
+    
+    if ($event->getDateFin() < $now) {
+        $expiredEvents++;
+    } else {
+        $upcomingEvents++;
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -235,10 +270,10 @@
     <a href="#">Users</a>
     <a href="#">Shop</a>
     <a href="#">Trade History</a>
-    <a href="eventsb.html" class="active">Events</a>
+    <a href="eventsb.php" class="active">Events</a>
     <a href="#">News</a>
     <a href="#">Support</a>
-    <a href="../front/indexf.html">← Return Homepage</a>
+    <a href="../front/index.php">← Return Homepage</a>
   </div>
 
   <!-- ===== MAIN ===== -->
@@ -261,7 +296,7 @@
             </div>
             <div class="stat-content">
               <div class="stat-label">Total Events</div>
-              <div class="stat-value" id="totalEvents">0</div>
+              <div class="stat-value"><?= $totalEvents ?></div>
             </div>
           </div>
 
@@ -271,7 +306,7 @@
             </div>
             <div class="stat-content">
               <div class="stat-label">Upcoming Events</div>
-              <div class="stat-value" id="upcomingEvents">0</div>
+              <div class="stat-value"><?= $upcomingEvents ?></div>
             </div>
           </div>
 
@@ -281,7 +316,7 @@
             </div>
             <div class="stat-content">
               <div class="stat-label">Expired Events</div>
-              <div class="stat-value" id="expiredEvents">0</div>
+              <div class="stat-value"><?= $expiredEvents ?></div>
             </div>
           </div>
 
@@ -291,7 +326,7 @@
             </div>
             <div class="stat-content">
               <div class="stat-label">Total Participants</div>
-              <div class="stat-value" id="totalParticipants">0</div>
+              <div class="stat-value"><?= $totalParticipants ?></div>
             </div>
           </div>
         </div>
@@ -313,8 +348,55 @@
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody id="eventsTableBody">
-              <!-- Events will be loaded here -->
+            <tbody>
+              <?php if (empty($evenements)): ?>
+                <tr>
+                  <td colspan="7">
+                    <div class="empty-state">
+                      <i class="fas fa-calendar-times"></i>
+                      <p>No events found. Create a new event from the frontend.</p>
+                    </div>
+                  </td>
+                </tr>
+              <?php else: ?>
+                <?php foreach ($evenements as $item): 
+                  $event = $item['evenement'];
+                  $nbParticipants = $item['nb_participants'];
+                  $now = new DateTime();
+                  
+                  // Determine status
+                  if ($event->getDateFin() < $now) {
+                    $statusClass = 'status-expired';
+                    $statusLabel = 'Expired';
+                  } else {
+                    $statusClass = 'status-available';
+                    $statusLabel = 'Available';
+                  }
+                ?>
+                <tr>
+                  <td class="event-title-cell"><?= htmlspecialchars($event->getTitre()) ?></td>
+                  <td><?= htmlspecialchars($event->getLieu()) ?></td>
+                  <td><?= $event->getDateDebut()->format('M d, Y - H:i') ?></td>
+                  <td><?= $event->getDateFin()->format('M d, Y - H:i') ?></td>
+                  <td><?= $nbParticipants ?></td>
+                  <td><span class="status-badge <?= $statusClass ?>"><?= $statusLabel ?></span></td>
+                  <td>
+                    <div class="action-buttons">
+                      <a href="../front/events.php" class="btn-action">
+                        <i class="fas fa-eye"></i> View
+                      </a>
+                      <form method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this event?');">
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="id_evenement" value="<?= $event->getIdEvenement() ?>">
+                        <button type="submit" class="btn-action delete">
+                          <i class="fas fa-trash"></i> Delete
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+                <?php endforeach; ?>
+              <?php endif; ?>
             </tbody>
           </table>
         </div>
@@ -330,139 +412,6 @@
   <div class="transition-screen"></div>
 
   <script>
-    let events = [
-      {
-        id: 1,
-        title: 'Community Tournament',
-        description: 'Join our 2v2 community tournament for prizes and glory!',
-        location: 'Main Arena',
-        start: new Date(Date.now() + 2*24*3600*1000 + 5*3600*1000).toISOString(),
-        end: new Date(Date.now() + 2*24*3600*1000 + 9*3600*1000).toISOString(),
-        participants: 125,
-        maxParticipants: 150
-      },
-      {
-        id: 2,
-        title: 'Dev Workshop',
-        description: 'Hands-on workshop with our dev team.',
-        location: 'Online - Zoom',
-        start: new Date(Date.now() + 6*3600*1000).toISOString(),
-        end: new Date(Date.now() + 10*3600*1000).toISOString(),
-        participants: 50,
-        maxParticipants: 50
-      },
-      {
-        id: 3,
-        title: 'Charity Stream',
-        description: 'A 4-hour charity stream with special guests.',
-        location: 'Twitch',
-        start: new Date(Date.now() + 5*24*3600*1000).toISOString(),
-        end: new Date(Date.now() + 5*24*3600*1000 + 4*3600*1000).toISOString(),
-        participants: 317,
-        maxParticipants: 500
-      }
-    ];
-
-    function getEventStatus(event) {
-      const now = Date.now();
-      const endTime = Date.parse(event.end);
-      
-      if (endTime < now) {
-        return { status: 'expired', label: 'Expired', class: 'status-expired' };
-      }
-      
-      if (event.participants >= event.maxParticipants) {
-        return { status: 'full', label: 'Full', class: 'status-full' };
-      }
-      
-      return { status: 'available', label: 'Available', class: 'status-available' };
-    }
-
-    function formatDateTime(isoString) {
-      const date = new Date(isoString);
-      return date.toLocaleString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric', 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
-    }
-
-    function renderEvents() {
-      const tbody = document.getElementById('eventsTableBody');
-      
-      if (events.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="7">
-              <div class="empty-state">
-                <i class="fas fa-calendar-times"></i>
-                <p>No events found. Click "Add New Event" to create one.</p>
-              </div>
-            </td>
-          </tr>
-        `;
-        updateStatistics();
-        return;
-      }
-
-      tbody.innerHTML = events.map(event => {
-        const statusInfo = getEventStatus(event);
-        return `
-          <tr>
-            <td class="event-title-cell">${event.title}</td>
-            <td>${event.location}</td>
-            <td>${formatDateTime(event.start)}</td>
-            <td>${formatDateTime(event.end)}</td>
-            <td>${event.participants} / ${event.maxParticipants}</td>
-            <td><span class="status-badge ${statusInfo.class}">${statusInfo.label}</span></td>
-            <td>
-              <div class="action-buttons">
-                <button class="btn-action" onclick="editEvent(${event.id})">
-                  <i class="fas fa-edit"></i> Edit
-                </button>
-                <button class="btn-action delete" onclick="deleteEvent(${event.id})">
-                  <i class="fas fa-trash"></i> Delete
-                </button>
-              </div>
-            </td>
-          </tr>
-        `;
-      }).join('');
-      
-      updateStatistics();
-    }
-
-    function updateStatistics() {
-      const now = Date.now();
-      
-      // Total events
-      document.getElementById('totalEvents').textContent = events.length;
-      
-      // Upcoming events (not expired)
-      const upcomingCount = events.filter(e => Date.parse(e.end) >= now).length;
-      document.getElementById('upcomingEvents').textContent = upcomingCount;
-      
-      // Expired events
-      const expiredCount = events.filter(e => Date.parse(e.end) < now).length;
-      document.getElementById('expiredEvents').textContent = expiredCount;
-      
-      // Total participants
-      const totalParticipants = events.reduce((sum, e) => sum + e.participants, 0);
-      document.getElementById('totalParticipants').textContent = totalParticipants;
-    }
-
-    function deleteEvent(id) {
-      if (confirm('Are you sure you want to delete this event?')) {
-        events = events.filter(e => e.id !== id);
-        renderEvents();
-      }
-    }
-
-    // Initial render
-    renderEvents();
-
     // Page transition
     window.addEventListener("load", () => {
       document.querySelector(".transition-screen").classList.add("hidden");
