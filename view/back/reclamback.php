@@ -1,9 +1,51 @@
+<?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+session_start();
+
+// Inclure les contrôleurs
+require_once __DIR__ . '/../../controllers/ReclamationController.php';
+
+$reclamationController = new ReclamationController();
+
+// Traitement de la suppression
+if (isset($_GET['delete_id'])) {
+    $result = $reclamationController->deleteReclamation($_GET['delete_id']);
+    if ($result) {
+        header("Location: reclamback.php?deleted=1");
+        exit;
+    }
+}
+
+$allReclamations = $reclamationController->getAllReclamations();
+
+// Statistiques
+$totalReclamations = count($allReclamations);
+$nouveauCount = 0;
+$enCoursCount = 0;
+$resoluCount = 0;
+
+foreach ($allReclamations as $reclamation) {
+    switch ($reclamation['statut']) {
+        case 'nouveau':
+            $nouveauCount++;
+            break;
+        case 'en_cours':
+            $enCoursCount++;
+            break;
+        case 'resolu':
+            $resoluCount++;
+            break;
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FoxUnity - Gestion des Avis</title>
+    <title>FoxUnity - Dashboard Support</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
     
@@ -357,6 +399,32 @@
             color: var(--warning-color);
         }
         
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-badge.status-nouveau {
+            background: rgba(255, 122, 0, 0.2);
+            color: #ff7a00;
+            border: 1px solid rgba(255, 122, 0, 0.4);
+        }
+        
+        .status-badge.status-en_cours {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+            border: 1px solid rgba(255, 193, 7, 0.4);
+        }
+        
+        .status-badge.status-resolu {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+            border: 1px solid rgba(76, 175, 80, 0.4);
+        }
+        
         .review-content {
             margin-bottom: 20px;
         }
@@ -608,20 +676,21 @@
         <div class="sidebar">
             <img src="../images/Nine__1_-removebg-preview.png" alt="Nine Tailed Fox Logo" class="dashboard-logo">
             <h2>Dashboard</h2>
-            <a href="#"><i class="fas fa-tachometer-alt"></i> <span>Overview</span></a>
+            <a href="dashboard.html"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a>
             <a href="#"><i class="fas fa-users"></i> <span>Users</span></a>
             <a href="#"><i class="fas fa-shopping-cart"></i> <span>Shop</span></a>
             <a href="#"><i class="fas fa-exchange-alt"></i> <span>Trade History</span></a>
             <a href="#"><i class="fas fa-calendar-alt"></i> <span>Events</span></a>
             <a href="#"><i class="fas fa-newspaper"></i> <span>News</span></a>
             <a href="#" class="active"><i class="fas fa-headset"></i> <span>Support</span></a>
-            <a href="../front/indexf.html"><i class="fas fa-arrow-left"></i> <span>Return Homepage</span></a>
+            <a href="../front/reclamation.php"><i class="fas fa-comments"></i> <span>Support Page</span></a>
+            <a href="../front/indexf.html"><i class="fas fa-home"></i> <span>Homepage</span></a>
         </div>
 
         <!-- Main Content -->
         <div class="main">
             <div class="topbar">
-                <h1>Gestion des Avis Utilisateurs</h1>
+                <h1>Dashboard <span>Support</span></h1>
                 <div class="user">
                     <img src="../images/meriem.png" alt="User Avatar">
                     <span>FoxLeader</span>
@@ -632,11 +701,11 @@
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-icon reviews">
-                        <i class="fas fa-star"></i>
+                        <i class="fas fa-headset"></i>
                     </div>
                     <div class="stat-info">
-                        <h3>Avis Totaux</h3>
-                        <div class="stat-value">247</div>
+                        <h3>Total Requests</h3>
+                        <div class="stat-value"><?php echo $totalReclamations; ?></div>
                     </div>
                 </div>
                 
@@ -645,203 +714,132 @@
                         <i class="fas fa-clock"></i>
                     </div>
                     <div class="stat-info">
-                        <h3>En Attente</h3>
-                        <div class="stat-value">12</div>
+                        <h3>New</h3>
+                        <div class="stat-value"><?php echo $nouveauCount; ?></div>
                     </div>
                 </div>
                 
                 <div class="stat-card">
                     <div class="stat-icon responded">
-                        <i class="fas fa-reply"></i>
+                        <i class="fas fa-spinner"></i>
                     </div>
                     <div class="stat-info">
-                        <h3>Réponses</h3>
-                        <div class="stat-value">189</div>
+                        <h3>In Progress</h3>
+                        <div class="stat-value"><?php echo $enCoursCount; ?></div>
                     </div>
                 </div>
                 
-                
+                <div class="stat-card">
+                    <div class="stat-icon rating">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Resolved</h3>
+                        <div class="stat-value"><?php echo $resoluCount; ?></div>
+                    </div>
+                </div>
             </div>
             
             <!-- Filters -->
             <div class="filters-section">
                 <div class="filters-row">
                     <div class="filter-group">
-                        <label class="filter-label">Statut</label>
+                        <label class="filter-label">Status</label>
                         <select class="filter-select" id="status-filter">
-                            <option value="all">Tous les avis</option>
-                            <option value="pending">En attente de réponse</option>
-                            <option value="responded">Répondu</option>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label class="filter-label">Note</label>
-                        <select class="filter-select" id="rating-filter">
-                            <option value="all">Toutes les notes</option>
-                            <option value="5">5 étoiles</option>
-                            <option value="4">4 étoiles</option>
-                            <option value="3">3 étoiles</option>
-                            <option value="2">2 étoiles</option>
-                            <option value="1">1 étoile</option>
+                            <option value="all">All Requests</option>
+                            <option value="nouveau">New</option>
+                            <option value="en_cours">In Progress</option>
+                            <option value="resolu">Resolved</option>
                         </select>
                     </div>
                     
                     <div class="filter-group">
                         <label class="filter-label">Date</label>
                         <select class="filter-select" id="date-filter">
-                            <option value="all">Toutes les dates</option>
-                            <option value="today">Aujourd'hui</option>
-                            <option value="week">Cette semaine</option>
-                            <option value="month">Ce mois</option>
+                            <option value="all">All Dates</option>
+                            <option value="today">Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
                         </select>
                     </div>
                     
                     <div class="filter-actions">
                         <button class="btn" id="apply-filters">
-                            <i class="fas fa-filter"></i> Appliquer
+                            <i class="fas fa-filter"></i> Apply
                         </button>
                         <button class="btn btn-outline" id="reset-filters">
-                            <i class="fas fa-redo"></i> Réinitialiser
+                            <i class="fas fa-redo"></i> Reset
                         </button>
                     </div>
                 </div>
             </div>
             
-            <!-- Reviews List -->
+            <!-- Support Requests List -->
             <div class="reviews-section">
                 <div class="section-header">
-                    <h2>Avis des <span>Utilisateurs</span></h2>
+                    <h2>All <span>Requests</span></h2>
                     <div class="review-count">
-                        Affichage de <span id="display-count">8</span> sur <span id="total-count">247</span> avis
+                        Showing <span id="display-count"><?php echo $totalReclamations; ?></span> of <span id="total-count"><?php echo $totalReclamations; ?></span> requests
                     </div>
                 </div>
                 
                 <div class="reviews-list" id="reviews-list">
-                    <!-- Review 1 -->
-                    <div class="review-card">
-                        <div class="review-header">
-                            <div class="review-user">
-                                <div class="user-avatar-small">JD</div>
-                                <div class="user-info">
-                                    <h4>JohnDoe</h4>
-                                    <p>Membre depuis 2024</p>
+                    <?php if (empty($allReclamations)): ?>
+                        <div class="review-card">
+                            <p style="text-align: center; color: var(--text-gray); padding: 40px;">
+                                <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 20px; display: block; opacity: 0.5;"></i>
+                                No support requests yet.
+                            </p>
+                        </div>
+                    <?php else: ?>
+                        <?php foreach ($allReclamations as $reclamation): ?>
+                            <div class="review-card" data-status="<?php echo $reclamation['statut']; ?>" data-date="<?php echo $reclamation['date_creation']; ?>">
+                                <div class="review-header">
+                                    <div class="review-user">
+                                        <div class="user-avatar-small"><?php echo strtoupper(substr($reclamation['full_name'], 0, 2)); ?></div>
+                                        <div class="user-info">
+                                            <h4><?php echo htmlspecialchars($reclamation['full_name']); ?></h4>
+                                            <p><?php echo htmlspecialchars($reclamation['email']); ?></p>
+                                        </div>
+                                    </div>
+                                    <div class="review-rating">
+                                        <span class="status-badge status-<?php echo $reclamation['statut']; ?>">
+                                            <?php 
+                                            $statusText = [
+                                                'nouveau' => 'New',
+                                                'en_cours' => 'In Progress',
+                                                'resolu' => 'Resolved'
+                                            ];
+                                            echo $statusText[$reclamation['statut']] ?? $reclamation['statut'];
+                                            ?>
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div class="review-content">
+                                    <h5 style="color: var(--primary-color); margin-bottom: 10px;"><?php echo htmlspecialchars($reclamation['subject']); ?></h5>
+                                    <p class="review-text">
+                                        <?php echo htmlspecialchars($reclamation['message']); ?>
+                                    </p>
+                                    <div class="review-date">
+                                        <i class="far fa-calendar"></i> Posted on <?php echo date('M j, Y H:i', strtotime($reclamation['date_creation'])); ?>
+                                    </div>
+                                </div>
+                                
+                                <div class="review-actions">
+                                    <button class="action-btn view-request" data-id="<?php echo $reclamation['id_reclamation']; ?>">
+                                        <i class="fas fa-eye"></i> View Details
+                                    </button>
+                                    <button class="action-btn edit-status" data-id="<?php echo $reclamation['id_reclamation']; ?>" data-status="<?php echo $reclamation['statut']; ?>">
+                                        <i class="fas fa-edit"></i> Update Status
+                                    </button>
+                                    <button class="action-btn delete" data-id="<?php echo $reclamation['id_reclamation']; ?>">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
                                 </div>
                             </div>
-                            <div class="review-rating">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <span>5.0</span>
-                            </div>
-                        </div>
-                        
-                        <div class="review-content">
-                            <p class="review-text">
-                                Excellente plateforme ! J'ai pu échanger mes skins facilement et rapidement. 
-                                L'interface est intuitive et le système de dons automatiques est une super initiative.
-                            </p>
-                            <div class="review-date">Posté le 15 Nov 2025</div>
-                        </div>
-                        
-                        <div class="review-response">
-                            <div class="response-header">
-                                <h5>Réponse de l'administrateur</h5>
-                                <div class="review-date">15 Nov 2025</div>
-                            </div>
-                            <p class="response-text">
-                                Merci John pour votre retour ! Nous sommes ravis que l'expérience vous ait plu. 
-                                N'hésitez pas à participer à nos prochains événements !
-                            </p>
-                        </div>
-                        
-                        <div class="review-actions">
-                            <button class="action-btn edit-response" data-review="1">
-                                <i class="fas fa-edit"></i> Modifier la réponse
-                            </button>
-                            <button class="action-btn delete" data-review="1">
-                                <i class="fas fa-trash"></i> Supprimer
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Review 2 -->
-                    <div class="review-card">
-                        <div class="review-header">
-                            <div class="review-user">
-                                <div class="user-avatar-small">GP</div>
-                                <div class="user-info">
-                                    <h4>GamerPro</h4>
-                                    <p>Membre depuis 2023</p>
-                                </div>
-                            </div>
-                            <div class="review-rating">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="far fa-star"></i>
-                                <span>4.0</span>
-                            </div>
-                        </div>
-                        
-                        <div class="review-content">
-                            <p class="review-text">
-                                Bonne plateforme dans l'ensemble, mais j'ai rencontré un petit problème avec un paiement. 
-                                Le support a été réactif mais la résolution a pris un peu de temps.
-                            </p>
-                            <div class="review-date">Posté le 14 Nov 2025</div>
-                        </div>
-                        
-                        <div class="review-actions">
-                            <button class="action-btn add-response" data-review="2">
-                                <i class="fas fa-reply"></i> Répondre
-                            </button>
-                            <button class="action-btn delete" data-review="2">
-                                <i class="fas fa-trash"></i> Supprimer
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Review 3 -->
-                    <div class="review-card">
-                        <div class="review-header">
-                            <div class="review-user">
-                                <div class="user-avatar-small">ST</div>
-                                <div class="user-info">
-                                    <h4>SkinTrader</h4>
-                                    <p>Membre depuis 2025</p>
-                                </div>
-                            </div>
-                            <div class="review-rating">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="far fa-star"></i>
-                                <i class="far fa-star"></i>
-                                <span>3.0</span>
-                            </div>
-                        </div>
-                        
-                        <div class="review-content">
-                            <p class="review-text">
-                                Le concept est intéressant mais j'ai trouvé les frais un peu élevés par rapport à d'autres plateformes. 
-                                L'aspect charitable est un plus cependant.
-                            </p>
-                            <div class="review-date">Posté le 13 Nov 2025</div>
-                        </div>
-                        
-                        <div class="review-actions">
-                            <button class="action-btn add-response" data-review="3">
-                                <i class="fas fa-reply"></i> Répondre
-                            </button>
-                            <button class="action-btn delete" data-review="3">
-                                <i class="fas fa-trash"></i> Supprimer
-                            </button>
-                        </div>
-                    </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -885,7 +883,7 @@
                 <button class="close-modal">&times;</button>
             </div>
             
-            <p>Êtes-vous sûr de vouloir supprimer cet avis ? Cette action est irréversible.</p>
+            <p>Are you sure you want to delete this request? This action is irreversible.</p>
             
             <div class="modal-actions">
                 <button type="button" class="btn btn-outline" id="cancel-delete">Annuler</button>
@@ -946,8 +944,8 @@
         // Open delete modal
         document.querySelectorAll('.action-btn.delete').forEach(button => {
             button.addEventListener('click', function() {
-                const reviewId = this.getAttribute('data-review');
-                deleteModal.setAttribute('data-review', reviewId);
+                const requestId = this.getAttribute('data-id');
+                deleteModal.setAttribute('data-id', requestId);
                 deleteModal.classList.add('active');
             });
         });
@@ -983,35 +981,71 @@
         
         // Confirm delete
         document.getElementById('confirm-delete').addEventListener('click', function() {
-            const reviewId = deleteModal.getAttribute('data-review');
+            const requestId = deleteModal.getAttribute('data-id');
             
-            // In a real application, you would send this to the server
-            console.log(`Deleting review ${reviewId}`);
-            
-            // Close modal and show success message
-            closeModals();
-            alert('Avis supprimé avec succès!');
+            if (requestId) {
+                // Redirect to delete
+                window.location.href = 'reclamback.php?delete_id=' + requestId;
+            } else {
+                closeModals();
+            }
         });
         
         // Apply filters
         document.getElementById('apply-filters').addEventListener('click', function() {
             const status = document.getElementById('status-filter').value;
-            const rating = document.getElementById('rating-filter').value;
             const date = document.getElementById('date-filter').value;
             
-            // In a real application, you would filter the reviews
-            console.log(`Filtering by: Status=${status}, Rating=${rating}, Date=${date}`);
+            const cards = document.querySelectorAll('.review-card');
+            let visibleCount = 0;
             
-            alert('Filtres appliqués!');
+            cards.forEach(card => {
+                const cardStatus = card.getAttribute('data-status');
+                const cardDate = new Date(card.getAttribute('data-date'));
+                const today = new Date();
+                let showCard = true;
+                
+                // Filter by status
+                if (status !== 'all' && cardStatus !== status) {
+                    showCard = false;
+                }
+                
+                // Filter by date
+                if (date !== 'all' && showCard) {
+                    const diffTime = today - cardDate;
+                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    if (date === 'today' && diffDays !== 0) {
+                        showCard = false;
+                    } else if (date === 'week' && diffDays > 7) {
+                        showCard = false;
+                    } else if (date === 'month' && diffDays > 30) {
+                        showCard = false;
+                    }
+                }
+                
+                if (showCard) {
+                    card.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            document.getElementById('display-count').textContent = visibleCount;
         });
         
         // Reset filters
         document.getElementById('reset-filters').addEventListener('click', function() {
             document.getElementById('status-filter').value = 'all';
-            document.getElementById('rating-filter').value = 'all';
             document.getElementById('date-filter').value = 'all';
             
-            alert('Filtres réinitialisés!');
+            const cards = document.querySelectorAll('.review-card');
+            cards.forEach(card => {
+                card.style.display = 'block';
+            });
+            
+            document.getElementById('display-count').textContent = cards.length;
         });
         
         // Simple sidebar navigation

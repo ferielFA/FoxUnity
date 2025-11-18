@@ -1,15 +1,114 @@
+<?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+session_start();
+
+// Inclure les contrôleurs
+require_once __DIR__ . '/../../controllers/ReclamationController.php';
+
+$reclamationController = new ReclamationController();
+$userReclamations = [];
+$successMessage = '';
+$errorMessage = '';
+
+// Récupérer les réclamations si l'utilisateur a soumis un formulaire ou après l'envoi
+if (isset($_POST['email']) && !empty($_POST['email'])) {
+    $userReclamations = $reclamationController->getReclamationsByEmail($_POST['email']);
+} elseif (isset($_SESSION['user_email']) && !empty($_SESSION['user_email'])) {
+    $userReclamations = $reclamationController->getReclamationsByEmail($_SESSION['user_email']);
+}
+
+// Traitement du formulaire
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['full_name'])) {
+    $reclamation = new Reclamation(
+        $_POST['full_name'],
+        $_POST['email'],
+        $_POST['subject'],
+        $_POST['message']
+    );
+    
+    $result = $reclamationController->addReclamation($reclamation);
+    if ($result) {
+        $successMessage = "Message sent successfully! We'll get back to you soon.";
+        // Sauvegarder l'email en session pour récupérer les réclamations
+        $_SESSION['user_email'] = $_POST['email'];
+        // Recharger les réclamations
+        $userReclamations = $reclamationController->getReclamationsByEmail($_POST['email']);
+    } else {
+        $errorMessage = "Something went wrong. Please try again.";
+    }
+}
+
+// Traitement de la suppression
+if (isset($_GET['delete_id'])) {
+    $result = $reclamationController->deleteReclamation($_GET['delete_id']);
+    if ($result) {
+        $successMessage = "Request deleted successfully!";
+        // Recharger les réclamations si email en session
+        if (isset($_SESSION['user_email']) && !empty($_SESSION['user_email'])) {
+            $userReclamations = $reclamationController->getReclamationsByEmail($_SESSION['user_email']);
+        } elseif (isset($_POST['email']) && !empty($_POST['email'])) {
+            $userReclamations = $reclamationController->getReclamationsByEmail($_POST['email']);
+        }
+    } else {
+        $errorMessage = "Error deleting request.";
+    }
+    // Rediriger pour éviter la resoumission
+    $redirectUrl = str_replace("?delete_id=" . $_GET['delete_id'], "", $_SERVER['REQUEST_URI']);
+    header("Location: " . $redirectUrl);
+    exit;
+}
+
+// Traitement pour récupérer une réclamation par ID (pour View et Edit via AJAX)
+if (isset($_GET['view_id']) && isset($_GET['ajax'])) {
+    header('Content-Type: application/json');
+    $selectedReclamation = $reclamationController->getReclamationById($_GET['view_id']);
+    if ($selectedReclamation) {
+        echo json_encode($selectedReclamation);
+    } else {
+        echo json_encode(['error' => 'Reclamation not found']);
+    }
+    exit;
+}
+
+// Traitement pour l'édition d'une réclamation
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
+    $reclamation = new Reclamation(
+        $_POST['full_name'],
+        $_POST['email'],
+        $_POST['subject'],
+        $_POST['message'],
+        $_POST['statut'] ?? 'nouveau'
+    );
+    $reclamation->setIdReclamation($_POST['edit_id']);
+    
+    $result = $reclamationController->updateReclamation($reclamation);
+    if ($result) {
+        $successMessage = "Request updated successfully!";
+        // Recharger les réclamations
+        if (isset($_SESSION['user_email']) && !empty($_SESSION['user_email'])) {
+            $userReclamations = $reclamationController->getReclamationsByEmail($_SESSION['user_email']);
+        } elseif (isset($_POST['email']) && !empty($_POST['email'])) {
+            $userReclamations = $reclamationController->getReclamationsByEmail($_POST['email']);
+        }
+    } else {
+        $errorMessage = "Error updating request. Please try again.";
+    }
+}
+
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FoxUnity - Support Center</title>
+    <title>FoxUnity - Gaming for Good</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
-        /* Votre CSS existant reste inchangé */
         .cart-icon {
             color: #ff7a00 !important;
             position: relative;
@@ -152,7 +251,6 @@
             line-height: 1.6;
         }
 
-        /* NOUVEAU STYLE POUR LA SECTION MES RÉCLAMATIONS */
         .my-reclamations-section {
             padding: 80px 40px;
             background: linear-gradient(135deg, rgba(10, 10, 10, 0.5) 0%, rgba(255, 122, 0, 0.05) 100%);
@@ -229,19 +327,19 @@
             text-transform: uppercase;
         }
 
-        .status-new {
+        .status-nouveau, .status-new {
             background: rgba(255, 122, 0, 0.2);
             color: #ff7a00;
             border: 1px solid rgba(255, 122, 0, 0.4);
         }
 
-        .status-in-progress {
+        .status-en_cours, .status-in-progress {
             background: rgba(255, 193, 7, 0.2);
             color: #ffc107;
             border: 1px solid rgba(255, 193, 7, 0.4);
         }
 
-        .status-resolved {
+        .status-resolu, .status-resolved {
             background: rgba(76, 175, 80, 0.2);
             color: #4caf50;
             border: 1px solid rgba(76, 175, 80, 0.4);
@@ -266,9 +364,6 @@
             line-height: 1.6;
             margin-bottom: 20px;
             font-size: 14px;
-            max-height: 60px;
-            overflow: hidden;
-            position: relative;
         }
 
         .reclamation-message.expanded {
@@ -276,13 +371,21 @@
         }
 
         .read-more {
-            background: none;
-            border: none;
+            background: transparent;
+            border: 1px solid rgba(255, 122, 0, 0.3);
             color: #ff7a00;
+            padding: 8px 16px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 12px;
-            padding: 0;
-            margin-top: 5px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+
+        .read-more:hover {
+            background: rgba(255, 122, 0, 0.1);
+            border-color: #ff7a00;
         }
 
         .reclamation-actions {
@@ -302,6 +405,7 @@
             display: flex;
             align-items: center;
             gap: 5px;
+            text-decoration: none;
         }
 
         .btn-view {
@@ -346,7 +450,6 @@
             margin-bottom: 10px;
         }
 
-        /* Le reste de votre CSS existant reste inchangé */
         .contact-form-section {
             padding: 60px 40px;
             background: linear-gradient(135deg, rgba(10, 10, 10, 0.5) 0%, rgba(255, 122, 0, 0.05) 100%);
@@ -358,6 +461,12 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 60px;
+        }
+
+        @media (max-width: 968px) {
+            .contact-container {
+                grid-template-columns: 1fr;
+            }
         }
 
         .contact-info {
@@ -467,6 +576,7 @@
             font-size: 15px;
             transition: all 0.3s ease;
             font-family: 'Poppins', sans-serif;
+            box-sizing: border-box;
         }
 
         .form-textarea {
@@ -532,6 +642,33 @@
             transform: none;
         }
 
+        .message {
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .message.show {
+            display: flex;
+        }
+
+        .success-message {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid rgba(76, 175, 80, 0.4);
+            color: #4caf50;
+        }
+
+        .error-message {
+            background: rgba(220, 53, 69, 0.2);
+            border: 1px solid rgba(220, 53, 69, 0.4);
+            color: #dc3545;
+        }
+
         .faq-section {
             padding: 80px 40px;
             max-width: 1000px;
@@ -565,11 +702,10 @@
 
         .faq-question {
             padding: 25px 30px;
-            cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 20px;
+            cursor: pointer;
             transition: all 0.3s ease;
         }
 
@@ -578,15 +714,13 @@
         }
 
         .faq-question h3 {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Orbitron', sans-serif;
             font-size: 18px;
-            font-weight: 600;
             color: #fff;
             margin: 0;
         }
 
         .faq-icon {
-            font-size: 20px;
             color: #ff7a00;
             transition: transform 0.3s ease;
         }
@@ -612,57 +746,78 @@
             font-size: 15px;
         }
 
-        .message {
+        .modal {
             display: none;
-            padding: 15px 20px;
-            border-radius: 12px;
-            margin-bottom: 25px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
             align-items: center;
-            gap: 10px;
+            justify-content: center;
         }
 
-        .message.show {
+        .modal-content {
+            background: linear-gradient(135deg, rgba(20, 20, 20, 0.95) 0%, rgba(10, 10, 10, 0.95) 100%);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-header {
             display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
         }
 
-        .success-message {
-            background: rgba(76, 175, 80, 0.1);
-            border: 2px solid #4caf50;
-            color: #4caf50;
+        .modal-header h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            color: #fff;
         }
 
-        .error-message {
-            background: rgba(244, 67, 54, 0.1);
-            border: 2px solid #f44336;
-            color: #f44336;
+        .modal-header h3 span {
+            color: #ff7a00;
         }
 
-        @media (max-width: 968px) {
-            .contact-container {
-                grid-template-columns: 1fr;
-                gap: 40px;
-            }
+        .close-modal {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 32px;
+            cursor: pointer;
+            transition: color 0.3s;
+            line-height: 1;
+        }
 
-            .support-hero h1 {
-                font-size: 36px;
-            }
+        .close-modal:hover {
+            color: #ff7a00;
+        }
 
-            .quick-links-grid {
-                grid-template-columns: 1fr;
-            }
+        .modal-body {
+            color: #ccc;
+            line-height: 1.8;
+        }
 
-            .contact-form-wrapper {
-                padding: 35px 25px;
-            }
+        .modal-body p {
+            margin-bottom: 15px;
+        }
 
-            .reclamations-grid {
-                grid-template-columns: 1fr;
-            }
+        .modal-body strong {
+            color: #fff;
         }
     </style>
 </head>
 <body>
-    
+    <!-- Animated red bubbles -->
     <div class="bubbles">
         <div class="bubble"></div>
         <div class="bubble"></div>
@@ -674,7 +829,7 @@
         <div class="bubble"></div>
     </div>
 
-    
+    <!-- HEADER -->
     <header class="site-header">
         <div class="logo-section">
             <img src="../images/Nine__1_-removebg-preview.png" alt="FoxUnity Logo" class="site-logo">
@@ -687,7 +842,7 @@
             <a href="shop.html">Shop</a>
             <a href="trading.html">Trading</a>
             <a href="news.html">News</a>
-            <a href="reclamation.html" class="active">Support</a>
+            <a href="reclamation.php" class="active">Support</a>
             <a href="about.html">About Us</a>
         </nav>
         
@@ -705,7 +860,7 @@
         </div>
     </header>
 
-    <main>
+    <main class="main-section">
       
         <section class="support-hero">
             <div class="support-hero-icon">
@@ -752,12 +907,59 @@
                 </div>
 
                 <div class="reclamations-grid" id="reclamations-list">
-                    <!-- Les réclamations seront chargées ici dynamiquement -->
-                    <div class="no-reclamations">
-                        <i class="fas fa-inbox"></i>
-                        <h3>No Requests Yet</h3>
-                        <p>Submit your first support request using the form below</p>
-                    </div>
+                    <?php if (empty($userReclamations)): ?>
+                        <div class="no-reclamations">
+                            <i class="fas fa-inbox"></i>
+                            <h3>No Requests Yet</h3>
+                            <p>Submit your first support request using the form below</p>
+                        </div>
+                    <?php else: ?>
+                        <?php foreach ($userReclamations as $reclamation): ?>
+                            <div class="reclamation-card">
+                                <div class="reclamation-header">
+                                    <h3 class="reclamation-subject"><?php echo htmlspecialchars($reclamation['subject']); ?></h3>
+                                    <span class="reclamation-status status-<?php echo $reclamation['statut']; ?>">
+                                        <?php 
+                                        $statusText = [
+                                            'nouveau' => 'New',
+                                            'en_cours' => 'In Progress', 
+                                            'resolu' => 'Resolved'
+                                        ];
+                                        echo $statusText[$reclamation['statut']] ?? $reclamation['statut'];
+                                        ?>
+                                    </span>
+                                </div>
+                                <div class="reclamation-meta">
+                                    <div class="reclamation-date">
+                                        <i class="far fa-calendar"></i>
+                                        <?php echo date('M j, Y', strtotime($reclamation['date_creation'])); ?>
+                                    </div>
+                                </div>
+                                <div class="reclamation-message" id="message-<?php echo $reclamation['id_reclamation']; ?>">
+                                    <?php 
+                                    $message = htmlspecialchars($reclamation['message']);
+                                    echo strlen($message) > 100 ? substr($message, 0, 100) . '...' : $message;
+                                    ?>
+                                </div>
+                                <?php if (strlen($message) > 100): ?>
+                                    <button class="read-more" onclick="toggleMessage(<?php echo $reclamation['id_reclamation']; ?>, '<?php echo addslashes($message); ?>')">
+                                        Read more
+                                    </button>
+                                <?php endif; ?>
+                                <div class="reclamation-actions">
+                                    <button class="action-btn btn-view" onclick="viewReclamation(<?php echo $reclamation['id_reclamation']; ?>)">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                    <button class="action-btn btn-edit" onclick="editReclamation(<?php echo $reclamation['id_reclamation']; ?>)">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <a href="reclamation.php?delete_id=<?php echo $reclamation['id_reclamation']; ?>" class="action-btn btn-delete" onclick="return confirm('Are you sure you want to delete this request?')">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </a>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </div>
             </div>
         </section>
@@ -818,46 +1020,52 @@
 
                 
                 <div class="contact-form-wrapper">
-                    <div id="success-message" class="message success-message">
-                        <i class="fas fa-check-circle"></i>
-                        <span>Message sent successfully! We'll get back to you soon.</span>
-                    </div>
+                    <?php if ($successMessage): ?>
+                        <div id="success-message" class="message success-message show">
+                            <i class="fas fa-check-circle"></i>
+                            <span><?php echo $successMessage; ?></span>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <?php if ($errorMessage): ?>
+                        <div id="error-message" class="message error-message show">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <span><?php echo $errorMessage; ?></span>
+                        </div>
+                    <?php endif; ?>
 
-                    <div id="error-message" class="message error-message">
-                        <i class="fas fa-exclamation-circle"></i>
-                        <span>Something went wrong. Please try again.</span>
-                    </div>
-
-                    <form id="support-form">
+                    <form id="support-form" method="POST" action="">
                         <div class="form-group">
                             <label class="form-label">Full Name *</label>
-                            <input type="text" class="form-input" placeholder="Enter your full name" required>
+                            <input type="text" name="full_name" class="form-input" placeholder="Enter your full name" required 
+                                   value="<?php echo isset($_POST['full_name']) ? htmlspecialchars($_POST['full_name']) : ''; ?>">
                         </div>
 
                         <div class="form-group">
                             <label class="form-label">Email Address *</label>
-                            <input type="email" class="form-input" placeholder="your.email@example.com" required>
+                            <input type="email" name="email" class="form-input" placeholder="your.email@example.com" required
+                                   value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
                         </div>
 
                         <div class="form-group">
                             <label class="form-label">Subject *</label>
-                            <select class="form-select" required>
+                            <select name="subject" class="form-select" required>
                                 <option value="">Select a subject</option>
-                                <option value="account">Account Issues</option>
-                                <option value="payment">Payment & Billing</option>
-                                <option value="technical">Technical Support</option>
-                                <option value="shop">Shop & Orders</option>
-                                <option value="trading">Trading Issues</option>
-                                <option value="events">Events & Tournaments</option>
-                                <option value="charity">Charity & Donations</option>
-                                <option value="feedback">Feedback & Suggestions</option>
-                                <option value="other">Other</option>
+                                <option value="Account Issues" <?php echo (isset($_POST['subject']) && $_POST['subject'] == 'Account Issues') ? 'selected' : ''; ?>>Account Issues</option>
+                                <option value="Payment & Billing" <?php echo (isset($_POST['subject']) && $_POST['subject'] == 'Payment & Billing') ? 'selected' : ''; ?>>Payment & Billing</option>
+                                <option value="Technical Support" <?php echo (isset($_POST['subject']) && $_POST['subject'] == 'Technical Support') ? 'selected' : ''; ?>>Technical Support</option>
+                                <option value="Shop & Orders" <?php echo (isset($_POST['subject']) && $_POST['subject'] == 'Shop & Orders') ? 'selected' : ''; ?>>Shop & Orders</option>
+                                <option value="Trading Issues" <?php echo (isset($_POST['subject']) && $_POST['subject'] == 'Trading Issues') ? 'selected' : ''; ?>>Trading Issues</option>
+                                <option value="Events & Tournaments" <?php echo (isset($_POST['subject']) && $_POST['subject'] == 'Events & Tournaments') ? 'selected' : ''; ?>>Events & Tournaments</option>
+                                <option value="Charity & Donations" <?php echo (isset($_POST['subject']) && $_POST['subject'] == 'Charity & Donations') ? 'selected' : ''; ?>>Charity & Donations</option>
+                                <option value="Feedback & Suggestions" <?php echo (isset($_POST['subject']) && $_POST['subject'] == 'Feedback & Suggestions') ? 'selected' : ''; ?>>Feedback & Suggestions</option>
+                                <option value="Other" <?php echo (isset($_POST['subject']) && $_POST['subject'] == 'Other') ? 'selected' : ''; ?>>Other</option>
                             </select>
                         </div>
 
                         <div class="form-group">
                             <label class="form-label">Message *</label>
-                            <textarea class="form-textarea" placeholder="Describe your issue or question in detail..." required></textarea>
+                            <textarea name="message" class="form-textarea" placeholder="Describe your issue or question in detail..." required><?php echo isset($_POST['message']) ? htmlspecialchars($_POST['message']) : ''; ?></textarea>
                         </div>
 
                         <button type="submit" class="submit-btn">
@@ -995,7 +1203,7 @@
             </div>
             <div class="footer-section">
                 <h4>Support</h4>
-                <a href="reclamation.html">Contact Support</a>
+                <a href="reclamation.php">Contact Support</a>
                 <a href="#">FAQ</a>
                 <a href="#">Privacy Policy</a>
             </div>
@@ -1012,6 +1220,9 @@
                 <a href="../back/dashboard.html" class="dashboard-link">
                     <i class="fas fa-tachometer-alt"></i> My Dashboard
                 </a>
+                <a href="../back/reclamback.php" class="dashboard-link" style="margin-top: 10px; display: block;">
+                    <i class="fas fa-headset"></i> Dashboard Support
+                </a>
             </div>
         </div>
         <div class="footer-bottom">
@@ -1019,132 +1230,177 @@
         </div>
     </footer>
 
+    <!-- Modal pour View -->
+    <div id="view-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>View <span>Request</span></h3>
+                <button class="close-modal" onclick="closeModal('view-modal')">&times;</button>
+            </div>
+            <div class="modal-body" id="view-modal-body">
+                <!-- Le contenu sera chargé via JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal pour Edit -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit <span>Request</span></h3>
+                <button class="close-modal" onclick="closeModal('edit-modal')">&times;</button>
+            </div>
+            <div class="modal-body" id="edit-modal-body">
+                <!-- Le formulaire d'édition sera chargé via JavaScript -->
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Données de démonstration pour les réclamations
-        const sampleReclamations = [
-            {
-                id: 1,
-                subject: "Technical Support",
-                status: "new",
-                date: "2024-01-15",
-                message: "I'm having issues with the trading system. When I try to make an offer, the page freezes and I have to refresh. This happens consistently with high-value items.",
-                fullName: "John Doe",
-                email: "john@example.com"
-            },
-            {
-                id: 2,
-                subject: "Payment & Billing",
-                status: "in-progress",
-                date: "2024-01-14",
-                message: "I was charged twice for my last purchase. The transaction ID is TXN-789123. Can you please refund one of the charges?",
-                fullName: "John Doe",
-                email: "john@example.com"
-            },
-            {
-                id: 3,
-                subject: "Account Issues",
-                status: "resolved",
-                date: "2024-01-10",
-                message: "I can't access my account with my usual password. The reset password email isn't arriving in my inbox.",
-                fullName: "John Doe",
-                email: "john@example.com"
-            }
-        ];
-
-        // Fonction pour afficher les réclamations
-        function displayReclamations() {
-            const reclamationsList = document.getElementById('reclamations-list');
-            
-            if (sampleReclamations.length === 0) {
-                reclamationsList.innerHTML = `
-                    <div class="no-reclamations">
-                        <i class="fas fa-inbox"></i>
-                        <h3>No Requests Yet</h3>
-                        <p>Submit your first support request using the form below</p>
-                    </div>
-                `;
-                return;
-            }
-
-            reclamationsList.innerHTML = sampleReclamations.map(reclamation => `
-                <div class="reclamation-card">
-                    <div class="reclamation-header">
-                        <h3 class="reclamation-subject">${reclamation.subject}</h3>
-                        <span class="reclamation-status status-${reclamation.status}">
-                            ${reclamation.status === 'new' ? 'New' : 
-                              reclamation.status === 'in-progress' ? 'In Progress' : 'Resolved'}
-                        </span>
-                    </div>
-                    <div class="reclamation-meta">
-                        <div class="reclamation-date">
-                            <i class="far fa-calendar"></i>
-                            ${new Date(reclamation.date).toLocaleDateString('en-US', { 
-                                year: 'numeric', 
-                                month: 'short', 
-                                day: 'numeric' 
-                            })}
-                        </div>
-                    </div>
-                    <div class="reclamation-message" id="message-${reclamation.id}">
-                        ${reclamation.message.length > 100 ? 
-                          reclamation.message.substring(0, 100) + '...' : 
-                          reclamation.message}
-                    </div>
-                    ${reclamation.message.length > 100 ? `
-                        <button class="read-more" onclick="toggleMessage(${reclamation.id})">
-                            Read more
-                        </button>
-                    ` : ''}
-                    <div class="reclamation-actions">
-                        <button class="action-btn btn-view" onclick="viewReclamation(${reclamation.id})">
-                            <i class="fas fa-eye"></i> View
-                        </button>
-                        <button class="action-btn btn-edit" onclick="editReclamation(${reclamation.id})">
-                            <i class="fas fa-edit"></i> Edit
-                        </button>
-                        <button class="action-btn btn-delete" onclick="deleteReclamation(${reclamation.id})">
-                            <i class="fas fa-trash"></i> Delete
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
         // Fonction pour basculer l'affichage du message complet
-        function toggleMessage(reclamationId) {
+        function toggleMessage(reclamationId, fullMessage) {
             const messageElement = document.getElementById(`message-${reclamationId}`);
             const button = messageElement.nextElementSibling;
             
             if (messageElement.classList.contains('expanded')) {
                 messageElement.classList.remove('expanded');
-                messageElement.textContent = sampleReclamations.find(r => r.id === reclamationId).message.substring(0, 100) + '...';
+                messageElement.textContent = fullMessage.substring(0, 100) + '...';
                 button.textContent = 'Read more';
             } else {
                 messageElement.classList.add('expanded');
-                messageElement.textContent = sampleReclamations.find(r => r.id === reclamationId).message;
+                messageElement.textContent = fullMessage;
                 button.textContent = 'Read less';
             }
         }
 
-        // Fonctions pour les actions
+        // Fonctions pour View et Edit avec données de la base
         function viewReclamation(id) {
-            const reclamation = sampleReclamations.find(r => r.id === id);
-            alert(`Viewing: ${reclamation.subject}\n\nMessage: ${reclamation.message}\n\nStatus: ${reclamation.status}`);
+            const modal = document.getElementById('view-modal');
+            const modalBody = document.getElementById('view-modal-body');
+            
+            // Afficher un loader
+            modalBody.innerHTML = '<p style="text-align: center; color: #ff7a00;"><i class="fas fa-spinner fa-spin"></i> Loading...</p>';
+            modal.style.display = 'block';
+            
+            // Récupérer les données via AJAX depuis la base de données
+            fetch('reclamation.php?view_id=' + id + '&ajax=1')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        modalBody.innerHTML = '<p style="color: #f44336;">Error: ' + data.error + '</p>';
+                        return;
+                    }
+                    
+                    // Formater la date
+                    const date = new Date(data.date_creation);
+                    const formattedDate = date.toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    
+                    // Formater le statut
+                    const statusText = {
+                        'nouveau': 'New',
+                        'en_cours': 'In Progress',
+                        'resolu': 'Resolved'
+                    };
+                    const status = statusText[data.statut] || data.statut;
+                    
+                    modalBody.innerHTML = `
+                        <p><strong>Full Name:</strong> ${escapeHtml(data.full_name)}</p>
+                        <p><strong>Email:</strong> ${escapeHtml(data.email)}</p>
+                        <p><strong>Subject:</strong> ${escapeHtml(data.subject)}</p>
+                        <p><strong>Status:</strong> <span class="reclamation-status status-${data.statut}">${status}</span></p>
+                        <p><strong>Date:</strong> ${formattedDate}</p>
+                        <p><strong>Message:</strong></p>
+                        <p style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-top: 10px; white-space: pre-wrap;">${escapeHtml(data.message)}</p>
+                    `;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    modalBody.innerHTML = '<p style="color: #f44336;">Error loading request details. Please try again.</p>';
+                });
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         function editReclamation(id) {
-            const reclamation = sampleReclamations.find(r => r.id === id);
-            alert(`Editing: ${reclamation.subject}\n\nThis would open an edit form in a real application.`);
+            const modal = document.getElementById('edit-modal');
+            const modalBody = document.getElementById('edit-modal-body');
+            
+            // Afficher un loader
+            modalBody.innerHTML = '<p style="text-align: center; color: #ff7a00;"><i class="fas fa-spinner fa-spin"></i> Loading...</p>';
+            modal.style.display = 'block';
+            
+            // Récupérer les données complètes depuis la base de données via AJAX
+            fetch('?view_id=' + id + '&ajax=1')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        modalBody.innerHTML = '<p style="color: #f44336;">Error: ' + data.error + '</p>';
+                        return;
+                    }
+                    
+                    modalBody.innerHTML = `
+                        <form method="POST" action="">
+                            <input type="hidden" name="edit_id" value="${data.id_reclamation}">
+                            <div class="form-group">
+                                <label class="form-label">Full Name *</label>
+                                <input type="text" name="full_name" class="form-input" value="${escapeHtml(data.full_name)}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Email Address *</label>
+                                <input type="email" name="email" class="form-input" value="${escapeHtml(data.email)}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Subject *</label>
+                                <input type="text" name="subject" class="form-input" value="${escapeHtml(data.subject)}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Status</label>
+                                <select name="statut" class="form-select">
+                                    <option value="nouveau" ${data.statut === 'nouveau' ? 'selected' : ''}>New</option>
+                                    <option value="en_cours" ${data.statut === 'en_cours' ? 'selected' : ''}>In Progress</option>
+                                    <option value="resolu" ${data.statut === 'resolu' ? 'selected' : ''}>Resolved</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Message *</label>
+                                <textarea name="message" class="form-textarea" required>${escapeHtml(data.message)}</textarea>
+                            </div>
+                            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                                <button type="button" class="submit-btn" style="background: rgba(255,255,255,0.1);" onclick="closeModal('edit-modal')">Cancel</button>
+                                <button type="submit" class="submit-btn">Update Request</button>
+                            </div>
+                        </form>
+                    `;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    modalBody.innerHTML = '<p style="color: #f44336;">Error loading request details. Please try again.</p>';
+                });
         }
-
-        function deleteReclamation(id) {
-            if (confirm('Are you sure you want to delete this request?')) {
-                const index = sampleReclamations.findIndex(r => r.id === id);
-                if (index !== -1) {
-                    sampleReclamations.splice(index, 1);
-                    displayReclamations();
-                    alert('Request deleted successfully!');
-                }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        
+        // Fermer les modals en cliquant en dehors
+        window.onclick = function(event) {
+            const viewModal = document.getElementById('view-modal');
+            const editModal = document.getElementById('edit-modal');
+            if (event.target == viewModal) {
+                viewModal.style.display = 'none';
+            }
+            if (event.target == editModal) {
+                editModal.style.display = 'none';
             }
         }
 
@@ -1166,45 +1422,11 @@
 
         // Code existant pour le formulaire
         document.getElementById('support-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const successMsg = document.getElementById('success-message');
-            const errorMsg = document.getElementById('error-message');
             const submitBtn = this.querySelector('.submit-btn');
-            
-            successMsg.classList.remove('show');
-            errorMsg.classList.remove('show');
-            
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
             
-            setTimeout(() => {
-                // Simuler l'ajout d'une nouvelle réclamation
-                const formData = new FormData(this);
-                const newReclamation = {
-                    id: sampleReclamations.length + 1,
-                    subject: this.querySelector('.form-select').value,
-                    status: 'new',
-                    date: new Date().toISOString().split('T')[0],
-                    message: this.querySelector('.form-textarea').value,
-                    fullName: this.querySelector('input[type="text"]').value,
-                    email: this.querySelector('input[type="email"]').value
-                };
-                
-                sampleReclamations.unshift(newReclamation);
-                displayReclamations();
-                
-                successMsg.classList.add('show');
-                this.reset();
-                
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-check"></i> Message Sent!';
-                
-                setTimeout(() => {
-                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Message';
-                    successMsg.classList.remove('show');
-                }, 3000);
-            }, 2000);
+            // Le formulaire sera soumis normalement via PHP
         });
 
         // Code existant pour le panier
@@ -1214,9 +1436,6 @@
             if (cartCount) {
                 cartCount.textContent = cart.length;
             }
-            
-            // Afficher les réclamations au chargement
-            displayReclamations();
         });
     </script>
 </body>
