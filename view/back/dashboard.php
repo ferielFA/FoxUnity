@@ -1,22 +1,24 @@
 <?php
 require_once __DIR__ . '/../../controller/UserController.php';
 
-// Check if user is logged in and is Admin
+// Check if user is logged in and is Admin or SuperAdmin
 if (!UserController::isLoggedIn()) {
     header('Location: ../front/login.php');
     exit();
 }
 
 $currentUser = UserController::getCurrentUser();
-if (!$currentUser || $currentUser->getRole() !== 'Admin') {
+$userRole = strtolower($currentUser ? $currentUser->getRole() : '');
+if (!$currentUser || ($userRole !== 'admin' && $userRole !== 'superadmin')) {
     header('Location: ../front/index.php');
     exit();
 }
 
-// Get user image
-$userImage = $currentUser->getImage() 
-    ? '../../view/' . $currentUser->getImage() 
-    : '../images/meriem.png';
+// Get user image - NO DEFAULT IMAGE
+$userImage = null;
+if ($currentUser->getImage()) {
+    $userImage = '../../view/' . $currentUser->getImage();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -182,7 +184,11 @@ $userImage = $currentUser->getImage()
       <h1>Welcome, Commander</h1>
       <div class="admin-dropdown" id="adminDropdown">
         <div class="user admin-user">
+          <?php if ($userImage): ?>
           <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
+          <?php else: ?>
+          <i class="fas fa-user-circle" style="font-size: 35px; color: #ff7a00;"></i>
+          <?php endif; ?>
           <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
           <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
         </div>
@@ -192,7 +198,7 @@ $userImage = $currentUser->getImage()
             <i class="fas fa-user"></i>
             <span>My Profile</span>
           </a>
-              
+          
           <div class="dropdown-divider"></div>
           
           <a href="../front/logout.php" class="dropdown-item logout">

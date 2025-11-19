@@ -13,10 +13,11 @@ if (!$currentUser) {
     exit();
 }
 
-// Get user image - SAME PATH AS ADMIN
-$userImage = $currentUser->getImage() 
-    ? '../../view/' . $currentUser->getImage() 
-    : '../images/meriem.png';
+// Get user image - NO DEFAULT IMAGE
+$userImage = null;
+if ($currentUser->getImage()) {
+    $userImage = '../../view/' . $currentUser->getImage();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -465,7 +466,11 @@ $userImage = $currentUser->getImage()
         <div class="header-right">
             <div class="user-dropdown" id="userDropdown">
                 <div class="username-display">
-                    <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Profile">
+                    <?php if ($userImage): ?>
+                        <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Profile">
+                    <?php else: ?>
+                        <i class="fas fa-user-circle"></i>
+                    <?php endif; ?>
                     <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
                     <i class="fas fa-chevron-down"></i>
                 </div>
@@ -475,6 +480,16 @@ $userImage = $currentUser->getImage()
                         <i class="fas fa-user"></i>
                         <span>My Profile</span>
                     </a>
+                    
+                    <?php 
+                    $userRole = strtolower($currentUser->getRole());
+                    if ($userRole === 'admin' || $userRole === 'superadmin'): 
+                    ?>
+                    <a href="../back/dashboard.php" class="dropdown-item">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <?php endif; ?>
                     
                     <div class="dropdown-divider"></div>
                     
@@ -498,7 +513,13 @@ $userImage = $currentUser->getImage()
             <div class="profile-container">
                 <!-- Profile Header -->
                 <div class="profile-header">
-                    <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Profile Avatar" class="profile-avatar-large">
+                    <?php if ($userImage): ?>
+                        <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Profile Avatar" class="profile-avatar-large">
+                    <?php else: ?>
+                        <div class="profile-avatar-large" style="display: flex; align-items: center; justify-content: center; background: rgba(255, 122, 0, 0.1);">
+                            <i class="fas fa-user-circle" style="font-size: 80px; color: #ff7a00;"></i>
+                        </div>
+                    <?php endif; ?>
                     <div class="profile-info">
                         <h1 class="profile-username"><?php echo htmlspecialchars($currentUser->getUsername()); ?></h1>
                         <p class="profile-email"><?php echo htmlspecialchars($currentUser->getEmail()); ?></p>

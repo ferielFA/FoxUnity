@@ -1,22 +1,24 @@
 <?php
 require_once __DIR__ . '/../../controller/UserController.php';
 
-// Check if user is logged in and is Admin
+// Check if user is logged in and is Admin or SuperAdmin
 if (!UserController::isLoggedIn()) {
     header('Location: ../front/login.php');
     exit();
 }
 
 $currentUser = UserController::getCurrentUser();
-if (!$currentUser || $currentUser->getRole() !== 'Admin') {
+$userRole = strtolower($currentUser ? $currentUser->getRole() : '');
+if (!$currentUser || ($userRole !== 'admin' && $userRole !== 'superadmin')) {
     header('Location: ../front/index.php');
     exit();
 }
 
-// Get user image
-$userImage = $currentUser->getImage() 
-    ? '../../view/' . $currentUser->getImage() 
-    : '../images/meriem.png';
+// Get user image - NO DEFAULT IMAGE
+$userImage = null;
+if ($currentUser->getImage()) {
+    $userImage = '../../view/' . $currentUser->getImage();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -420,7 +422,11 @@ $userImage = $currentUser->getImage()
       <h1>Admin Profile</h1>
       <div class="admin-dropdown" id="adminDropdown">
         <div class="user admin-user">
+          <?php if ($userImage): ?>
           <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
+          <?php else: ?>
+          <i class="fas fa-user-circle" style="font-size: 35px; color: #ff7a00;"></i>
+          <?php endif; ?>
           <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
           <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
         </div>
@@ -444,7 +450,13 @@ $userImage = $currentUser->getImage()
     <div class="content">
       <div class="profile-card">
         <div class="profile-header">
+          <?php if ($userImage): ?>
           <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar" class="profile-avatar">
+          <?php else: ?>
+          <div class="profile-avatar" style="display: flex; align-items: center; justify-content: center; background: rgba(255, 122, 0, 0.1);">
+            <i class="fas fa-user-circle" style="font-size: 80px; color: #ff7a00;"></i>
+          </div>
+          <?php endif; ?>
           <div class="profile-info">
             <h2><?php echo htmlspecialchars($currentUser->getUsername()); ?></h2>
             <p><i class="fas fa-envelope"></i> <?php echo htmlspecialchars($currentUser->getEmail()); ?></p>

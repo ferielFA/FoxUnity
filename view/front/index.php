@@ -1,4 +1,4 @@
-<?php
+=<?php
 require_once __DIR__ . '/../../controller/UserController.php';
 
 // Check if user is logged in
@@ -9,8 +9,8 @@ if ($isLoggedIn) {
     $currentUser = UserController::getCurrentUser();
 }
 
-// Get user image - SAME PATH AS ADMIN
-$userImage = '../images/meriem.png'; // Default
+// Get user image - NO DEFAULT IMAGE, just check if exists
+$userImage = null;
 if ($currentUser && $currentUser->getImage()) {
     $userImage = '../../view/' . $currentUser->getImage();
 }
@@ -447,7 +447,11 @@ if ($currentUser && $currentUser->getImage()) {
             <div class="user-dropdown" id="userDropdown">
                 <div class="username-display">
                     <?php if ($isLoggedIn && $currentUser): ?>
-                        <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Profile">
+                        <?php if ($userImage): ?>
+                            <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Profile">
+                        <?php else: ?>
+                            <i class="fas fa-user-circle"></i>
+                        <?php endif; ?>
                         <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
                     <?php else: ?>
                         <i class="fas fa-user-circle"></i>
@@ -463,7 +467,10 @@ if ($currentUser && $currentUser->getImage()) {
                         <span>My Profile</span>
                     </a>
                     
-                    <?php if ($currentUser->getRole() === 'Admin'): ?>
+                    <?php 
+                    $userRole = strtolower($currentUser->getRole());
+                    if ($userRole === 'admin' || $userRole === 'superadmin'): 
+                    ?>
                     <a href="../back/dashboard.php" class="dropdown-item">
                         <i class="fas fa-tachometer-alt"></i>
                         <span>Dashboard</span>
@@ -798,7 +805,6 @@ if ($currentUser && $currentUser->getImage()) {
             const cartCount = document.querySelector('.cart-count');
             if (cartCount) {
                 cartCount.textContent = cart.length;
-                
             }
         });
     </script>

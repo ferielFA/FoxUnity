@@ -58,10 +58,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Get user image path
-$userImage = $currentUser->getImage() 
-    ? '../' . $currentUser->getImage() 
-    : 'https://i.pravatar.cc/120?img=33';
+// Get user image path - NO DEFAULT IMAGE
+$userImage = null;
+if ($currentUser->getImage()) {
+    $userImage = '../../view/' . $currentUser->getImage();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -617,7 +618,11 @@ $userImage = $currentUser->getImage()
         <div class="header-right">
             <div class="user-dropdown" id="userDropdown">
                 <div class="username-display">
-                    <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Profile">
+                    <?php if ($userImage): ?>
+                        <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Profile">
+                    <?php else: ?>
+                        <i class="fas fa-user-circle"></i>
+                    <?php endif; ?>
                     <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
                     <i class="fas fa-chevron-down"></i>
                 </div>
@@ -627,6 +632,16 @@ $userImage = $currentUser->getImage()
                         <i class="fas fa-user"></i>
                         <span>My Profile</span>
                     </a>
+                    
+                    <?php 
+                    $userRole = strtolower($currentUser->getRole());
+                    if ($userRole === 'admin' || $userRole === 'superadmin'): 
+                    ?>
+                    <a href="../back/dashboard.php" class="dropdown-item">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <?php endif; ?>
                     
                     <div class="dropdown-divider"></div>
                     
@@ -675,7 +690,13 @@ $userImage = $currentUser->getImage()
                     <div class="edit-card">
                         <h3 class="section-title"><i class="fas fa-camera"></i> Profile Picture</h3>
                         <div class="avatar-upload">
-                            <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Avatar" class="current-avatar" id="avatar-preview">
+                            <?php if ($userImage): ?>
+                                <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Avatar" class="current-avatar" id="avatar-preview">
+                            <?php else: ?>
+                                <div class="current-avatar" id="avatar-preview" style="display: flex; align-items: center; justify-content: center; background: rgba(255, 122, 0, 0.1);">
+                                    <i class="fas fa-user-circle" style="font-size: 60px; color: #ff7a00;"></i>
+                                </div>
+                            <?php endif; ?>
                             <div class="avatar-actions">
                                 <h4>Change Avatar</h4>
                                 <p>Recommended: Square image, at least 400x400px (Max 5MB)</p>
@@ -826,8 +847,14 @@ $userImage = $currentUser->getImage()
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
+                const preview = document.getElementById('avatar-preview');
+                
                 reader.onload = function(e) {
-                    document.getElementById('avatar-preview').src = e.target.result;
+                    // Replace icon with actual image
+                    preview.innerHTML = '';
+                    preview.style.backgroundImage = `url(${e.target.result})`;
+                    preview.style.backgroundSize = 'cover';
+                    preview.style.backgroundPosition = 'center';
                 };
                 reader.readAsDataURL(file);
             }

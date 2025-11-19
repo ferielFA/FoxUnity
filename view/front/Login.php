@@ -7,19 +7,39 @@ $success = '';
 
 // Handle Sign Up
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'signup') {
-    $result = $controller->register(
-        $_POST['username'] ?? '',
-        $_POST['email'] ?? '',
-        $_POST['dob'] ?? '',
-        $_POST['password'] ?? '',
-        $_POST['password'] ?? '',
-        $_POST['gender'] ?? ''
-    );
+    // Vérifier le CAPTCHA côté serveur
+    $recaptchaSecret = '6Ld8BxIsAAAAAMZnO7ypbmWefzS7e1Mgs5qRDK4_'; // À remplacer par votre clé secrète
+    $recaptchaResponse = $_POST['g-recaptcha-response'] ?? '';
     
-    if ($result['success']) {
-        $success = $result['message'];
+    if (empty($recaptchaResponse)) {
+        $errors[] = 'Please complete the CAPTCHA verification';
     } else {
-        $errors = $result['errors'];
+        // Vérifier le CAPTCHA auprès de Google
+        $verifyURL = 'https://www.google.com/recaptcha/api/siteverify';
+        $response = file_get_contents($verifyURL . '?secret=' . $recaptchaSecret . '&response=' . $recaptchaResponse);
+        $responseData = json_decode($response);
+        
+        if (!$responseData->success) {
+            $errors[] = 'CAPTCHA verification failed. Please try again.';
+        }
+    }
+    
+    // Si pas d'erreur CAPTCHA, procéder à l'inscription
+    if (empty($errors)) {
+        $result = $controller->register(
+            $_POST['username'] ?? '',
+            $_POST['email'] ?? '',
+            $_POST['dob'] ?? '',
+            $_POST['password'] ?? '',
+            $_POST['password'] ?? '',
+            $_POST['gender'] ?? ''
+        );
+        
+        if ($result['success']) {
+            $success = $result['message'];
+        } else {
+            $errors = $result['errors'];
+        }
     }
 }
 
@@ -48,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     
     <style>
         /* Override body for this page */
@@ -161,7 +182,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             overflow: hidden;
             width: 900px;
             max-width: 100%;
-            min-height: 600px;
+            min-height: 650px;
             border: 2px solid rgba(255, 122, 0, 0.3);
         }
 
@@ -217,7 +238,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             align-items: center;
             justify-content: center;
             flex-direction: column;
-            padding: 40px 50px;
+            padding: 25px 50px;
             width: 100%;
             height: 100%;
             text-align: center;
@@ -234,22 +255,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         .form-title {
             font-family: 'Orbitron', sans-serif;
             font-weight: 700;
-            margin: 0 0 15px;
+            margin: 0 0 8px;
             color: #fff;
-            font-size: 28px;
+            font-size: 26px;
         }
 
         .form-subtitle {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 300;
-            line-height: 18px;
+            line-height: 16px;
             letter-spacing: 0.5px;
-            margin: 10px 0 20px;
+            margin: 4px 0 12px;
             color: #aaa;
         }
 
         .social-container {
-            margin: 15px 0;
+            margin: 8px 0;
         }
 
         .social-container a {
@@ -258,9 +279,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             display: inline-flex;
             justify-content: center;
             align-items: center;
-            margin: 0 6px;
-            height: 40px;
-            width: 40px;
+            margin: 0 5px;
+            height: 36px;
+            width: 36px;
             transition: all 0.3s ease;
             color: #ff7a00;
             background: rgba(255, 122, 0, 0.05);
@@ -276,13 +297,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         .form-input {
             background-color: rgba(255, 255, 255, 0.05);
             border: 2px solid rgba(255, 255, 255, 0.1);
-            padding: 12px 16px;
-            margin: 8px 0;
+            padding: 10px 14px;
+            margin: 5px 0;
             width: 100%;
             border-radius: 12px;
             color: #fff;
             font-family: 'Poppins', sans-serif;
-            font-size: 14px;
+            font-size: 13px;
             transition: all 0.3s ease;
             box-sizing: border-box;
         }
@@ -296,6 +317,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         .form-input::placeholder {
             color: #666;
+        }
+
+        /* Style pour les champs de mot de passe avec icône */
+        .password-wrapper {
+            position: relative;
+            width: 100%;
+            margin: 5px 0;
+        }
+
+        .password-wrapper .form-input {
+            margin: 0;
+            padding-right: 45px;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #666;
+            transition: color 0.3s ease;
+            font-size: 16px;
+            user-select: none;
+        }
+
+        .toggle-password:hover {
+            color: #ff7a00;
+        }
+
+        .toggle-password.active {
+            color: #ff7a00;
+        }
+
+        /* Style pour le CAPTCHA */
+        .captcha-container {
+            margin: 8px 0;
+            display: flex;
+            justify-content: center;
+            transform: scale(0.8);
+            transform-origin: center;
+        }
+
+        @media (max-width: 480px) {
+            .captcha-container {
+                transform: scale(0.7);
+            }
         }
 
         .form-row-inline {
@@ -323,6 +391,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             padding-right: 40px;
         }
 
+        /* Correction de la couleur du select Gender */
+        select.form-input option {
+            background-color: #1a1a1a;
+            color: #fff;
+        }
+
+        select.form-input option[value=""] {
+            color: #666;
+        }
+
         .error-box.banned-error {
             background: rgba(139, 0, 0, 0.95);
             border-color: #8b0000;
@@ -340,14 +418,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             border: none;
             background: linear-gradient(135deg, #ff7a00 0%, #ff4f00 100%);
             color: #FFFFFF;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
-            padding: 12px 45px;
+            padding: 10px 40px;
             letter-spacing: 1px;
             text-transform: uppercase;
             transition: all 0.3s ease;
             cursor: pointer;
-            margin-top: 15px;
+            margin-top: 8px;
             font-family: 'Poppins', sans-serif;
         }
 
@@ -378,9 +456,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             color: #ff7a00;
             font-size: 12px;
             text-decoration: none;
-            margin: 10px 0 5px;
+            margin: 10px 0 15px;
             transition: color 0.3s;
-            display: inline-block;
+            display: block;
+            width: 100%;
+            text-align: center;
         }
 
         .forgot-link:hover {
@@ -577,7 +657,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             <div class="auth-container" id="container">
                 <!-- Sign Up Form -->
                 <div class="form-container sign-up-container">
-                    <form action="login.php" method="POST">
+                    <form action="login.php" method="POST" id="signUpForm">
                         <div class="form-content">
                             <input type="hidden" name="action" value="signup">
                             <h1 class="form-title">Create Account</h1>
@@ -587,7 +667,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                 <a href="#" class="social"><i class="fab fa-steam"></i></a>
                             </div>
                             <span class="form-subtitle">or use your email for registration</span>
-                            <input type="text" class="form-input" name="username" placeholder="Username" required />
+                            <input type="text" class="form-input" name="username" placeholder="Username (min. 3 characters)" required />
                             <input type="email" class="form-input" name="email" placeholder="Email" required />
                             <div class="form-row-inline">
                                 <input type="date" class="form-input form-half" name="dob" required />
@@ -597,7 +677,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                     <option value="Female">Female</option>
                                 </select>
                             </div>
-                            <input type="password" class="form-input" name="password" placeholder="Password" required />
+                            <div class="password-wrapper">
+                                <input type="password" class="form-input" id="signupPassword" name="password" placeholder="Password (8+ chars, uppercase, number, special char)" required />
+                                <i class="fas fa-eye toggle-password" onclick="togglePassword('signupPassword', this)"></i>
+                            </div>
+                            <div class="password-wrapper">
+                                <input type="password" class="form-input" id="signupPasswordConfirm" name="password_confirm" placeholder="Confirm Password" required />
+                                <i class="fas fa-eye toggle-password" onclick="togglePassword('signupPasswordConfirm', this)"></i>
+                            </div>
+                            <div class="captcha-container">
+                                <div class="g-recaptcha" data-sitekey="6Ld8BxIsAAAAAGuOxS5dtvoBw-ZbRmRF-MZDww-M"></div>
+                            </div>
                             <button type="submit" class="auth-button">Sign Up</button>
                         </div>
                     </form>
@@ -616,7 +706,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             </div>
                             <span class="form-subtitle">or use your account</span>
                             <input type="email" class="form-input" name="email" placeholder="Email" required />
-                            <input type="password" class="form-input" name="password" placeholder="Password" required />
+                            <div class="password-wrapper">
+                                <input type="password" class="form-input" id="signinPassword" name="password" placeholder="Password" required />
+                                <i class="fas fa-eye toggle-password" onclick="togglePassword('signinPassword', this)"></i>
+                            </div>
                             <a href="forgot-password.html" class="forgot-link">Forgot your password?</a>
                             <button type="submit" class="auth-button">Sign In</button>
                         </div>
@@ -645,6 +738,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     </div>
 
     <script>
+        // ========== TOGGLE PASSWORD VISIBILITY ==========
+        function togglePassword(inputId, icon) {
+            const input = document.getElementById(inputId);
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash', 'active');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash', 'active');
+                icon.classList.add('fa-eye');
+            }
+        }
+
         const signUpButton = document.getElementById('signUp');
         const signInButton = document.getElementById('signIn');
         const container = document.getElementById('container');
@@ -656,6 +764,123 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         signInButton.addEventListener('click', () => {
             container.classList.remove("right-panel-active");
         });
+
+        // ========== VALIDATION DU FORMULAIRE SIGN UP ==========
+        const signUpForm = document.getElementById('signUpForm');
+        
+        signUpForm.addEventListener('submit', function(e) {
+            const username = document.querySelector('.sign-up-container input[name="username"]').value.trim();
+            const email = document.querySelector('.sign-up-container input[name="email"]').value.trim();
+            const dob = document.querySelector('.sign-up-container input[name="dob"]').value;
+            const gender = document.querySelector('.sign-up-container select[name="gender"]').value;
+            const password = document.querySelector('.sign-up-container input[name="password"]').value;
+            const passwordConfirm = document.querySelector('.sign-up-container input[name="password_confirm"]').value;
+            
+            let errors = [];
+            
+            // Validation Username (minimum 3 caractères)
+            if (username.length < 3) {
+                errors.push('Username must be at least 3 characters long');
+            }
+            
+            // Validation Email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                errors.push('Please enter a valid email address');
+            }
+            
+            // Validation Date de naissance
+            if (!dob) {
+                errors.push('Date of birth is required');
+            }
+            
+            // Validation Gender
+            if (!gender) {
+                errors.push('Please select your gender');
+            }
+            
+            // Validation Password - Minimum 8 caractères
+            if (password.length < 8) {
+                errors.push('Password must be at least 8 characters long');
+            }
+            
+            // Vérifier au moins une lettre majuscule
+            if (!/[A-Z]/.test(password)) {
+                errors.push('Password must contain at least one uppercase letter (A-Z)');
+            }
+            
+            // Vérifier au moins une lettre minuscule
+            if (!/[a-z]/.test(password)) {
+                errors.push('Password must contain at least one lowercase letter (a-z)');
+            }
+            
+            // Vérifier au moins un chiffre
+            if (!/[0-9]/.test(password)) {
+                errors.push('Password must contain at least one number (0-9)');
+            }
+            
+            // Vérifier au moins un caractère spécial
+            if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+                errors.push('Password must contain at least one special character (!@#$%^&*()_+-=[]{};\':"|,.<>/?)');
+            }
+            
+            // Vérifier que les deux mots de passe correspondent
+            if (password !== passwordConfirm) {
+                errors.push('Passwords do not match! Please make sure both passwords are identical');
+            }
+            
+            // Vérifier le CAPTCHA
+            const recaptchaResponse = grecaptcha.getResponse();
+            if (recaptchaResponse.length === 0) {
+                errors.push('Please complete the CAPTCHA verification');
+            }
+            
+            // Si des erreurs existent, empêcher la soumission
+            if (errors.length > 0) {
+                e.preventDefault();
+                showValidationErrors(errors);
+                return false;
+            }
+        });
+        
+        // Fonction pour afficher les erreurs de validation
+        function showValidationErrors(errors) {
+            // Supprimer les anciennes erreurs
+            const oldMessages = document.getElementById('message-container');
+            if (oldMessages) {
+                oldMessages.remove();
+            }
+            
+            // Créer le conteneur de messages
+            const messageContainer = document.createElement('div');
+            messageContainer.id = 'message-container';
+            messageContainer.className = 'message-container';
+            
+            const errorBox = document.createElement('div');
+            errorBox.className = 'message-box error-box';
+            errorBox.id = 'error-message';
+            
+            const errorList = document.createElement('ul');
+            errorList.className = 'error-list';
+            
+            errors.forEach(error => {
+                const li = document.createElement('li');
+                li.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${error}`;
+                errorList.appendChild(li);
+            });
+            
+            errorBox.appendChild(errorList);
+            messageContainer.appendChild(errorBox);
+            document.body.appendChild(messageContainer);
+            
+            // Auto-hide après 7 secondes
+            setTimeout(() => {
+                errorBox.classList.add('fade-out');
+                setTimeout(() => {
+                    messageContainer.style.display = 'none';
+                }, 300);
+            }, 7000);
+        }
 
         // Auto-hide messages after 5 seconds
         window.addEventListener('load', function() {
