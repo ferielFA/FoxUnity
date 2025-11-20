@@ -266,7 +266,7 @@ foreach ($evenements as $item) {
   <div class="sidebar">
     <img src="../images/Nine__1_-removebg-preview.png" alt="Nine Tailed Fox Logo" class="dashboard-logo">
     <h2>Dashboard</h2>
-    <a href="dashboard.html">Overview</a>
+    <a href="dashboard.php">Overview</a>
     <a href="#">Users</a>
     <a href="#">Shop</a>
     <a href="#">Trade History</a>

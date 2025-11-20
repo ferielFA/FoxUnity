@@ -18,14 +18,14 @@
   <div class="sidebar">
     <img src="../images/Nine__1_-removebg-preview.png" alt="Nine Tailed Fox Logo" class="dashboard-logo">
     <h2>Dashboard</h2>
-    <a href="#" class="active">Overview</a>
+    <a href="dashboard.php" class="active">Overview</a>
     <a href="#">Users</a>
     <a href="#">Shop</a>
     <a href="#">Trade History</a>
-    <a href="eventsb.html">Events</a>
+    <a href="eventsb.php">Events</a>
     <a href="#">News</a>
     <a href="#">Support</a>
-    <a href="../front/indexf.html">← Return Homepage</a>
+    <a href="../front/index.php">← Return Homepage</a>
   </div>
 
   <!-- ===== MAIN ===== -->
@@ -54,7 +54,7 @@
         <p>Review completed trades, pending exchanges, and item transactions between players.</p>
       </div>
 
-      <div class="card" onclick="window.location.href='eventsb.html'" style="cursor:pointer">
+      <div class="card" onclick="window.location.href='eventsb.php'" style="cursor:pointer">
         <h3>Events</h3>
         <p>Track current and upcoming tournaments, seasonal events, and community missions.</p>
       </div>
