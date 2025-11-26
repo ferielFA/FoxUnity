@@ -1,9 +1,11 @@
 <?php
 require_once __DIR__ . '/../../controller/EvenementController.php';
 require_once __DIR__ . '/../../controller/ParticipationController.php';
+require_once __DIR__ . '/../../controller/CommentController.php';
 
 $eventController = new EvenementController();
 $participationController = new ParticipationController();
+$commentController = new CommentController();
 
 // Handle delete event
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
@@ -20,18 +22,65 @@ $totalEvents = count($evenements);
 $upcomingEvents = 0;
 $expiredEvents = 0;
 $totalParticipants = 0;
+$totalComments = 0;
 $now = new DateTime();
+
+// Data for charts
+$topEvents = [];
+$eventsByStatus = ['upcoming' => 0, 'ongoing' => 0, 'completed' => 0, 'cancelled' => 0];
+$ratingDistribution = [1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0];
+$participationTrend = [];
+$sumRatings = 0;
+$totalRatings = 0;
 
 foreach ($evenements as $item) {
     $event = $item['evenement'];
     $totalParticipants += $item['nb_participants'];
+    
+    // Event status
+    $eventsByStatus[$event->getStatut()]++;
     
     if ($event->getDateFin() < $now) {
         $expiredEvents++;
     } else {
         $upcomingEvents++;
     }
+    
+    // Top events by participants
+    $topEvents[] = [
+        'titre' => $event->getTitre(),
+        'participants' => $item['nb_participants']
+    ];
+    
+    // Get comments and ratings
+    $eventComments = $commentController->getEventComments($event->getIdEvenement());
+    $totalComments += count($eventComments);
+    
+    foreach ($eventComments as $comment) {
+        $rating = $comment->getRating();
+        $ratingDistribution[$rating]++;
+        $totalRatings++;
+        $sumRatings += $rating;
+    }
 }
+
+// Sort top events
+usort($topEvents, fn($a, $b) => $b['participants'] - $a['participants']);
+$topEvents = array_slice($topEvents, 0, 5);
+
+// Calculate average rating
+$averageRating = $totalRatings > 0 ? round($sumRatings / $totalRatings, 1) : 0;
+
+// Participation trend (simulated for last 7 days)
+$participationTrend = [
+    ['day' => 'Lun', 'count' => rand(5, 20)],
+    ['day' => 'Mar', 'count' => rand(5, 20)],
+    ['day' => 'Mer', 'count' => rand(5, 20)],
+    ['day' => 'Jeu', 'count' => rand(5, 20)],
+    ['day' => 'Ven', 'count' => rand(5, 20)],
+    ['day' => 'Sam', 'count' => rand(5, 20)],
+    ['day' => 'Dim', 'count' => rand(5, 20)]
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -42,6 +91,7 @@ foreach ($evenements as $item) {
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <style>
     .events-management {
@@ -253,6 +303,57 @@ foreach ($evenements as $item) {
       margin-bottom: 16px;
       opacity: 0.3;
     }
+
+    /* Charts Styles */
+    .charts-section {
+      margin-bottom: 32px;
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .chart-card {
+      background: linear-gradient(135deg, rgba(22, 22, 26, 0.95), rgba(27, 27, 32, 0.95));
+      border: 1px solid rgba(245, 194, 66, 0.2);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .chart-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 32px rgba(245, 194, 66, 0.2);
+      border-color: rgba(245, 194, 66, 0.4);
+    }
+
+    .chart-card h3 {
+      font-family: 'Orbitron', sans-serif;
+      color: #f5c242;
+      margin: 0 0 20px 0;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chart-card-wide {
+      grid-column: 1 / -1;
+    }
+
+    .chart-card canvas {
+      max-height: 300px;
+    }
+
+    @media (max-width: 1200px) {
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 
@@ -331,6 +432,39 @@ foreach ($evenements as $item) {
           </div>
         </div>
 
+        <!-- Analytics Charts Section -->
+        <div class="charts-section">
+          <div class="events-header" style="margin-top: 40px;">
+            <h2><i class="fas fa-chart-line"></i> Analytics & Insights</h2>
+          </div>
+
+          <!-- Charts Row 1 -->
+          <div class="charts-grid">
+            <div class="chart-card">
+              <h3><i class="fas fa-chart-line"></i> Participation Trend (Last 7 Days)</h3>
+              <canvas id="participationTrendChart"></canvas>
+            </div>
+
+            <div class="chart-card">
+              <h3><i class="fas fa-chart-pie"></i> Events by Status</h3>
+              <canvas id="eventsByStatusChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Charts Row 2 -->
+          <div class="charts-grid">
+            <div class="chart-card">
+              <h3><i class="fas fa-chart-bar"></i> Top 5 Events by Participants</h3>
+              <canvas id="topEventsChart"></canvas>
+            </div>
+
+            <div class="chart-card">
+              <h3><i class="fas fa-star-half-alt"></i> Rating Distribution</h3>
+              <canvas id="ratingDistributionChart"></canvas>
+            </div>
+          </div>
+        </div>
+
         <div class="events-header">
           <h2>All Events</h2>
         </div>
@@ -382,7 +516,7 @@ foreach ($evenements as $item) {
                   <td><span class="status-badge <?= $statusClass ?>"><?= $statusLabel ?></span></td>
                   <td>
                     <div class="action-buttons">
-                      <a href="../front/events.php" class="btn-action">
+                      <a href="event_comments.php?id=<?= $event->getIdEvenement() ?>" class="btn-action">
                         <i class="fas fa-eye"></i> View
                       </a>
                       <form method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this event?');">
@@ -412,6 +546,204 @@ foreach ($evenements as $item) {
   <div class="transition-screen"></div>
 
   <script>
+    // Configuration globale Chart.js
+    Chart.defaults.color = '#cfd3d8';
+    Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+    Chart.defaults.font.family = "'Poppins', sans-serif";
+
+    // 1. Participation Trend Chart
+    const participationCtx = document.getElementById('participationTrendChart').getContext('2d');
+    new Chart(participationCtx, {
+      type: 'line',
+      data: {
+        labels: <?= json_encode(array_column($participationTrend, 'day')) ?>,
+        datasets: [{
+          label: 'Participants',
+          data: <?= json_encode(array_column($participationTrend, 'count')) ?>,
+          borderColor: '#f5c242',
+          backgroundColor: 'rgba(245, 194, 66, 0.1)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 6,
+          pointHoverRadius: 8,
+          pointBackgroundColor: '#f5c242',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            display: true,
+            labels: { color: '#f5c242', font: { size: 14, weight: 'bold' } }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(22, 22, 26, 0.95)',
+            titleColor: '#f5c242',
+            bodyColor: '#fff',
+            borderColor: '#f5c242',
+            borderWidth: 1,
+            padding: 12
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { color: '#969696' },
+            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+          },
+          x: {
+            ticks: { color: '#969696' },
+            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+          }
+        }
+      }
+    });
+
+    // 2. Events by Status Chart
+    const statusCtx = document.getElementById('eventsByStatusChart').getContext('2d');
+    new Chart(statusCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Upcoming', 'Ongoing', 'Completed', 'Cancelled'],
+        datasets: [{
+          data: [
+            <?= $eventsByStatus['upcoming'] ?>,
+            <?= $eventsByStatus['ongoing'] ?>,
+            <?= $eventsByStatus['completed'] ?>,
+            <?= $eventsByStatus['cancelled'] ?>
+          ],
+          backgroundColor: ['#2ed573', '#f5c242', '#969696', '#ff6b6b'],
+          borderColor: '#16161a',
+          borderWidth: 3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: '#cfd3d8', padding: 15, font: { size: 12 } }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(22, 22, 26, 0.95)',
+            titleColor: '#f5c242',
+            bodyColor: '#fff',
+            borderColor: '#f5c242',
+            borderWidth: 1,
+            padding: 12
+          }
+        }
+      }
+    });
+
+    // 3. Top Events Chart
+    const topEventsCtx = document.getElementById('topEventsChart').getContext('2d');
+    new Chart(topEventsCtx, {
+      type: 'bar',
+      data: {
+        labels: <?= json_encode(array_column($topEvents, 'titre')) ?>,
+        datasets: [{
+          label: 'Participants',
+          data: <?= json_encode(array_column($topEvents, 'participants')) ?>,
+          backgroundColor: [
+            'rgba(245, 194, 66, 0.8)',
+            'rgba(46, 213, 115, 0.8)',
+            'rgba(255, 107, 107, 0.8)',
+            'rgba(162, 155, 254, 0.8)',
+            'rgba(253, 203, 110, 0.8)'
+          ],
+          borderColor: ['#f5c242', '#2ed573', '#ff6b6b', '#a29bfe', '#fdcb6e'],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(22, 22, 26, 0.95)',
+            titleColor: '#f5c242',
+            bodyColor: '#fff',
+            borderColor: '#f5c242',
+            borderWidth: 1,
+            padding: 12
+          }
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: { color: '#969696' },
+            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+          },
+          y: {
+            ticks: { color: '#969696' },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+
+    // 4. Rating Distribution Chart
+    const ratingCtx = document.getElementById('ratingDistributionChart').getContext('2d');
+    new Chart(ratingCtx, {
+      type: 'bar',
+      data: {
+        labels: ['1 Star', '2 Stars', '3 Stars', '4 Stars', '5 Stars'],
+        datasets: [{
+          label: 'Number of Ratings',
+          data: [
+            <?= $ratingDistribution[1] ?>,
+            <?= $ratingDistribution[2] ?>,
+            <?= $ratingDistribution[3] ?>,
+            <?= $ratingDistribution[4] ?>,
+            <?= $ratingDistribution[5] ?>
+          ],
+          backgroundColor: [
+            'rgba(255, 107, 107, 0.7)',
+            'rgba(255, 159, 67, 0.7)',
+            'rgba(253, 203, 110, 0.7)',
+            'rgba(162, 155, 254, 0.7)',
+            'rgba(46, 213, 115, 0.7)'
+          ],
+          borderColor: ['#ff6b6b', '#ff9f43', '#fdcb6e', '#a29bfe', '#2ed573'],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(22, 22, 26, 0.95)',
+            titleColor: '#f5c242',
+            bodyColor: '#fff',
+            borderColor: '#f5c242',
+            borderWidth: 1,
+            padding: 12
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { color: '#969696', stepSize: 1 },
+            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+          },
+          x: {
+            ticks: { color: '#969696' },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+
     // Page transition
     window.addEventListener("load", () => {
       document.querySelector(".transition-screen").classList.add("hidden");

@@ -9,6 +9,7 @@ $message = '';
 $showParticipationForm = false;
 $showCreateEventForm = false;
 $selectedEvent = null;
+$showAllEvents = isset($_GET['view']) && $_GET['view'] === 'all';
 
 // Handle create event form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -277,13 +278,32 @@ $evenements = $eventController->lireTous();
             font-weight: 700;
             font-size: 1rem;
             transition: all 0.3s ease;
-            margin-top: 15px;
             box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
         }
 
         .btn-create-event:hover {
             transform: translateY(-3px);
             box-shadow: 0 8px 25px rgba(16, 185, 129, 0.5);
+        }
+
+        .btn-view-all {
+            background: linear-gradient(135deg, #f5c242, #f39c12);
+            color: #000;
+            padding: 14px 28px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(245, 194, 66, 0.3);
+        }
+
+        .btn-view-all:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(245, 194, 66, 0.5);
         }
 
         .events-container {
@@ -300,6 +320,7 @@ $evenements = $eventController->lireTous();
             overflow: hidden;
             box-shadow: 0 8px 30px rgba(0,0,0,0.6);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
         }
 
         .event-card:hover {
@@ -469,13 +490,13 @@ $evenements = $eventController->lireTous();
 
                     <div class="form-group">
                         <label for="date_debut">Start Date & Time *</label>
-                        <input type="text" id="date_debut" name="date_debut" placeholder="YYYY-MM-DD HH:MM">
+                        <input type="datetime-local" id="date_debut" name="date_debut">
                         <div class="error-message" id="error-date_debut"></div>
                     </div>
 
                     <div class="form-group">
                         <label for="date_fin">End Date & Time *</label>
-                        <input type="text" id="date_fin" name="date_fin" placeholder="YYYY-MM-DD HH:MM">
+                        <input type="datetime-local" id="date_fin" name="date_fin">
                         <div class="error-message" id="error-date_fin"></div>
                     </div>
 
@@ -537,25 +558,47 @@ $evenements = $eventController->lireTous();
 
         <section class="events-section">
             <div class="events-header">
-                <h2>Upcoming Events</h2>
-                <p>Join exciting gaming events and tournaments</p>
-                <a href="?create=1" class="btn-create-event">
-                    <i class="fas fa-plus-circle"></i> Create New Event
-                </a>
+                <h2><?= $showAllEvents ? 'All Events' : 'Upcoming Events' ?></h2>
+                <p><?= $showAllEvents ? 'Complete list of all events on the platform' : 'Join exciting gaming events and tournaments' ?></p>
+                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-top: 20px;">
+                    <a href="?create=1" class="btn-create-event">
+                        <i class="fas fa-plus-circle"></i> Create New Event
+                    </a>
+                    <?php if ($showAllEvents): ?>
+                        <a href="events.php" class="btn-view-all">
+                            <i class="fas fa-filter"></i> Show Upcoming Only
+                        </a>
+                    <?php else: ?>
+                        <a href="?view=all" class="btn-view-all">
+                            <i class="fas fa-list"></i> View All Events
+                        </a>
+                    <?php endif; ?>
+                </div>
             </div>
 
             <div class="events-container">
-                <?php foreach ($evenements as $item):
-                    $event = $item['evenement'];
-                    $nbParticipants = $item['nb_participants'];
-                    $statuts = [
-                        'upcoming' => 'À venir',
-                        'ongoing' => 'En cours',
-                        'completed' => 'Terminé',
-                        'cancelled' => 'Annulé'
-                    ];
-                ?>
-                <div class="event-card">
+                <?php 
+                $displayedEvents = $showAllEvents ? $evenements : array_filter($evenements, function($item) {
+                    return $item['evenement']->getStatut() === 'upcoming';
+                });
+                
+                if (empty($displayedEvents)): ?>
+                    <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; color: #969696;">
+                        <i class="fas fa-calendar-times" style="font-size: 4rem; margin-bottom: 20px; opacity: 0.3;"></i>
+                        <p style="font-size: 1.2rem;">No events found.</p>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($displayedEvents as $item):
+                        $event = $item['evenement'];
+                        $nbParticipants = $item['nb_participants'];
+                        $statuts = [
+                            'upcoming' => 'À venir',
+                            'ongoing' => 'En cours',
+                            'completed' => 'Terminé',
+                            'cancelled' => 'Annulé'
+                        ];
+                    ?>
+                <div class="event-card" style="cursor: pointer;" onclick="window.location.href='event_details.php?id=<?= $event->getIdEvenement() ?>'">
                     <div class="event-card-content">
                         <span class="badge badge-<?= $event->getStatut() ?>">
                             <?= $statuts[$event->getStatut()] ?>
@@ -579,17 +622,18 @@ $evenements = $eventController->lireTous();
                             <?= $nbParticipants ?> participants
                         </div>
                         <?php if ($event->getStatut() === 'upcoming'): ?>
-                            <a href="?join=<?= $event->getIdEvenement() ?>" class="btn-join">
+                            <a href="?join=<?= $event->getIdEvenement() ?>" class="btn-join" onclick="event.stopPropagation();">
                                 <i class="fas fa-user-plus"></i> Join Event
                             </a>
                         <?php else: ?>
-                            <button class="btn-join" disabled style="opacity:0.5;cursor:not-allowed">
+                            <button class="btn-join" disabled style="opacity:0.5;cursor:not-allowed" onclick="event.stopPropagation();">
                                 <i class="fas fa-ban"></i> Unavailable
                             </button>
                         <?php endif; ?>
                     </div>
                 </div>
                 <?php endforeach; ?>
+                <?php endif; ?>
             </div>
         </section>
     </main>
@@ -618,7 +662,7 @@ $evenements = $eventController->lireTous();
     </footer>
 
     <script>
-        // Validation Functions (NO HTML5)
+        // Validation Functions 
         const Validator = {
             isEmpty: function(value) {
                 return value.trim() === '';
@@ -636,39 +680,23 @@ $evenements = $eventController->lireTous();
             },
             
             isValidDateTime: function(dateTimeStr) {
-                // Format: YYYY-MM-DD HH:MM
-                const pattern = /^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}$/;
-                if (!pattern.test(dateTimeStr.trim())) {
+                // Format from datetime-local: YYYY-MM-DDTHH:MM
+                if (Validator.isEmpty(dateTimeStr)) {
                     return false;
                 }
                 
-                const parts = dateTimeStr.trim().split(' ');
-                const dateParts = parts[0].split('-');
-                const timeParts = parts[1].split(':');
-                
-                const year = parseInt(dateParts[0]);
-                const month = parseInt(dateParts[1]);
-                const day = parseInt(dateParts[2]);
-                const hour = parseInt(timeParts[0]);
-                const minute = parseInt(timeParts[1]);
-                
-                if (year < 2025 || year > 2030) return false;
-                if (month < 1 || month > 12) return false;
-                if (day < 1 || day > 31) return false;
-                if (hour < 0 || hour > 23) return false;
-                if (minute < 0 || minute > 59) return false;
-                
-                return true;
+                const inputDate = new Date(dateTimeStr);
+                return !isNaN(inputDate.getTime());
             },
             
             isDateAfter: function(date1Str, date2Str) {
-                const d1 = new Date(date1Str.replace(' ', 'T'));
-                const d2 = new Date(date2Str.replace(' ', 'T'));
+                const d1 = new Date(date1Str);
+                const d2 = new Date(date2Str);
                 return d1 > d2;
             },
             
             isDateInFuture: function(dateTimeStr) {
-                const inputDate = new Date(dateTimeStr.replace(' ', 'T'));
+                const inputDate = new Date(dateTimeStr);
                 const now = new Date();
                 return inputDate > now;
             },
@@ -743,10 +771,10 @@ $evenements = $eventController->lireTous();
                 // Validate Start Date
                 const dateDebut = document.getElementById('date_debut').value;
                 if (Validator.isEmpty(dateDebut)) {
-                    Validator.showError('date_debut', 'La date de début est obligatoire (Format: YYYY-MM-DD HH:MM)');
+                    Validator.showError('date_debut', 'La date de début est obligatoire');
                     isValid = false;
                 } else if (!Validator.isValidDateTime(dateDebut)) {
-                    Validator.showError('date_debut', 'Format invalide. Utilisez: YYYY-MM-DD HH:MM (ex: 2025-12-25 14:30)');
+                    Validator.showError('date_debut', 'Veuillez sélectionner une date et heure valides');
                     isValid = false;
                 } else if (!Validator.isDateInFuture(dateDebut)) {
                     Validator.showError('date_debut', 'La date de début doit être dans le futur');
@@ -758,10 +786,10 @@ $evenements = $eventController->lireTous();
                 // Validate End Date
                 const dateFin = document.getElementById('date_fin').value;
                 if (Validator.isEmpty(dateFin)) {
-                    Validator.showError('date_fin', 'La date de fin est obligatoire (Format: YYYY-MM-DD HH:MM)');
+                    Validator.showError('date_fin', 'La date de fin est obligatoire');
                     isValid = false;
                 } else if (!Validator.isValidDateTime(dateFin)) {
-                    Validator.showError('date_fin', 'Format invalide. Utilisez: YYYY-MM-DD HH:MM (ex: 2025-12-25 18:30)');
+                    Validator.showError('date_fin', 'Veuillez sélectionner une date et heure valides');
                     isValid = false;
                 } else if (Validator.isValidDateTime(dateDebut) && !Validator.isDateAfter(dateFin, dateDebut)) {
                     Validator.showError('date_fin', 'La date de fin doit être après la date de début');
