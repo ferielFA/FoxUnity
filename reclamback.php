@@ -683,7 +683,7 @@ foreach ($allReclamations as $reclamation) {
             <a href="#"><i class="fas fa-calendar-alt"></i> <span>Events</span></a>
             <a href="#"><i class="fas fa-newspaper"></i> <span>News</span></a>
             <a href="#" class="active"><i class="fas fa-headset"></i> <span>Support</span></a>
-            <a href="../front/reclamation.php"><i class="fas fa-comments"></i> <span>Support Page</span></a>
+            <a href="../front/contactez.php"><i class="fas fa-comments"></i> <span>Support Page</span></a>
             <a href="../front/indexf.html"><i class="fas fa-home"></i> <span>Homepage</span></a>
         </div>
 
