@@ -12,8 +12,8 @@ class EvenementController {
 
     public function creer(Evenement $evenement): bool {
         try {
-            $sql = "INSERT INTO evenement (titre, description, date_debut, date_fin, lieu, statut) 
-                    VALUES (:titre, :description, :date_debut, :date_fin, :lieu, :statut)";
+            $sql = "INSERT INTO evenement (titre, description, date_debut, date_fin, lieu, createur_email, statut) 
+                    VALUES (:titre, :description, :date_debut, :date_fin, :lieu, :createur_email, :statut)";
             
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
@@ -22,6 +22,7 @@ class EvenementController {
                 ':date_debut' => $evenement->getDateDebut()->format('Y-m-d H:i:s'),
                 ':date_fin' => $evenement->getDateFin()->format('Y-m-d H:i:s'),
                 ':lieu' => $evenement->getLieu(),
+                ':createur_email' => $evenement->getCreateurEmail(),
                 ':statut' => $evenement->getStatut()
             ]);
             
@@ -51,6 +52,7 @@ class EvenementController {
                     new DateTime($row['date_debut']),
                     new DateTime($row['date_fin']),
                     $row['lieu'],
+                    $row['createur_email'] ?? null,
                     $row['statut']
                 );
                 
@@ -75,12 +77,13 @@ class EvenementController {
             
             if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 return new Evenement(
-                    $row['id_evenement'],
+                    (int)$row['id_evenement'],
                     $row['titre'],
                     $row['description'],
                     new DateTime($row['date_debut']),
                     new DateTime($row['date_fin']),
                     $row['lieu'],
+                    $row['createur_email'] ?? null,
                     $row['statut']
                 );
             }
@@ -126,6 +129,44 @@ class EvenementController {
         } catch (PDOException $e) {
             error_log("Erreur suppression événement: " . $e->getMessage());
             return false;
+        }
+    }
+
+    public function lireParCreateur(string $email): array {
+        try {
+            $sql = "SELECT e.*, COUNT(p.id_participation) as nb_participants 
+                    FROM evenement e 
+                    LEFT JOIN participation p ON e.id_evenement = p.id_evenement 
+                    WHERE e.createur_email = :email
+                    GROUP BY e.id_evenement 
+                    ORDER BY e.date_debut ASC";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':email' => $email]);
+            $results = [];
+            
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $evenement = new Evenement(
+                    $row['id_evenement'],
+                    $row['titre'],
+                    $row['description'],
+                    new DateTime($row['date_debut']),
+                    new DateTime($row['date_fin']),
+                    $row['lieu'],
+                    $row['createur_email'] ?? null,
+                    $row['statut']
+                );
+                
+                $results[] = [
+                    'evenement' => $evenement,
+                    'nb_participants' => (int)$row['nb_participants']
+                ];
+            }
+            
+            return $results;
+        } catch (PDOException $e) {
+            error_log("Erreur lecture événements par créateur: " . $e->getMessage());
+            return [];
         }
     }
 }

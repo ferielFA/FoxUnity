@@ -2,12 +2,15 @@
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../model/Participation.php';
+require_once __DIR__ . '/TicketController.php';
 
 class ParticipationController {
     private $db;
+    private $ticketController;
 
     public function __construct() {
         $this->db = Database::getConnection();
+        $this->ticketController = new TicketController();
     }
 
     public function inscrire(Participation $participation): bool {
@@ -27,6 +30,12 @@ class ParticipationController {
                 ':email_participant' => $participation->getEmailParticipant(),
                 ':date_participation' => $participation->getDateParticipation()->format('Y-m-d H:i:s')
             ]);
+            
+            // Get the newly created participation ID
+            $idParticipation = (int)$this->db->lastInsertId();
+            
+            // Automatically generate ticket for this participation
+            $this->ticketController->generateTicket($idParticipation, $participation->getIdEvenement());
             
             return true;
         } catch (PDOException $e) {

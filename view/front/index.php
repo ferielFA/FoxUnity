@@ -56,6 +56,38 @@
             border-radius: 2px;
             box-shadow: 0 2px 8px rgba(245, 194, 66, 0.4);
         }
+
+        /* Language Toggle Button */
+        .lang-toggle {
+            background: linear-gradient(135deg, rgba(245, 194, 66, 0.2), rgba(243, 156, 18, 0.2));
+            border: 2px solid rgba(245, 194, 66, 0.4);
+            border-radius: 8px;
+            padding: 6px 14px;
+            color: #f5c242;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+        }
+
+        .lang-toggle:hover {
+            background: linear-gradient(135deg, rgba(245, 194, 66, 0.3), rgba(243, 156, 18, 0.3));
+            border-color: #f5c242;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 194, 66, 0.3);
+        }
+
+        .lang-toggle i {
+            font-size: 1.1rem;
+        }
+
+        #currentLang {
+            font-size: 0.85rem;
+        }
     </style>
 </head>
 <body>
@@ -79,24 +111,28 @@
         </div>
         
         <nav class="site-nav">
-            <a href="index.php" class="active">Home</a>
-            <a href="events.php">Events</a>
-            <a href="shop.html">Shop</a>
-            <a href="trading.html">Trading</a>
-            <a href="news.html">News</a>
-            <a href="reclamation.html">Support</a>
-            <a href="about.html">About Us</a>
+            <a href="index.php" class="active" data-lang-en="Home" data-lang-fr="Accueil">Home</a>
+            <a href="events.php" data-lang-en="Events" data-lang-fr="Événements">Events</a>
+            <a href="shop.html" data-lang-en="Shop" data-lang-fr="Boutique">Shop</a>
+            <a href="trading.html" data-lang-en="Trading" data-lang-fr="Échange">Trading</a>
+            <a href="news.html" data-lang-en="News" data-lang-fr="Actualités">News</a>
+            <a href="reclamation.html" data-lang-en="Support" data-lang-fr="Support">Support</a>
+            <a href="about.html" data-lang-en="About Us" data-lang-fr="À Propos">About Us</a>
         </nav>
         
         <div class="header-right">
-            <a href="login.html" class="login-register-link">
-                <i class="fas fa-user"></i> Login / Register
+            <button id="langToggle" class="lang-toggle" onclick="toggleLanguage()">
+                <i class="fas fa-language"></i>
+                <span id="currentLang">FR</span>
+            </button>
+            <a href="login.html" class="login-register-link" data-lang-en="Login / Register" data-lang-fr="Connexion / S'inscrire">
+                <i class="fas fa-user"></i> <span>Login / Register</span>
             </a>
             <a href="profile.html" class="profile-icon">
                 <i class="fas fa-user-circle"></i>
             </a>
-            <a href="panier.html" class="cart-icon">
-                <i class="fas fa-shopping-cart"></i> Cart
+            <a href="panier.html" class="cart-icon" data-lang-en="Cart" data-lang-fr="Panier">
+                <i class="fas fa-shopping-cart"></i> <span>Cart</span>
                 <span class="cart-count">0</span>
             </a>
         </div>
@@ -614,5 +650,7 @@
             <p>© 2025 FoxUnity. All rights reserved. Made with <span>♥</span> by gamers for gamers</p>
         </div>
     </footer>
+
+    <script src="lang-toggle.js"></script>
 </body>
 </html>

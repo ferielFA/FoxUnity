@@ -9,7 +9,8 @@ $message = '';
 $showParticipationForm = false;
 $showCreateEventForm = false;
 $selectedEvent = null;
-$showAllEvents = isset($_GET['view']) && $_GET['view'] === 'all';
+$showMyEvents = isset($_GET['view']) && $_GET['view'] === 'my';
+$currentUserEmail = isset($_GET['email']) ? htmlspecialchars($_GET['email']) : '';
 
 // Handle create event form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -21,12 +22,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             new DateTime($_POST['date_debut']),
             new DateTime($_POST['date_fin']),
             htmlspecialchars($_POST['lieu']),
+            htmlspecialchars($_POST['createur_email']),
             'upcoming'
         );
         
         if ($eventController->creer($evenement)) {
             $message = '<div class="alert success"><i class="fas fa-check-circle"></i> Event created successfully!</div>';
-            header("Location: events.php");
+            header("Location: events.php?view=my&email=" . urlencode($_POST['createur_email']));
             exit;
         } else {
             $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> Error creating event.</div>';
@@ -59,7 +61,12 @@ if (isset($_GET['create'])) {
     $showCreateEventForm = true;
 }
 
-$evenements = $eventController->lireTous();
+// Get events based on filter
+if ($showMyEvents && !empty($currentUserEmail)) {
+    $evenements = $eventController->lireParCreateur($currentUserEmail);
+} else {
+    $evenements = $eventController->lireTous();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -428,6 +435,89 @@ $evenements = $eventController->lireTous();
         .form-group.success textarea {
             border-color: #10b981 !important;
         }
+
+        /* Language Toggle Button */
+        .lang-toggle {
+            background: linear-gradient(135deg, rgba(245, 194, 66, 0.2), rgba(243, 156, 18, 0.2));
+            border: 2px solid rgba(245, 194, 66, 0.4);
+            border-radius: 8px;
+            padding: 6px 14px;
+            color: #f5c242;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+        }
+
+        .lang-toggle:hover {
+            background: linear-gradient(135deg, rgba(245, 194, 66, 0.3), rgba(243, 156, 18, 0.3));
+            border-color: #f5c242;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 194, 66, 0.3);
+        }
+
+        .lang-toggle i {
+            font-size: 1.1rem;
+        }
+
+        #currentLang {
+            font-size: 0.85rem;
+        }
+
+        /* Pagination Styles */
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 40px;
+            padding: 20px;
+        }
+
+        .pagination-info {
+            color: #cfd3d8;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .btn-pagination {
+            background: linear-gradient(135deg, #f5c242, #f39c12);
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(245, 194, 66, 0.3);
+        }
+
+        .btn-pagination:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(245, 194, 66, 0.5);
+        }
+
+        .btn-pagination:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-pagination.btn-prev {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+        }
+
+        .btn-pagination.btn-prev:hover:not(:disabled) {
+            box-shadow: 0 6px 20px rgba(107, 114, 128, 0.5);
+        }
     </style>
 </head>
 <body>
@@ -446,18 +536,22 @@ $evenements = $eventController->lireTous();
         </div>
         
         <nav class="site-nav">
-            <a href="index.php">Home</a>
-            <a href="events.php" class="active">Events</a>
-            <a href="shop.html">Shop</a>
-            <a href="trading.html">Trading</a>
-            <a href="news.html">News</a>
-            <a href="reclamation.html">Support</a>
-            <a href="about.html">About Us</a>
+            <a href="index.php" data-lang-en="Home" data-lang-fr="Accueil">Home</a>
+            <a href="events.php" class="active" data-lang-en="Events" data-lang-fr="Événements">Events</a>
+            <a href="shop.html" data-lang-en="Shop" data-lang-fr="Boutique">Shop</a>
+            <a href="trading.html" data-lang-en="Trading" data-lang-fr="Échange">Trading</a>
+            <a href="news.html" data-lang-en="News" data-lang-fr="Actualités">News</a>
+            <a href="reclamation.html" data-lang-en="Support" data-lang-fr="Support">Support</a>
+            <a href="about.html" data-lang-en="About Us" data-lang-fr="À Propos">About Us</a>
         </nav>
         
         <div class="header-right">
-            <a href="login.html" class="login-register-link">
-                <i class="fas fa-user"></i> Login / Register
+            <button id="langToggle" class="lang-toggle" onclick="toggleLanguage()">
+                <i class="fas fa-language"></i>
+                <span id="currentLang">FR</span>
+            </button>
+            <a href="login.html" class="login-register-link" data-lang-en="Login / Register" data-lang-fr="Connexion / S'inscrire">
+                <i class="fas fa-user"></i> <span>Login / Register</span>
             </a>
         </div>
     </header>
@@ -469,49 +563,55 @@ $evenements = $eventController->lireTous();
         <div class="modal-overlay" id="createEventModal">
             <div class="participation-modal">
                 <div class="modal-header">
-                    <h2><i class="fas fa-calendar-plus"></i> Create New Event</h2>
-                    <p style="color: #cfd3d8; font-size: 0.95rem;">Fill in the details below to create an event</p>
+                    <h2 data-lang-en="Create New Event" data-lang-fr="Créer un Nouvel Événement"><i class="fas fa-calendar-plus"></i> <span>Create New Event</span></h2>
+                    <p style="color: #cfd3d8; font-size: 0.95rem;" data-lang-en="Fill in the details below to create an event" data-lang-fr="Remplissez les détails ci-dessous pour créer un événement">Fill in the details below to create an event</p>
                 </div>
 
                 <form method="POST" action="" id="createEventForm" novalidate>
                     <input type="hidden" name="action" value="create_event">
                     
                     <div class="form-group">
-                        <label for="titre">Event Title *</label>
-                        <input type="text" id="titre" name="titre" placeholder="Enter event title">
+                        <label for="titre" data-lang-en="Event Title *" data-lang-fr="Titre de l'Événement *">Event Title *</label>
+                        <input type="text" id="titre" name="titre" placeholder="Enter event title" data-lang-en="Enter event title" data-lang-fr="Entrez le titre de l'événement">
                         <div class="error-message" id="error-titre"></div>
                     </div>
 
                     <div class="form-group">
-                        <label for="description">Description *</label>
-                        <textarea id="description" name="description" placeholder="Describe your event" rows="4" style="width:100%; padding:14px 18px; background:rgba(255,255,255,0.05); border:2px solid rgba(255,255,255,0.1); border-radius:10px; color:#fff; font-size:1rem; font-family:'Poppins',sans-serif; resize:vertical;"></textarea>
+                        <label for="description" data-lang-en="Description *" data-lang-fr="Description *">Description *</label>
+                        <textarea id="description" name="description" placeholder="Describe your event" data-lang-en="Describe your event" data-lang-fr="Décrivez votre événement" rows="4" style="width:100%; padding:14px 18px; background:rgba(255,255,255,0.05); border:2px solid rgba(255,255,255,0.1); border-radius:10px; color:#fff; font-size:1rem; font-family:'Poppins',sans-serif; resize:vertical;"></textarea>
                         <div class="error-message" id="error-description"></div>
                     </div>
 
                     <div class="form-group">
-                        <label for="date_debut">Start Date & Time *</label>
+                        <label for="date_debut" data-lang-en="Start Date & Time *" data-lang-fr="Date & Heure de Début *">Start Date & Time *</label>
                         <input type="datetime-local" id="date_debut" name="date_debut">
                         <div class="error-message" id="error-date_debut"></div>
                     </div>
 
                     <div class="form-group">
-                        <label for="date_fin">End Date & Time *</label>
+                        <label for="date_fin" data-lang-en="End Date & Time *" data-lang-fr="Date & Heure de Fin *">End Date & Time *</label>
                         <input type="datetime-local" id="date_fin" name="date_fin">
                         <div class="error-message" id="error-date_fin"></div>
                     </div>
 
                     <div class="form-group">
-                        <label for="lieu">Location *</label>
-                        <input type="text" id="lieu" name="lieu" placeholder="Event location">
+                        <label for="lieu" data-lang-en="Location *" data-lang-fr="Lieu *">Location *</label>
+                        <input type="text" id="lieu" name="lieu" placeholder="Event location" data-lang-en="Event location" data-lang-fr="Lieu de l'événement">
                         <div class="error-message" id="error-lieu"></div>
                     </div>
 
+                    <div class="form-group">
+                        <label for="createur_email" data-lang-en="Your Email (Creator) *" data-lang-fr="Votre Email (Créateur) *">Your Email (Creator) *</label>
+                        <input type="email" id="createur_email" name="createur_email" placeholder="your.email@example.com" data-lang-en="your.email@example.com" data-lang-fr="votre.email@exemple.com">
+                        <div class="error-message" id="error-createur_email"></div>
+                    </div>
+
                     <div class="form-actions">
-                        <button type="submit" class="btn-submit">
-                            <i class="fas fa-check-circle"></i> Create Event
+                        <button type="submit" class="btn-submit" data-lang-en="Create Event" data-lang-fr="Créer l'Événement">
+                            <i class="fas fa-check-circle"></i> <span>Create Event</span>
                         </button>
-                        <a href="events.php" class="btn-cancel" style="text-decoration:none; display:flex; align-items:center; justify-content:center;">
-                            <i class="fas fa-times-circle"></i> Cancel
+                        <a href="events.php" class="btn-cancel" style="text-decoration:none; display:flex; align-items:center; justify-content:center;" data-lang-en="Cancel" data-lang-fr="Annuler">
+                            <i class="fas fa-times-circle"></i> <span>Cancel</span>
                         </a>
                     </div>
                 </form>
@@ -523,7 +623,7 @@ $evenements = $eventController->lireTous();
         <div class="modal-overlay" id="participationModal">
             <div class="participation-modal">
                 <div class="modal-header">
-                    <h2><i class="fas fa-ticket-alt"></i> Join Event</h2>
+                    <h2 data-lang-en="Join Event" data-lang-fr="Rejoindre l'Événement"><i class="fas fa-ticket-alt"></i> <span>Join Event</span></h2>
                     <div class="event-name"><?= htmlspecialchars($selectedEvent->getTitre()) ?></div>
                 </div>
 
@@ -532,23 +632,23 @@ $evenements = $eventController->lireTous();
                     <input type="hidden" name="id_evenement" value="<?= $selectedEvent->getIdEvenement() ?>">
                     
                     <div class="form-group">
-                        <label for="nom_participant">Your Name *</label>
-                        <input type="text" id="nom_participant" name="nom_participant" placeholder="Enter your full name">
+                        <label for="nom_participant" data-lang-en="Your Name *" data-lang-fr="Votre Nom *">Your Name *</label>
+                        <input type="text" id="nom_participant" name="nom_participant" placeholder="Enter your full name" data-lang-en="Enter your full name" data-lang-fr="Entrez votre nom complet">
                         <div class="error-message" id="error-nom_participant"></div>
                     </div>
 
                     <div class="form-group">
-                        <label for="email_participant">Your Email *</label>
-                        <input type="text" id="email_participant" name="email_participant" placeholder="your.email@example.com">
+                        <label for="email_participant" data-lang-en="Your Email *" data-lang-fr="Votre Email *">Your Email *</label>
+                        <input type="text" id="email_participant" name="email_participant" placeholder="your.email@example.com" data-lang-en="your.email@example.com" data-lang-fr="votre.email@exemple.com">
                         <div class="error-message" id="error-email_participant"></div>
                     </div>
 
                     <div class="form-actions">
-                        <button type="submit" class="btn-submit">
-                            <i class="fas fa-check-circle"></i> Confirm Registration
+                        <button type="submit" class="btn-submit" data-lang-en="Confirm Registration" data-lang-fr="Confirmer l'Inscription">
+                            <i class="fas fa-check-circle"></i> <span>Confirm Registration</span>
                         </button>
-                        <a href="events.php" class="btn-cancel" style="text-decoration:none; display:flex; align-items:center; justify-content:center;">
-                            <i class="fas fa-times-circle"></i> Cancel
+                        <a href="events.php" class="btn-cancel" style="text-decoration:none; display:flex; align-items:center; justify-content:center;" data-lang-en="Cancel" data-lang-fr="Annuler">
+                            <i class="fas fa-times-circle"></i> <span>Cancel</span>
                         </a>
                     </div>
                 </form>
@@ -558,37 +658,42 @@ $evenements = $eventController->lireTous();
 
         <section class="events-section">
             <div class="events-header">
-                <h2><?= $showAllEvents ? 'All Events' : 'Upcoming Events' ?></h2>
-                <p><?= $showAllEvents ? 'Complete list of all events on the platform' : 'Join exciting gaming events and tournaments' ?></p>
+                <h2 data-lang-en="<?= $showMyEvents ? 'My Events' : 'Upcoming Events' ?>" data-lang-fr="<?= $showMyEvents ? 'Mes Événements' : 'Événements À Venir' ?>"><?= $showMyEvents ? 'My Events' : 'Upcoming Events' ?></h2>
+                <p data-lang-en="<?= $showMyEvents ? 'Events created by you' : 'Join exciting gaming events and tournaments' ?>" data-lang-fr="<?= $showMyEvents ? 'Événements créés par vous' : 'Rejoignez des événements gaming passionnants' ?>"><?= $showMyEvents ? 'Events created by you' : 'Join exciting gaming events and tournaments' ?></p>
                 <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-top: 20px;">
-                    <a href="?create=1" class="btn-create-event">
-                        <i class="fas fa-plus-circle"></i> Create New Event
+                    <a href="?create=1" class="btn-create-event" data-lang-en="Create New Event" data-lang-fr="Créer un Nouvel Événement">
+                        <i class="fas fa-plus-circle"></i> <span>Create New Event</span>
                     </a>
-                    <?php if ($showAllEvents): ?>
-                        <a href="events.php" class="btn-view-all">
-                            <i class="fas fa-filter"></i> Show Upcoming Only
+                    <a href="my_tickets.php" class="btn-create-event" style="background: linear-gradient(135deg, #2ed573, #1abc9c);" data-lang-en="My Tickets" data-lang-fr="Mes Tickets">
+                        <i class="fas fa-ticket-alt"></i> <span>My Tickets</span>
+                    </a>
+                    <?php if ($showMyEvents): ?>
+                        <a href="events.php" class="btn-view-all" data-lang-en="Show All Upcoming" data-lang-fr="Afficher Tous les Événements">
+                            <i class="fas fa-filter"></i> <span>Show All Upcoming</span>
                         </a>
                     <?php else: ?>
-                        <a href="?view=all" class="btn-view-all">
-                            <i class="fas fa-list"></i> View All Events
+                        <a href="#" onclick="showMyEvents(); return false;" class="btn-view-all" data-lang-en="My Events" data-lang-fr="Mes Événements">
+                            <i class="fas fa-user-circle"></i> <span>My Events</span>
                         </a>
                     <?php endif; ?>
                 </div>
             </div>
 
-            <div class="events-container">
+            <div class="events-container" id="eventsContainer">
                 <?php 
-                $displayedEvents = $showAllEvents ? $evenements : array_filter($evenements, function($item) {
+                $displayedEvents = $showMyEvents ? $evenements : array_filter($evenements, function($item) {
                     return $item['evenement']->getStatut() === 'upcoming';
                 });
                 
                 if (empty($displayedEvents)): ?>
                     <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; color: #969696;">
                         <i class="fas fa-calendar-times" style="font-size: 4rem; margin-bottom: 20px; opacity: 0.3;"></i>
-                        <p style="font-size: 1.2rem;">No events found.</p>
+                        <p style="font-size: 1.2rem;" data-lang-en="No events found." data-lang-fr="Aucun événement trouvé.">No events found.</p>
                     </div>
                 <?php else: ?>
-                    <?php foreach ($displayedEvents as $item):
+                    <?php 
+                    $eventIndex = 0;
+                    foreach ($displayedEvents as $item):
                         $event = $item['evenement'];
                         $nbParticipants = $item['nb_participants'];
                         $statuts = [
@@ -597,8 +702,9 @@ $evenements = $eventController->lireTous();
                             'completed' => 'Terminé',
                             'cancelled' => 'Annulé'
                         ];
+                        $eventIndex++;
                     ?>
-                <div class="event-card" style="cursor: pointer;" onclick="window.location.href='event_details.php?id=<?= $event->getIdEvenement() ?>'">
+                <div class="event-card event-item" data-event-index="<?= $eventIndex ?>" style="cursor: pointer; <?= $eventIndex > 3 ? 'display: none;' : '' ?>" onclick="window.location.href='event_details.php?id=<?= $event->getIdEvenement() ?>'">
                     <div class="event-card-content">
                         <span class="badge badge-<?= $event->getStatut() ?>">
                             <?= $statuts[$event->getStatut()] ?>
@@ -619,15 +725,15 @@ $evenements = $eventController->lireTous();
                     <div class="event-footer">
                         <div class="participants-count">
                             <i class="fas fa-users"></i>
-                            <?= $nbParticipants ?> participants
+                            <?= $nbParticipants ?> <span data-lang-en="participants" data-lang-fr="participants">participants</span>
                         </div>
                         <?php if ($event->getStatut() === 'upcoming'): ?>
-                            <a href="?join=<?= $event->getIdEvenement() ?>" class="btn-join" onclick="event.stopPropagation();">
-                                <i class="fas fa-user-plus"></i> Join Event
+                            <a href="?join=<?= $event->getIdEvenement() ?>" class="btn-join" onclick="event.stopPropagation();" data-lang-en="Join Event" data-lang-fr="Rejoindre">
+                                <i class="fas fa-user-plus"></i> <span>Join Event</span>
                             </a>
                         <?php else: ?>
-                            <button class="btn-join" disabled style="opacity:0.5;cursor:not-allowed" onclick="event.stopPropagation();">
-                                <i class="fas fa-ban"></i> Unavailable
+                            <button class="btn-join" disabled style="opacity:0.5;cursor:not-allowed" onclick="event.stopPropagation();" data-lang-en="Unavailable" data-lang-fr="Indisponible">
+                                <i class="fas fa-ban"></i> <span>Unavailable</span>
                             </button>
                         <?php endif; ?>
                     </div>
@@ -635,6 +741,95 @@ $evenements = $eventController->lireTous();
                 <?php endforeach; ?>
                 <?php endif; ?>
             </div>
+
+            <?php if (!empty($displayedEvents) && count($displayedEvents) > 3): ?>
+            <div class="pagination-container">
+                <button class="btn-pagination btn-prev" id="btnPrev" onclick="previousPage()" disabled>
+                    <i class="fas fa-chevron-left"></i>
+                    <span data-lang-en="Previous" data-lang-fr="Précédent">Previous</span>
+                </button>
+                
+                <div class="pagination-info">
+                    <span data-lang-en="Showing" data-lang-fr="Affichage">Showing</span>
+                    <span id="currentRange">1-3</span>
+                    <span data-lang-en="of" data-lang-fr="sur">of</span>
+                    <span id="totalEvents"><?= count($displayedEvents) ?></span>
+                </div>
+                
+                <button class="btn-pagination btn-next" id="btnNext" onclick="nextPage()">
+                    <span data-lang-en="Next" data-lang-fr="Suivant">Next</span>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <?php endif; ?>
+            
+            <script>
+                let currentPage = 1;
+                const eventsPerPage = 3;
+                const totalEvents = <?= !empty($displayedEvents) ? count($displayedEvents) : 0 ?>;
+                const totalPages = Math.ceil(totalEvents / eventsPerPage);
+
+                function showPage(page) {
+                    const allEventCards = document.querySelectorAll('.event-item');
+                    const start = (page - 1) * eventsPerPage + 1;
+                    const end = Math.min(page * eventsPerPage, totalEvents);
+
+                    // Hide all events
+                    allEventCards.forEach(card => {
+                        card.style.display = 'none';
+                    });
+
+                    // Show only events for current page
+                    allEventCards.forEach(card => {
+                        const index = parseInt(card.getAttribute('data-event-index'));
+                        if (index >= start && index <= end) {
+                            card.style.display = 'block';
+                            // Add fade-in animation
+                            card.style.animation = 'fadeIn 0.5s ease';
+                        }
+                    });
+
+                    // Update pagination info
+                    document.getElementById('currentRange').textContent = start + '-' + end;
+
+                    // Update button states
+                    document.getElementById('btnPrev').disabled = (page === 1);
+                    document.getElementById('btnNext').disabled = (page === totalPages);
+
+                    // Scroll to top of events
+                    document.getElementById('eventsContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+
+                function nextPage() {
+                    if (currentPage < totalPages) {
+                        currentPage++;
+                        showPage(currentPage);
+                    }
+                }
+
+                function previousPage() {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        showPage(currentPage);
+                    }
+                }
+
+                // Add fadeIn animation
+                const style = document.createElement('style');
+                style.textContent = `
+                    @keyframes fadeIn {
+                        from {
+                            opacity: 0;
+                            transform: translateY(20px);
+                        }
+                        to {
+                            opacity: 1;
+                            transform: translateY(0);
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+            </script>
         </section>
     </main>
 
@@ -810,13 +1005,25 @@ $evenements = $eventController->lireTous();
                     Validator.clearError('lieu');
                 }
                 
+                // Validate Creator Email
+                const createurEmail = document.getElementById('createur_email').value;
+                if (Validator.isEmpty(createurEmail)) {
+                    Validator.showError('createur_email', 'L\'email est obligatoire');
+                    isValid = false;
+                } else if (!Validator.isValidEmail(createurEmail)) {
+                    Validator.showError('createur_email', 'Format d\'email invalide (ex: exemple@domaine.com)');
+                    isValid = false;
+                } else {
+                    Validator.clearError('createur_email');
+                }
+                
                 if (isValid) {
                     this.submit();
                 }
             });
             
             // Real-time validation
-            ['titre', 'description', 'date_debut', 'date_fin', 'lieu'].forEach(fieldId => {
+            ['titre', 'description', 'date_debut', 'date_fin', 'lieu', 'createur_email'].forEach(fieldId => {
                 const field = document.getElementById(fieldId);
                 if (field) {
                     field.addEventListener('blur', function() {
@@ -884,5 +1091,23 @@ $evenements = $eventController->lireTous();
             });
         }
     </script>
+
+    <script>
+        // Function to prompt for email and redirect to My Events
+        function showMyEvents() {
+            const email = prompt('Enter your email to view your events:');
+            if (email && email.trim() !== '') {
+                // Basic email validation
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (emailRegex.test(email)) {
+                    window.location.href = '?view=my&email=' + encodeURIComponent(email);
+                } else {
+                    alert('Please enter a valid email address');
+                }
+            }
+        }
+    </script>
+
+    <script src="lang-toggle.js"></script>
 </body>
 </html>

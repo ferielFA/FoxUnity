@@ -1,11 +1,11 @@
 <?php
 require_once __DIR__ . '/../../controller/EvenementController.php';
 require_once __DIR__ . '/../../controller/ParticipationController.php';
-require_once __DIR__ . '/../../controller/CommentController.php';
+require_once __DIR__ . '/../../controller/TicketController.php';
 
 $eventController = new EvenementController();
 $participationController = new ParticipationController();
-$commentController = new CommentController();
+$ticketController = new TicketController();
 
 // Handle delete event
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
@@ -22,65 +22,19 @@ $totalEvents = count($evenements);
 $upcomingEvents = 0;
 $expiredEvents = 0;
 $totalParticipants = 0;
-$totalComments = 0;
+$totalTickets = $ticketController->countAllTickets();
 $now = new DateTime();
-
-// Data for charts
-$topEvents = [];
-$eventsByStatus = ['upcoming' => 0, 'ongoing' => 0, 'completed' => 0, 'cancelled' => 0];
-$ratingDistribution = [1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0];
-$participationTrend = [];
-$sumRatings = 0;
-$totalRatings = 0;
 
 foreach ($evenements as $item) {
     $event = $item['evenement'];
     $totalParticipants += $item['nb_participants'];
-    
-    // Event status
-    $eventsByStatus[$event->getStatut()]++;
     
     if ($event->getDateFin() < $now) {
         $expiredEvents++;
     } else {
         $upcomingEvents++;
     }
-    
-    // Top events by participants
-    $topEvents[] = [
-        'titre' => $event->getTitre(),
-        'participants' => $item['nb_participants']
-    ];
-    
-    // Get comments and ratings
-    $eventComments = $commentController->getEventComments($event->getIdEvenement());
-    $totalComments += count($eventComments);
-    
-    foreach ($eventComments as $comment) {
-        $rating = $comment->getRating();
-        $ratingDistribution[$rating]++;
-        $totalRatings++;
-        $sumRatings += $rating;
-    }
 }
-
-// Sort top events
-usort($topEvents, fn($a, $b) => $b['participants'] - $a['participants']);
-$topEvents = array_slice($topEvents, 0, 5);
-
-// Calculate average rating
-$averageRating = $totalRatings > 0 ? round($sumRatings / $totalRatings, 1) : 0;
-
-// Participation trend (simulated for last 7 days)
-$participationTrend = [
-    ['day' => 'Lun', 'count' => rand(5, 20)],
-    ['day' => 'Mar', 'count' => rand(5, 20)],
-    ['day' => 'Mer', 'count' => rand(5, 20)],
-    ['day' => 'Jeu', 'count' => rand(5, 20)],
-    ['day' => 'Ven', 'count' => rand(5, 20)],
-    ['day' => 'Sam', 'count' => rand(5, 20)],
-    ['day' => 'Dim', 'count' => rand(5, 20)]
-];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -91,17 +45,17 @@ $participationTrend = [
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  
   <style>
     .events-management {
       padding: 24px;
+      max-width: 100%;
+      overflow-x: auto;
     }
 
     .stats-container {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
       margin-bottom: 32px;
     }
 
@@ -109,27 +63,29 @@ $participationTrend = [
       background: linear-gradient(135deg, rgba(22, 22, 26, 0.9), rgba(27, 27, 32, 0.9));
       border: 1px solid rgba(245, 194, 66, 0.2);
       border-radius: 12px;
-      padding: 24px;
+      padding: 20px;
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
       transition: all 0.3s ease;
+      cursor: pointer;
+      min-height: 100px;
     }
 
     .stat-card:hover {
-      transform: translateY(-5px);
+      transform: translateY(-3px);
       box-shadow: 0 8px 20px rgba(245, 194, 66, 0.2);
       border-color: rgba(245, 194, 66, 0.4);
     }
 
     .stat-icon {
-      width: 60px;
-      height: 60px;
-      border-radius: 12px;
+      width: 50px;
+      height: 50px;
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 28px;
+      font-size: 24px;
       flex-shrink: 0;
     }
 
@@ -153,20 +109,25 @@ $participationTrend = [
       color: #fff;
     }
 
+    .stat-icon.tickets {
+      background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+      color: #fff;
+    }
+
     .stat-content {
       flex: 1;
     }
 
     .stat-label {
       color: #969696;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       margin-bottom: 4px;
       font-weight: 600;
     }
 
     .stat-value {
       font-family: 'Orbitron', sans-serif;
-      font-size: 2rem;
+      font-size: 1.8rem;
       font-weight: 700;
       color: #f5c242;
       line-height: 1;
@@ -176,46 +137,54 @@ $participationTrend = [
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 32px;
+      margin-bottom: 24px;
     }
 
     .events-header h2 {
       font-family: 'Orbitron', sans-serif;
       color: #f5c242;
-      font-size: 2rem;
+      font-size: 1.8rem;
       margin: 0;
     }
 
     .events-table {
       background: rgba(255, 255, 255, 0.03);
       border-radius: 12px;
-      overflow: hidden;
+      overflow-x: auto;
+      overflow-y: visible;
       box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+      max-width: 100%;
     }
 
     .events-table table {
       width: 100%;
+      min-width: 1200px;
       border-collapse: collapse;
     }
 
     .events-table thead {
       background: linear-gradient(135deg, #16161a, #1b1b20);
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
 
     .events-table th {
-      padding: 16px;
+      padding: 14px 12px;
       text-align: left;
       font-family: 'Orbitron', sans-serif;
       color: #f5c242;
       font-weight: 700;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       border-bottom: 2px solid rgba(245, 194, 66, 0.3);
+      white-space: nowrap;
     }
 
     .events-table td {
-      padding: 16px;
+      padding: 14px 12px;
       color: #cfd3d8;
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.9rem;
     }
 
     .events-table tbody tr {
@@ -229,14 +198,19 @@ $participationTrend = [
     .event-title-cell {
       font-weight: 600;
       color: #fff;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .status-badge {
       display: inline-block;
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 0.8rem;
+      padding: 4px 10px;
+      border-radius: 10px;
+      font-size: 0.75rem;
       font-weight: 700;
+      white-space: nowrap;
     }
 
     .status-available {
@@ -257,23 +231,120 @@ $participationTrend = [
       border: 1px solid #969696;
     }
 
+    .ticket-badge {
+      display: inline-block;
+      padding: 5px 12px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, rgba(245, 194, 66, 0.2), rgba(243, 156, 18, 0.2));
+      color: #f5c242;
+      border: 1px solid rgba(245, 194, 66, 0.4);
+      transition: all 0.3s ease;
+      white-space: nowrap;
+    }
+
+    .ticket-badge:hover {
+      background: linear-gradient(135deg, rgba(245, 194, 66, 0.3), rgba(243, 156, 18, 0.3));
+      border-color: #f5c242;
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(245, 194, 66, 0.3);
+    }
+
+    .ticket-badge i {
+      margin-right: 4px;
+    }
+
+    .ticket-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(245, 194, 66, 0.2);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .ticket-item:hover {
+      background: rgba(245, 194, 66, 0.05);
+      border-color: rgba(245, 194, 66, 0.4);
+    }
+
+    .ticket-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .ticket-info strong {
+      color: #f5c242;
+      font-size: 0.85rem;
+    }
+
+    .ticket-info span {
+      color: #cfd3d8;
+    }
+
+    .ticket-qr {
+      text-align: center;
+    }
+
+    .ticket-qr img {
+      width: 80px;
+      height: 80px;
+      border: 2px solid #f5c242;
+      border-radius: 8px;
+      padding: 4px;
+      background: white;
+    }
+
+    .ticket-status-badge {
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .ticket-status-active {
+      background: rgba(46, 213, 115, 0.2);
+      color: #2ed573;
+      border: 1px solid #2ed573;
+    }
+
+    .ticket-status-used {
+      background: rgba(150, 150, 150, 0.2);
+      color: #969696;
+      border: 1px solid #969696;
+    }
+
+    .ticket-status-cancelled {
+      background: rgba(255, 107, 107, 0.2);
+      color: #ff6b6b;
+      border: 1px solid #ff6b6b;
+    }
+
     .action-buttons {
       display: flex;
-      gap: 8px;
+      gap: 6px;
+      flex-wrap: nowrap;
     }
 
     .btn-action {
       background: transparent;
       border: 1px solid rgba(255, 255, 255, 0.2);
       color: #fff;
-      padding: 6px 12px;
+      padding: 5px 10px;
       border-radius: 6px;
       cursor: pointer;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       transition: all 0.3s ease;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
+      white-space: nowrap;
     }
 
     .btn-action:hover {
@@ -304,55 +375,257 @@ $participationTrend = [
       opacity: 0.3;
     }
 
-    /* Charts Styles */
-    .charts-section {
-      margin-bottom: 32px;
+    /* Modal Styles */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 9999;
+      animation: fadeIn 0.3s ease;
     }
 
-    .charts-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-      gap: 24px;
-      margin-bottom: 24px;
+    .modal-overlay.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .chart-card {
-      background: linear-gradient(135deg, rgba(22, 22, 26, 0.95), rgba(27, 27, 32, 0.95));
-      border: 1px solid rgba(245, 194, 66, 0.2);
+    .modal-content {
+      background: linear-gradient(135deg, #16161a, #1b1b20);
+      border: 2px solid rgba(245, 194, 66, 0.3);
       border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      width: 90%;
+      max-width: 800px;
+      max-height: 80vh;
+      overflow-y: auto;
+      animation: slideDown 0.3s ease;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
     }
 
-    .chart-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 12px 32px rgba(245, 194, 66, 0.2);
+    .modal-header {
+      background: linear-gradient(135deg, rgba(245, 194, 66, 0.2), rgba(243, 156, 18, 0.2));
+      padding: 24px;
+      border-bottom: 2px solid rgba(245, 194, 66, 0.3);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h2 {
+      font-family: 'Orbitron', sans-serif;
+      color: #f5c242;
+      margin: 0;
+      font-size: 1.5rem;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: #f5c242;
+      font-size: 2rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-close:hover {
+      transform: rotate(90deg);
+      color: #ff6b6b;
+    }
+
+    .modal-body {
+      padding: 24px;
+    }
+
+    .event-card-modal {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(245, 194, 66, 0.2);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      transition: all 0.3s ease;
+    }
+
+    .event-card-modal:hover {
+      background: rgba(245, 194, 66, 0.05);
+      border-color: rgba(245, 194, 66, 0.4);
+      transform: translateX(5px);
+    }
+
+    .event-card-modal h3 {
+      font-family: 'Orbitron', sans-serif;
+      color: #f5c242;
+      margin: 0 0 12px 0;
+      font-size: 1.2rem;
+    }
+
+    .event-info {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      color: #cfd3d8;
+    }
+
+    .event-info-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .event-info-item i {
+      color: #f5c242;
+      width: 20px;
+    }
+
+    .participant-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(245, 194, 66, 0.2);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .participant-item:hover {
+      background: rgba(245, 194, 66, 0.05);
       border-color: rgba(245, 194, 66, 0.4);
     }
 
-    .chart-card h3 {
+    .participant-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .participant-info strong {
+      color: #f5c242;
+      font-size: 0.85rem;
+    }
+
+    .participant-info span {
+      color: #cfd3d8;
+    }
+
+    .event-group {
+      margin-bottom: 24px;
+    }
+
+    .event-group-title {
       font-family: 'Orbitron', sans-serif;
       color: #f5c242;
-      margin: 0 0 20px 0;
       font-size: 1.1rem;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid rgba(245, 194, 66, 0.3);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideDown {
+      from { 
+        opacity: 0;
+        transform: translateY(-50px);
+      }
+      to { 
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Language Toggle Button */
+    .lang-toggle {
+      background: linear-gradient(135deg, rgba(245, 194, 66, 0.2), rgba(243, 156, 18, 0.2));
+      border: 2px solid rgba(245, 194, 66, 0.4);
+      border-radius: 8px;
+      padding: 8px 16px;
+      color: #f5c242;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
+      transition: all 0.3s ease;
     }
 
-    .chart-card-wide {
-      grid-column: 1 / -1;
+    .lang-toggle:hover {
+      background: linear-gradient(135deg, rgba(245, 194, 66, 0.3), rgba(243, 156, 18, 0.3));
+      border-color: #f5c242;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(245, 194, 66, 0.3);
     }
 
-    .chart-card canvas {
-      max-height: 300px;
+    .lang-toggle i {
+      font-size: 1.2rem;
+    }
+
+    #currentLang {
+      font-size: 0.9rem;
+    }
+
+    /* Table Responsive Improvements */
+    @media (max-width: 1400px) {
+      .events-table table {
+        min-width: 1100px;
+      }
+      
+      .events-table th,
+      .events-table td {
+        padding: 12px 8px;
+        font-size: 0.85rem;
+      }
+      
+      .event-title-cell {
+        max-width: 150px;
+      }
     }
 
     @media (max-width: 1200px) {
-      .charts-grid {
-        grid-template-columns: 1fr;
+      .stat-card {
+        padding: 16px;
       }
+      
+      .stat-icon {
+        width: 45px;
+        height: 45px;
+        font-size: 20px;
+      }
+      
+      .stat-value {
+        font-size: 1.6rem;
+      }
+    }
+
+    /* Scrollbar Styling */
+    .events-table::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    .events-table::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+    }
+
+    .events-table::-webkit-scrollbar-thumb {
+      background: rgba(245, 194, 66, 0.3);
+      border-radius: 4px;
+    }
+
+    .events-table::-webkit-scrollbar-thumb:hover {
+      background: rgba(245, 194, 66, 0.5);
     }
   </style>
 </head>
@@ -380,10 +653,16 @@ $participationTrend = [
   <!-- ===== MAIN ===== -->
   <div class="main">
     <div class="topbar">
-      <h1>Events Management</h1>
-      <div class="user">
-        <img src="../images/fery.jpg" alt="User Avatar">
-        <span>FoxLeader</span>
+      <h1 data-lang-en="Events Management" data-lang-fr="Gestion des Événements">Events Management</h1>
+      <div style="display: flex; align-items: center; gap: 20px;">
+        <button id="langToggle" class="lang-toggle" onclick="toggleLanguage()">
+          <i class="fas fa-language"></i>
+          <span id="currentLang">FR</span>
+        </button>
+        <div class="user">
+          <img src="../images/fery.jpg" alt="User Avatar">
+          <span>FoxLeader</span>
+        </div>
       </div>
     </div>
 
@@ -391,104 +670,82 @@ $participationTrend = [
       <div class="events-management">
         <!-- Statistics Section -->
         <div class="stats-container">
-          <div class="stat-card">
+          <div class="stat-card" onclick="showModal('total')">
             <div class="stat-icon total">
               <i class="fas fa-calendar-alt"></i>
             </div>
             <div class="stat-content">
-              <div class="stat-label">Total Events</div>
+              <div class="stat-label" data-lang-en="Total Events" data-lang-fr="Total Événements">Total Events</div>
               <div class="stat-value"><?= $totalEvents ?></div>
             </div>
           </div>
 
-          <div class="stat-card">
+          <div class="stat-card" onclick="showModal('upcoming')">
             <div class="stat-icon upcoming">
               <i class="fas fa-calendar-check"></i>
             </div>
             <div class="stat-content">
-              <div class="stat-label">Upcoming Events</div>
+              <div class="stat-label" data-lang-en="Upcoming Events" data-lang-fr="Événements À Venir">Upcoming Events</div>
               <div class="stat-value"><?= $upcomingEvents ?></div>
             </div>
           </div>
 
-          <div class="stat-card">
+          <div class="stat-card" onclick="showModal('expired')">
             <div class="stat-icon expired">
               <i class="fas fa-calendar-times"></i>
             </div>
             <div class="stat-content">
-              <div class="stat-label">Expired Events</div>
+              <div class="stat-label" data-lang-en="Expired Events" data-lang-fr="Événements Expirés">Expired Events</div>
               <div class="stat-value"><?= $expiredEvents ?></div>
             </div>
           </div>
 
-          <div class="stat-card">
+          <div class="stat-card" onclick="showModal('participants')">
             <div class="stat-icon participants">
               <i class="fas fa-users"></i>
             </div>
             <div class="stat-content">
-              <div class="stat-label">Total Participants</div>
+              <div class="stat-label" data-lang-en="Total Participants" data-lang-fr="Total Participants">Total Participants</div>
               <div class="stat-value"><?= $totalParticipants ?></div>
             </div>
           </div>
-        </div>
 
-        <!-- Analytics Charts Section -->
-        <div class="charts-section">
-          <div class="events-header" style="margin-top: 40px;">
-            <h2><i class="fas fa-chart-line"></i> Analytics & Insights</h2>
-          </div>
-
-          <!-- Charts Row 1 -->
-          <div class="charts-grid">
-            <div class="chart-card">
-              <h3><i class="fas fa-chart-line"></i> Participation Trend (Last 7 Days)</h3>
-              <canvas id="participationTrendChart"></canvas>
+          <div class="stat-card" onclick="showModal('allTickets')">
+            <div class="stat-icon tickets">
+              <i class="fas fa-ticket-alt"></i>
             </div>
-
-            <div class="chart-card">
-              <h3><i class="fas fa-chart-pie"></i> Events by Status</h3>
-              <canvas id="eventsByStatusChart"></canvas>
-            </div>
-          </div>
-
-          <!-- Charts Row 2 -->
-          <div class="charts-grid">
-            <div class="chart-card">
-              <h3><i class="fas fa-chart-bar"></i> Top 5 Events by Participants</h3>
-              <canvas id="topEventsChart"></canvas>
-            </div>
-
-            <div class="chart-card">
-              <h3><i class="fas fa-star-half-alt"></i> Rating Distribution</h3>
-              <canvas id="ratingDistributionChart"></canvas>
+            <div class="stat-content">
+              <div class="stat-label" data-lang-en="Total Tickets" data-lang-fr="Total Tickets">Total Tickets</div>
+              <div class="stat-value"><?= $totalTickets ?></div>
             </div>
           </div>
         </div>
 
         <div class="events-header">
-          <h2>All Events</h2>
+          <h2 data-lang-en="All Events" data-lang-fr="Tous les Événements">All Events</h2>
         </div>
 
         <div class="events-table">
           <table>
             <thead>
               <tr>
-                <th>Title</th>
-                <th>Location</th>
-                <th>Start Date</th>
-                <th>End Date</th>
-                <th>Participants</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th data-lang-en="Title" data-lang-fr="Titre" style="min-width: 150px;">Title</th>
+                <th data-lang-en="Location" data-lang-fr="Lieu" style="min-width: 120px;">Location</th>
+                <th data-lang-en="Start Date" data-lang-fr="Date Début" style="min-width: 120px;">Start Date</th>
+                <th data-lang-en="End Date" data-lang-fr="Date Fin" style="min-width: 120px;">End Date</th>
+                <th data-lang-en="Participants" data-lang-fr="Participants" style="text-align: center; min-width: 80px;">Participants</th>
+                <th data-lang-en="Tickets" data-lang-fr="Tickets" style="text-align: center; min-width: 80px;">Tickets</th>
+                <th data-lang-en="Status" data-lang-fr="Statut" style="text-align: center; min-width: 90px;">Status</th>
+                <th data-lang-en="Actions" data-lang-fr="Actions" style="min-width: 150px;">Actions</th>
               </tr>
             </thead>
             <tbody>
               <?php if (empty($evenements)): ?>
                 <tr>
-                  <td colspan="7">
+                  <td colspan="8">
                     <div class="empty-state">
                       <i class="fas fa-calendar-times"></i>
-                      <p>No events found. Create a new event from the frontend.</p>
+                      <p data-lang-en="No events found. Create a new event from the frontend." data-lang-fr="Aucun événement trouvé. Créez un nouvel événement depuis le frontend.">No events found. Create a new event from the frontend.</p>
                     </div>
                   </td>
                 </tr>
@@ -508,22 +765,30 @@ $participationTrend = [
                   }
                 ?>
                 <tr>
-                  <td class="event-title-cell"><?= htmlspecialchars($event->getTitre()) ?></td>
-                  <td><?= htmlspecialchars($event->getLieu()) ?></td>
-                  <td><?= $event->getDateDebut()->format('M d, Y - H:i') ?></td>
-                  <td><?= $event->getDateFin()->format('M d, Y - H:i') ?></td>
-                  <td><?= $nbParticipants ?></td>
-                  <td><span class="status-badge <?= $statusClass ?>"><?= $statusLabel ?></span></td>
+                  <td class="event-title-cell" title="<?= htmlspecialchars($event->getTitre()) ?>"><?= htmlspecialchars($event->getTitre()) ?></td>
+                  <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<?= htmlspecialchars($event->getLieu()) ?>"><?= htmlspecialchars($event->getLieu()) ?></td>
+                  <td style="white-space: nowrap;"><?= $event->getDateDebut()->format('d/m/Y H:i') ?></td>
+                  <td style="white-space: nowrap;"><?= $event->getDateFin()->format('d/m/Y H:i') ?></td>
+                  <td style="text-align: center;"><?= $nbParticipants ?></td>
+                  <td style="text-align: center;">
+                    <?php 
+                      $ticketCount = $ticketController->countTicketsByEvent($event->getIdEvenement());
+                    ?>
+                    <span class="ticket-badge" onclick="showTicketsModal(<?= $event->getIdEvenement() ?>, '<?= htmlspecialchars($event->getTitre(), ENT_QUOTES) ?>')">
+                      <i class="fas fa-ticket-alt"></i> <?= $ticketCount ?>
+                    </span>
+                  </td>
+                  <td style="text-align: center;"><span class="status-badge <?= $statusClass ?>"><?= $statusLabel ?></span></td>
                   <td>
                     <div class="action-buttons">
                       <a href="event_comments.php?id=<?= $event->getIdEvenement() ?>" class="btn-action">
-                        <i class="fas fa-eye"></i> View
+                        <i class="fas fa-eye"></i> <span data-lang-en="View" data-lang-fr="Voir">View</span>
                       </a>
-                      <form method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this event?');">
+                      <form method="POST" style="display:inline;" onsubmit="return confirmDelete();">
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="id_evenement" value="<?= $event->getIdEvenement() ?>">
                         <button type="submit" class="btn-action delete">
-                          <i class="fas fa-trash"></i> Delete
+                          <i class="fas fa-trash"></i> <span data-lang-en="Delete" data-lang-fr="Supprimer">Delete</span>
                         </button>
                       </form>
                     </div>
@@ -542,206 +807,64 @@ $participationTrend = [
     </footer>
   </div>
 
+  <!-- ===== MODAL ===== -->
+  <div class="modal-overlay" id="eventModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle"></h2>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <!-- Content will be loaded dynamically -->
+      </div>
+    </div>
+  </div>
+
   <!-- ===== PAGE TRANSITION OVERLAY ===== -->
   <div class="transition-screen"></div>
 
   <script>
-    // Configuration globale Chart.js
-    Chart.defaults.color = '#cfd3d8';
-    Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
-    Chart.defaults.font.family = "'Poppins', sans-serif";
+    // Language Management
+    let currentLanguage = localStorage.getItem('language') || 'en';
 
-    // 1. Participation Trend Chart
-    const participationCtx = document.getElementById('participationTrendChart').getContext('2d');
-    new Chart(participationCtx, {
-      type: 'line',
-      data: {
-        labels: <?= json_encode(array_column($participationTrend, 'day')) ?>,
-        datasets: [{
-          label: 'Participants',
-          data: <?= json_encode(array_column($participationTrend, 'count')) ?>,
-          borderColor: '#f5c242',
-          backgroundColor: 'rgba(245, 194, 66, 0.1)',
-          borderWidth: 3,
-          fill: true,
-          tension: 0.4,
-          pointRadius: 6,
-          pointHoverRadius: 8,
-          pointBackgroundColor: '#f5c242',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-          legend: {
-            display: true,
-            labels: { color: '#f5c242', font: { size: 14, weight: 'bold' } }
-          },
-          tooltip: {
-            backgroundColor: 'rgba(22, 22, 26, 0.95)',
-            titleColor: '#f5c242',
-            bodyColor: '#fff',
-            borderColor: '#f5c242',
-            borderWidth: 1,
-            padding: 12
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: { color: '#969696' },
-            grid: { color: 'rgba(255, 255, 255, 0.05)' }
-          },
-          x: {
-            ticks: { color: '#969696' },
-            grid: { color: 'rgba(255, 255, 255, 0.05)' }
-          }
-        }
-      }
-    });
+    function toggleLanguage() {
+      currentLanguage = currentLanguage === 'en' ? 'fr' : 'en';
+      localStorage.setItem('language', currentLanguage);
+      updateLanguage();
+    }
 
-    // 2. Events by Status Chart
-    const statusCtx = document.getElementById('eventsByStatusChart').getContext('2d');
-    new Chart(statusCtx, {
-      type: 'doughnut',
-      data: {
-        labels: ['Upcoming', 'Ongoing', 'Completed', 'Cancelled'],
-        datasets: [{
-          data: [
-            <?= $eventsByStatus['upcoming'] ?>,
-            <?= $eventsByStatus['ongoing'] ?>,
-            <?= $eventsByStatus['completed'] ?>,
-            <?= $eventsByStatus['cancelled'] ?>
-          ],
-          backgroundColor: ['#2ed573', '#f5c242', '#969696', '#ff6b6b'],
-          borderColor: '#16161a',
-          borderWidth: 3
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { color: '#cfd3d8', padding: 15, font: { size: 12 } }
-          },
-          tooltip: {
-            backgroundColor: 'rgba(22, 22, 26, 0.95)',
-            titleColor: '#f5c242',
-            bodyColor: '#fff',
-            borderColor: '#f5c242',
-            borderWidth: 1,
-            padding: 12
-          }
-        }
-      }
-    });
+    function updateLanguage() {
+      const langButton = document.getElementById('currentLang');
+      langButton.textContent = currentLanguage.toUpperCase();
 
-    // 3. Top Events Chart
-    const topEventsCtx = document.getElementById('topEventsChart').getContext('2d');
-    new Chart(topEventsCtx, {
-      type: 'bar',
-      data: {
-        labels: <?= json_encode(array_column($topEvents, 'titre')) ?>,
-        datasets: [{
-          label: 'Participants',
-          data: <?= json_encode(array_column($topEvents, 'participants')) ?>,
-          backgroundColor: [
-            'rgba(245, 194, 66, 0.8)',
-            'rgba(46, 213, 115, 0.8)',
-            'rgba(255, 107, 107, 0.8)',
-            'rgba(162, 155, 254, 0.8)',
-            'rgba(253, 203, 110, 0.8)'
-          ],
-          borderColor: ['#f5c242', '#2ed573', '#ff6b6b', '#a29bfe', '#fdcb6e'],
-          borderWidth: 2
-        }]
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: 'rgba(22, 22, 26, 0.95)',
-            titleColor: '#f5c242',
-            bodyColor: '#fff',
-            borderColor: '#f5c242',
-            borderWidth: 1,
-            padding: 12
-          }
-        },
-        scales: {
-          x: {
-            beginAtZero: true,
-            ticks: { color: '#969696' },
-            grid: { color: 'rgba(255, 255, 255, 0.05)' }
-          },
-          y: {
-            ticks: { color: '#969696' },
-            grid: { display: false }
-          }
-        }
-      }
-    });
+      // Update all elements with language attributes
+      document.querySelectorAll('[data-lang-en]').forEach(element => {
+        const text = currentLanguage === 'en' 
+          ? element.getAttribute('data-lang-en')
+          : element.getAttribute('data-lang-fr');
+        element.textContent = text;
+      });
 
-    // 4. Rating Distribution Chart
-    const ratingCtx = document.getElementById('ratingDistributionChart').getContext('2d');
-    new Chart(ratingCtx, {
-      type: 'bar',
-      data: {
-        labels: ['1 Star', '2 Stars', '3 Stars', '4 Stars', '5 Stars'],
-        datasets: [{
-          label: 'Number of Ratings',
-          data: [
-            <?= $ratingDistribution[1] ?>,
-            <?= $ratingDistribution[2] ?>,
-            <?= $ratingDistribution[3] ?>,
-            <?= $ratingDistribution[4] ?>,
-            <?= $ratingDistribution[5] ?>
-          ],
-          backgroundColor: [
-            'rgba(255, 107, 107, 0.7)',
-            'rgba(255, 159, 67, 0.7)',
-            'rgba(253, 203, 110, 0.7)',
-            'rgba(162, 155, 254, 0.7)',
-            'rgba(46, 213, 115, 0.7)'
-          ],
-          borderColor: ['#ff6b6b', '#ff9f43', '#fdcb6e', '#a29bfe', '#2ed573'],
-          borderWidth: 2
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: 'rgba(22, 22, 26, 0.95)',
-            titleColor: '#f5c242',
-            bodyColor: '#fff',
-            borderColor: '#f5c242',
-            borderWidth: 1,
-            padding: 12
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: { color: '#969696', stepSize: 1 },
-            grid: { color: 'rgba(255, 255, 255, 0.05)' }
-          },
-          x: {
-            ticks: { color: '#969696' },
-            grid: { display: false }
-          }
+      // Update status badges
+      document.querySelectorAll('.status-badge').forEach(badge => {
+        if (badge.classList.contains('status-available')) {
+          badge.textContent = currentLanguage === 'en' ? 'Available' : 'Disponible';
+        } else if (badge.classList.contains('status-expired')) {
+          badge.textContent = currentLanguage === 'en' ? 'Expired' : 'Expiré';
         }
-      }
+      });
+    }
+
+    function confirmDelete() {
+      const message = currentLanguage === 'en' 
+        ? 'Are you sure you want to delete this event?'
+        : 'Êtes-vous sûr de vouloir supprimer cet événement ?';
+      return confirm(message);
+    }
+
+    // Initialize language on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      updateLanguage();
     });
 
     // Page transition
@@ -762,6 +885,425 @@ $participationTrend = [
         }
       });
     });
+
+    // Modal functions
+    function showModal(type) {
+      const modal = document.getElementById('eventModal');
+      const modalTitle = document.getElementById('modalTitle');
+      const modalBody = document.getElementById('modalBody');
+
+      modal.classList.add('active');
+
+      const titles = {
+        total: { en: 'All Events', fr: 'Tous les Événements' },
+        upcoming: { en: 'Upcoming Events', fr: 'Événements À Venir' },
+        expired: { en: 'Expired Events', fr: 'Événements Expirés' },
+        participants: { en: 'All Participants', fr: 'Tous les Participants' },
+        allTickets: { en: 'All Tickets', fr: 'Tous les Tickets' }
+      };
+
+      modalTitle.textContent = titles[type][currentLanguage];
+
+      switch(type) {
+        case 'total':
+          loadAllEvents();
+          break;
+        case 'upcoming':
+          loadUpcomingEvents();
+          break;
+        case 'expired':
+          loadExpiredEvents();
+          break;
+        case 'participants':
+          loadAllParticipants();
+          break;
+        case 'allTickets':
+          loadAllTickets();
+          break;
+      }
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('eventModal');
+      modal.classList.remove('active');
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('eventModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeModal();
+      }
+    });
+
+    async function loadAllEvents() {
+      const modalBody = document.getElementById('modalBody');
+      const loadingText = currentLanguage === 'en' ? 'Loading...' : 'Chargement...';
+      modalBody.innerHTML = `<p style="text-align:center; color:#969696;"><i class="fas fa-spinner fa-spin"></i> ${loadingText}</p>`;
+
+      try {
+        const response = await fetch('get_events_data.php?type=all');
+        const data = await response.json();
+        
+        if (data.length === 0) {
+          const noEventsText = currentLanguage === 'en' ? 'No events found.' : 'Aucun événement trouvé.';
+          modalBody.innerHTML = `<p style="text-align:center; color:#969696;">${noEventsText}</p>`;
+          return;
+        }
+
+        let html = '';
+        data.forEach(event => {
+          const statusText = currentLanguage === 'en' ? event.status : (event.status === 'Available' ? 'Disponible' : 'Expiré');
+          const participantsText = currentLanguage === 'en' ? 'participants' : 'participants';
+          
+          html += `
+            <div class="event-card-modal">
+              <h3>${event.title}</h3>
+              <div class="event-info">
+                <div class="event-info-item">
+                  <i class="fas fa-map-marker-alt"></i>
+                  <span>${event.location}</span>
+                </div>
+                <div class="event-info-item">
+                  <i class="fas fa-calendar"></i>
+                  <span>${event.start_date}</span>
+                </div>
+                <div class="event-info-item">
+                  <i class="fas fa-users"></i>
+                  <span>${event.participants} ${participantsText}</span>
+                </div>
+                <div class="event-info-item">
+                  <i class="fas fa-tag"></i>
+                  <span class="status-badge ${event.status_class}">${statusText}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        modalBody.innerHTML = html;
+      } catch (error) {
+        const errorText = currentLanguage === 'en' ? 'Error loading events.' : 'Erreur lors du chargement des événements.';
+        modalBody.innerHTML = `<p style="text-align:center; color:#ff6b6b;">${errorText}</p>`;
+      }
+    }
+
+    async function loadUpcomingEvents() {
+      const modalBody = document.getElementById('modalBody');
+      const loadingText = currentLanguage === 'en' ? 'Loading...' : 'Chargement...';
+      modalBody.innerHTML = `<p style="text-align:center; color:#969696;"><i class="fas fa-spinner fa-spin"></i> ${loadingText}</p>`;
+
+      try {
+        const response = await fetch('get_events_data.php?type=upcoming');
+        const data = await response.json();
+        
+        if (data.length === 0) {
+          const noEventsText = currentLanguage === 'en' ? 'No upcoming events found.' : 'Aucun événement à venir trouvé.';
+          modalBody.innerHTML = `<p style="text-align:center; color:#969696;">${noEventsText}</p>`;
+          return;
+        }
+
+        let html = '';
+        data.forEach(event => {
+          const statusText = currentLanguage === 'en' ? event.status : (event.status === 'Available' ? 'Disponible' : 'Expiré');
+          const participantsText = currentLanguage === 'en' ? 'participants' : 'participants';
+          
+          html += `
+            <div class="event-card-modal">
+              <h3>${event.title}</h3>
+              <div class="event-info">
+                <div class="event-info-item">
+                  <i class="fas fa-map-marker-alt"></i>
+                  <span>${event.location}</span>
+                </div>
+                <div class="event-info-item">
+                  <i class="fas fa-calendar"></i>
+                  <span>${event.start_date}</span>
+                </div>
+                <div class="event-info-item">
+                  <i class="fas fa-users"></i>
+                  <span>${event.participants} ${participantsText}</span>
+                </div>
+                <div class="event-info-item">
+                  <i class="fas fa-tag"></i>
+                  <span class="status-badge ${event.status_class}">${statusText}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        modalBody.innerHTML = html;
+      } catch (error) {
+        const errorText = currentLanguage === 'en' ? 'Error loading events.' : 'Erreur lors du chargement des événements.';
+        modalBody.innerHTML = `<p style="text-align:center; color:#ff6b6b;">${errorText}</p>`;
+      }
+    }
+
+    async function loadExpiredEvents() {
+      const modalBody = document.getElementById('modalBody');
+      const loadingText = currentLanguage === 'en' ? 'Loading...' : 'Chargement...';
+      modalBody.innerHTML = `<p style="text-align:center; color:#969696;"><i class="fas fa-spinner fa-spin"></i> ${loadingText}</p>`;
+
+      try {
+        const response = await fetch('get_events_data.php?type=expired');
+        const data = await response.json();
+        
+        if (data.length === 0) {
+          const noEventsText = currentLanguage === 'en' ? 'No expired events found.' : 'Aucun événement expiré trouvé.';
+          modalBody.innerHTML = `<p style="text-align:center; color:#969696;">${noEventsText}</p>`;
+          return;
+        }
+
+        let html = '';
+        data.forEach(event => {
+          const statusText = currentLanguage === 'en' ? event.status : (event.status === 'Available' ? 'Disponible' : 'Expiré');
+          const participantsText = currentLanguage === 'en' ? 'participants' : 'participants';
+          
+          html += `
+            <div class="event-card-modal">
+              <h3>${event.title}</h3>
+              <div class="event-info">
+                <div class="event-info-item">
+                  <i class="fas fa-map-marker-alt"></i>
+                  <span>${event.location}</span>
+                </div>
+                <div class="event-info-item">
+                  <i class="fas fa-calendar"></i>
+                  <span>${event.start_date}</span>
+                </div>
+                <div class="event-info-item">
+                  <i class="fas fa-users"></i>
+                  <span>${event.participants} ${participantsText}</span>
+                </div>
+                <div class="event-info-item">
+                  <i class="fas fa-tag"></i>
+                  <span class="status-badge ${event.status_class}">${statusText}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        modalBody.innerHTML = html;
+      } catch (error) {
+        const errorText = currentLanguage === 'en' ? 'Error loading events.' : 'Erreur lors du chargement des événements.';
+        modalBody.innerHTML = `<p style="text-align:center; color:#ff6b6b;">${errorText}</p>`;
+      }
+    }
+
+    async function loadAllParticipants() {
+      const modalBody = document.getElementById('modalBody');
+      const loadingText = currentLanguage === 'en' ? 'Loading...' : 'Chargement...';
+      modalBody.innerHTML = `<p style="text-align:center; color:#969696;"><i class="fas fa-spinner fa-spin"></i> ${loadingText}</p>`;
+
+      try {
+        const response = await fetch('get_participants.php');
+        const data = await response.json();
+        
+        if (data.length === 0) {
+          const noParticipantsText = currentLanguage === 'en' ? 'No participants found.' : 'Aucun participant trouvé.';
+          modalBody.innerHTML = `<p style="text-align:center; color:#969696;">${noParticipantsText}</p>`;
+          return;
+        }
+
+        // Group participants by event
+        const groupedData = {};
+        data.forEach(participant => {
+          if (!groupedData[participant.event_title]) {
+            groupedData[participant.event_title] = [];
+          }
+          groupedData[participant.event_title].push(participant);
+        });
+
+        const nameLabel = currentLanguage === 'en' ? 'Name' : 'Nom';
+        const emailLabel = currentLanguage === 'en' ? 'Email' : 'Email';
+        const dateLabel = currentLanguage === 'en' ? 'Registration Date' : 'Date d\'Inscription';
+
+        let html = '';
+        Object.keys(groupedData).forEach(eventTitle => {
+          html += `
+            <div class="event-group">
+              <div class="event-group-title">
+                <i class="fas fa-calendar-alt"></i> ${eventTitle}
+              </div>
+          `;
+          
+          groupedData[eventTitle].forEach(participant => {
+            html += `
+              <div class="participant-item">
+                <div class="participant-info">
+                  <strong>${nameLabel}</strong>
+                  <span>${participant.nom_participant}</span>
+                </div>
+                <div class="participant-info">
+                  <strong>${emailLabel}</strong>
+                  <span>${participant.email_participant}</span>
+                </div>
+                <div class="participant-info">
+                  <strong>${dateLabel}</strong>
+                  <span>${new Date(participant.date_participation).toLocaleString('fr-FR')}</span>
+                </div>
+              </div>
+            `;
+          });
+          
+          html += '</div>';
+        });
+
+        modalBody.innerHTML = html;
+      } catch (error) {
+        const errorText = currentLanguage === 'en' ? 'Error loading participants.' : 'Erreur lors du chargement des participants.';
+        modalBody.innerHTML = `<p style="text-align:center; color:#ff6b6b;">${errorText}</p>`;
+      }
+    }
+
+    async function loadAllTickets() {
+      const modalBody = document.getElementById('modalBody');
+      const loadingText = currentLanguage === 'en' ? 'Loading tickets...' : 'Chargement des tickets...';
+      modalBody.innerHTML = `<p style="text-align:center; color:#969696;"><i class="fas fa-spinner fa-spin"></i> ${loadingText}</p>`;
+
+      try {
+        const response = await fetch('get_all_tickets.php');
+        const tickets = await response.json();
+
+        if (tickets.error) {
+          modalBody.innerHTML = `<p style="text-align:center; color:#ff6b6b;">${tickets.error}</p>`;
+          return;
+        }
+
+        if (tickets.length === 0) {
+          const noTicketsText = currentLanguage === 'en' ? 'No tickets generated yet.' : 'Aucun ticket généré pour le moment.';
+          modalBody.innerHTML = `<p style="text-align:center; color:#969696;">${noTicketsText}</p>`;
+          return;
+        }
+
+        const participantLabel = currentLanguage === 'en' ? 'Participant' : 'Participant';
+        const emailLabel = currentLanguage === 'en' ? 'Email' : 'Email';
+        const eventLabel = currentLanguage === 'en' ? 'Event' : 'Événement';
+        const statusLabel = currentLanguage === 'en' ? 'Status' : 'Statut';
+        const createdLabel = currentLanguage === 'en' ? 'Generated' : 'Généré';
+        const qrLabel = currentLanguage === 'en' ? 'QR Code' : 'QR Code';
+        const downloadLabel = currentLanguage === 'en' ? 'Download PNG' : 'Télécharger PNG';
+
+        let html = '<div style="display: grid; gap: 16px;">';
+        tickets.forEach(ticket => {
+          const statusClass = `ticket-status-${ticket.status}`;
+          const statusText = ticket.status === 'active' ? (currentLanguage === 'en' ? 'Active' : 'Actif') :
+                           ticket.status === 'used' ? (currentLanguage === 'en' ? 'Used' : 'Utilisé') :
+                           (currentLanguage === 'en' ? 'Cancelled' : 'Annulé');
+
+          html += `
+            <div class="ticket-item">
+              <div class="ticket-info">
+                <strong>${participantLabel}</strong>
+                <span>${ticket.participant_name}</span>
+                <strong style="margin-top: 8px;">${emailLabel}</strong>
+                <span>${ticket.participant_email}</span>
+              </div>
+              <div class="ticket-info">
+                <strong>${eventLabel}</strong>
+                <span>${ticket.event_title}</span>
+                <strong style="margin-top: 8px;">${statusLabel}</strong>
+                <span class="ticket-status-badge ${statusClass}">${statusText}</span>
+              </div>
+              <div class="ticket-info">
+                <strong>${createdLabel}</strong>
+                <span>${new Date(ticket.created_at).toLocaleString('fr-FR')}</span>
+                <strong style="margin-top: 8px;">Ticket #</strong>
+                <span style="color: #f5c242;">${String(ticket.id_ticket).padStart(6, '0')}</span>
+              </div>
+              <div class="ticket-qr">
+                <img src="../front/${ticket.qr_code_path}" alt="QR Code">
+                <div style="color: #969696; font-size: 0.75rem; margin-top: 4px;">${qrLabel}</div>
+                <a href="../../controller/generate_ticket_image.php?id=${ticket.id_ticket}" download class="btn-download-ticket" style="display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 8px 16px; background: linear-gradient(135deg, #f5c242, #f39c12); color: #000; border-radius: 6px; text-decoration: none; font-size: 0.85rem; font-weight: 700; transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(245, 194, 66, 0.4)';" onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                  <i class="fas fa-download"></i>
+                  <span>${downloadLabel}</span>
+                </a>
+              </div>
+            </div>
+          `;
+        });
+        html += '</div>';
+
+        modalBody.innerHTML = html;
+      } catch (error) {
+        const errorText = currentLanguage === 'en' ? 'Error loading tickets.' : 'Erreur lors du chargement des tickets.';
+        modalBody.innerHTML = `<p style="text-align:center; color:#ff6b6b;">${errorText}</p>`;
+      }
+    }
+
+    // Show tickets modal for a specific event
+    async function showTicketsModal(eventId, eventTitle) {
+      const modal = document.getElementById('eventModal');
+      const modalTitle = document.getElementById('modalTitle');
+      const modalBody = document.getElementById('modalBody');
+
+      modal.classList.add('active');
+
+      const title = currentLanguage === 'en' ? `Tickets - ${eventTitle}` : `Tickets - ${eventTitle}`;
+      modalTitle.textContent = title;
+
+      const loadingText = currentLanguage === 'en' ? 'Loading tickets...' : 'Chargement des tickets...';
+      modalBody.innerHTML = `<p style="text-align:center; color:#969696;"><i class="fas fa-spinner fa-spin"></i> ${loadingText}</p>`;
+
+      try {
+        const response = await fetch(`get_tickets.php?id_evenement=${eventId}`);
+        const tickets = await response.json();
+
+        if (tickets.error) {
+          modalBody.innerHTML = `<p style="text-align:center; color:#ff6b6b;">${tickets.error}</p>`;
+          return;
+        }
+
+        if (tickets.length === 0) {
+          const noTicketsText = currentLanguage === 'en' ? 'No tickets generated for this event yet.' : 'Aucun ticket généré pour cet événement.';
+          modalBody.innerHTML = `<p style="text-align:center; color:#969696;">${noTicketsText}</p>`;
+          return;
+        }
+
+        const participantLabel = currentLanguage === 'en' ? 'Participant' : 'Participant';
+        const emailLabel = currentLanguage === 'en' ? 'Email' : 'Email';
+        const statusLabel = currentLanguage === 'en' ? 'Status' : 'Statut';
+        const createdLabel = currentLanguage === 'en' ? 'Generated' : 'Généré';
+        const qrLabel = currentLanguage === 'en' ? 'QR Code' : 'QR Code';
+
+        let html = '<div>';
+        tickets.forEach(ticket => {
+          const statusClass = `ticket-status-${ticket.status}`;
+          const statusText = ticket.status === 'active' ? (currentLanguage === 'en' ? 'Active' : 'Actif') :
+                           ticket.status === 'used' ? (currentLanguage === 'en' ? 'Used' : 'Utilisé') :
+                           (currentLanguage === 'en' ? 'Cancelled' : 'Annulé');
+
+          html += `
+            <div class="ticket-item">
+              <div class="ticket-info">
+                <strong>${participantLabel}</strong>
+                <span>${ticket.participant_name}</span>
+                <strong style="margin-top: 8px;">${emailLabel}</strong>
+                <span>${ticket.participant_email}</span>
+              </div>
+              <div class="ticket-info">
+                <strong>${statusLabel}</strong>
+                <span class="ticket-status-badge ${statusClass}">${statusText}</span>
+                <strong style="margin-top: 8px;">${createdLabel}</strong>
+                <span>${new Date(ticket.created_at).toLocaleString('fr-FR')}</span>
+              </div>
+              <div class="ticket-qr">
+                <img src="../front/${ticket.qr_code_path}" alt="QR Code">
+                <div style="color: #969696; font-size: 0.75rem; margin-top: 4px;">${qrLabel}</div>
+                <a href="../../controller/generate_ticket_image.php?id=${ticket.id_ticket}" download class="btn-download-ticket" style="display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 8px 16px; background: linear-gradient(135deg, #f5c242, #f39c12); color: #000; border-radius: 6px; text-decoration: none; font-size: 0.85rem; font-weight: 700; transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(245, 194, 66, 0.4)';" onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                  <i class="fas fa-download"></i>
+                  <span>${currentLanguage === 'en' ? 'Download PNG' : 'Télécharger PNG'}</span>
+                </a>
+              </div>
+            </div>
+          `;
+        });
+        html += '</div>';
+
+        modalBody.innerHTML = html;
+      } catch (error) {
+        const errorText = currentLanguage === 'en' ? 'Error loading tickets.' : 'Erreur lors du chargement des tickets.';
+        modalBody.innerHTML = `<p style="text-align:center; color:#ff6b6b;">${errorText}</p>`;
+      }
+    }
   </script>
   
 </body>

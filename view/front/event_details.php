@@ -730,6 +730,38 @@ $statuts = [
             font-size: 0.75rem;
             font-weight: 600;
         }
+
+        /* Language Toggle Button */
+        .lang-toggle {
+            background: linear-gradient(135deg, rgba(245, 194, 66, 0.2), rgba(243, 156, 18, 0.2));
+            border: 2px solid rgba(245, 194, 66, 0.4);
+            border-radius: 8px;
+            padding: 6px 14px;
+            color: #f5c242;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+        }
+
+        .lang-toggle:hover {
+            background: linear-gradient(135deg, rgba(245, 194, 66, 0.3), rgba(243, 156, 18, 0.3));
+            border-color: #f5c242;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 194, 66, 0.3);
+        }
+
+        .lang-toggle i {
+            font-size: 1.1rem;
+        }
+
+        #currentLang {
+            font-size: 0.85rem;
+        }
     </style>
 </head>
 <body>
@@ -748,18 +780,22 @@ $statuts = [
         </div>
         
         <nav class="site-nav">
-            <a href="index.php">Home</a>
-            <a href="events.php" class="active">Events</a>
-            <a href="shop.html">Shop</a>
-            <a href="trading.html">Trading</a>
-            <a href="news.html">News</a>
-            <a href="reclamation.html">Support</a>
-            <a href="about.html">About Us</a>
+            <a href="index.php" data-lang-en="Home" data-lang-fr="Accueil">Home</a>
+            <a href="events.php" class="active" data-lang-en="Events" data-lang-fr="Événements">Events</a>
+            <a href="shop.html" data-lang-en="Shop" data-lang-fr="Boutique">Shop</a>
+            <a href="trading.html" data-lang-en="Trading" data-lang-fr="Échange">Trading</a>
+            <a href="news.html" data-lang-en="News" data-lang-fr="Actualités">News</a>
+            <a href="reclamation.html" data-lang-en="Support" data-lang-fr="Support">Support</a>
+            <a href="about.html" data-lang-en="About Us" data-lang-fr="À Propos">About Us</a>
         </nav>
         
         <div class="header-right">
-            <a href="login.html" class="login-register-link">
-                <i class="fas fa-user"></i> Login / Register
+            <button id="langToggle" class="lang-toggle" onclick="toggleLanguage()">
+                <i class="fas fa-language"></i>
+                <span id="currentLang">FR</span>
+            </button>
+            <a href="login.html" class="login-register-link" data-lang-en="Login / Register" data-lang-fr="Connexion / S'inscrire">
+                <i class="fas fa-user"></i> <span>Login / Register</span>
             </a>
         </div>
     </header>
@@ -769,8 +805,8 @@ $statuts = [
 
         <section class="event-details-section">
             <div class="event-details-container">
-                <a href="events.php" class="back-button">
-                    <i class="fas fa-arrow-left"></i> Back to Events
+                <a href="events.php" class="back-button" data-lang-en="Back to Events" data-lang-fr="Retour aux Événements">
+                    <i class="fas fa-arrow-left"></i> <span>Back to Events</span>
                 </a>
 
                 <div class="event-header-detail">
@@ -783,7 +819,7 @@ $statuts = [
                         <div class="meta-item">
                             <i class="fas fa-calendar-check"></i>
                             <div class="meta-content">
-                                <div class="meta-label">Start Date</div>
+                                <div class="meta-label" data-lang-en="Start Date" data-lang-fr="Date de Début">Start Date</div>
                                 <div class="meta-value"><?= $event->getDateDebut()->format('M d, Y') ?></div>
                             </div>
                         </div>
@@ -791,7 +827,7 @@ $statuts = [
                         <div class="meta-item">
                             <i class="fas fa-clock"></i>
                             <div class="meta-content">
-                                <div class="meta-label">Start Time</div>
+                                <div class="meta-label" data-lang-en="Start Time" data-lang-fr="Heure de Début">Start Time</div>
                                 <div class="meta-value"><?= $event->getDateDebut()->format('H:i') ?></div>
                             </div>
                         </div>
@@ -799,7 +835,7 @@ $statuts = [
                         <div class="meta-item">
                             <i class="fas fa-calendar-times"></i>
                             <div class="meta-content">
-                                <div class="meta-label">End Date</div>
+                                <div class="meta-label" data-lang-en="End Date" data-lang-fr="Date de Fin">End Date</div>
                                 <div class="meta-value"><?= $event->getDateFin()->format('M d, Y') ?></div>
                             </div>
                         </div>
@@ -807,7 +843,7 @@ $statuts = [
                         <div class="meta-item">
                             <i class="fas fa-clock"></i>
                             <div class="meta-content">
-                                <div class="meta-label">End Time</div>
+                                <div class="meta-label" data-lang-en="End Time" data-lang-fr="Heure de Fin">End Time</div>
                                 <div class="meta-value"><?= $event->getDateFin()->format('H:i') ?></div>
                             </div>
                         </div>
@@ -815,7 +851,7 @@ $statuts = [
                         <div class="meta-item">
                             <i class="fas fa-map-marker-alt"></i>
                             <div class="meta-content">
-                                <div class="meta-label">Location</div>
+                                <div class="meta-label" data-lang-en="Location" data-lang-fr="Lieu">Location</div>
                                 <div class="meta-value"><?= htmlspecialchars($event->getLieu()) ?></div>
                             </div>
                         </div>
@@ -823,8 +859,8 @@ $statuts = [
                         <div class="meta-item">
                             <i class="fas fa-users"></i>
                             <div class="meta-content">
-                                <div class="meta-label">Participants</div>
-                                <div class="meta-value"><?= $nbParticipants ?> Registered</div>
+                                <div class="meta-label" data-lang-en="Participants" data-lang-fr="Participants">Participants</div>
+                                <div class="meta-value" data-lang-en="<?= $nbParticipants ?> Registered" data-lang-fr="<?= $nbParticipants ?> Inscrits"><?= $nbParticipants ?> Registered</div>
                             </div>
                         </div>
                     </div>
@@ -832,9 +868,9 @@ $statuts = [
 
                 <div class="event-content-grid">
                     <div class="event-description-detail">
-                        <h2 class="section-title">
+                        <h2 class="section-title" data-lang-en="Event Description" data-lang-fr="Description de l'Événement">
                             <i class="fas fa-info-circle"></i>
-                            Event Description
+                            <span>Event Description</span>
                         </h2>
                         <p class="description-text">
                             <?= nl2br(htmlspecialchars($event->getDescription())) ?>
@@ -845,7 +881,7 @@ $statuts = [
                         <div class="join-card">
                             <div class="participants-display">
                                 <div class="participants-number"><?= $nbParticipants ?></div>
-                                <div class="participants-label">Participants Registered</div>
+                                <div class="participants-label" data-lang-en="Participants Registered" data-lang-fr="Participants Inscrits">Participants Registered</div>
                             </div>
                             
                             <?php if ($event->getStatut() === 'upcoming'): ?>
@@ -853,24 +889,24 @@ $statuts = [
                                     <input type="hidden" name="action" value="participate">
                                     
                                     <div class="form-group">
-                                        <label for="nom_participant">Your Name *</label>
-                                        <input type="text" id="nom_participant" name="nom_participant" placeholder="Enter your full name">
+                                        <label for="nom_participant" data-lang-en="Your Name *" data-lang-fr="Votre Nom *">Your Name *</label>
+                                        <input type="text" id="nom_participant" name="nom_participant" placeholder="Enter your full name" data-lang-en="Enter your full name" data-lang-fr="Entrez votre nom complet">
                                         <div class="error-message" id="error-nom_participant"></div>
                                     </div>
 
                                     <div class="form-group">
-                                        <label for="email_participant">Your Email *</label>
-                                        <input type="text" id="email_participant" name="email_participant" placeholder="your.email@example.com">
+                                        <label for="email_participant" data-lang-en="Your Email *" data-lang-fr="Votre Email *">Your Email *</label>
+                                        <input type="text" id="email_participant" name="email_participant" placeholder="your.email@example.com" data-lang-en="your.email@example.com" data-lang-fr="votre.email@exemple.com">
                                         <div class="error-message" id="error-email_participant"></div>
                                     </div>
                                     
-                                    <button type="submit" class="btn-join-detail">
-                                        <i class="fas fa-user-plus"></i> Join This Event
+                                    <button type="submit" class="btn-join-detail" data-lang-en="Join This Event" data-lang-fr="Rejoindre cet Événement">
+                                        <i class="fas fa-user-plus"></i> <span>Join This Event</span>
                                     </button>
                                 </form>
                             <?php else: ?>
-                                <button class="btn-join-detail" disabled>
-                                    <i class="fas fa-ban"></i> Registration Closed
+                                <button class="btn-join-detail" disabled data-lang-en="Registration Closed" data-lang-fr="Inscription Fermée">
+                                    <i class="fas fa-ban"></i> <span>Registration Closed</span>
                                 </button>
                             <?php endif; ?>
                         </div>
@@ -881,9 +917,9 @@ $statuts = [
                 <!-- COMMENTS & RATINGS SECTION -->
                 <!-- ========================================== -->
                 <div class="comments-section">
-                    <h2 class="section-title">
+                    <h2 class="section-title" data-lang-en="Reviews & Ratings" data-lang-fr="Avis & Évaluations">
                         <i class="fas fa-comments"></i>
-                        Avis & Évaluations
+                        <span>Avis & Évaluations</span>
                     </h2>
 
                     <!-- Rating Overview -->
@@ -906,7 +942,7 @@ $statuts = [
                                 }
                                 ?>
                             </div>
-                            <div class="rating-count"><?= $ratingStats['total'] ?> avis</div>
+                            <div class="rating-count" data-lang-en="<?= $ratingStats['total'] ?> reviews" data-lang-fr="<?= $ratingStats['total'] ?> avis"><?= $ratingStats['total'] ?> avis</div>
                         </div>
 
                         <div class="rating-bars">
@@ -929,27 +965,27 @@ $statuts = [
 
                     <!-- Comment Form -->
                     <div style="background: rgba(245,194,66,0.05); padding: 30px; border-radius: 15px; margin-bottom: 30px;">
-                        <h3 style="color: #f5c242; margin-bottom: 20px; font-size: 1.3rem;">
-                            <i class="fas fa-pen"></i> Partagez votre expérience
+                        <h3 style="color: #f5c242; margin-bottom: 20px; font-size: 1.3rem;" data-lang-en="Share Your Experience" data-lang-fr="Partagez votre expérience">
+                            <i class="fas fa-pen"></i> <span>Partagez votre expérience</span>
                         </h3>
                         
                         <form method="POST" action="" id="commentForm" novalidate>
                             <input type="hidden" name="action" value="add_comment">
                             
                             <div class="form-group">
-                                <label for="user_name_comment">Votre nom *</label>
-                                <input type="text" id="user_name_comment" name="user_name" placeholder="Nom complet" required>
+                                <label for="user_name_comment" data-lang-en="Your Name *" data-lang-fr="Votre nom *">Votre nom *</label>
+                                <input type="text" id="user_name_comment" name="user_name" placeholder="Nom complet" data-lang-en="Full name" data-lang-fr="Nom complet" required>
                                 <div class="error-message" id="error-user_name_comment"></div>
                             </div>
 
                             <div class="form-group">
-                                <label for="user_email_comment">Votre email *</label>
-                                <input type="email" id="user_email_comment" name="user_email" placeholder="votre.email@exemple.com" required>
+                                <label for="user_email_comment" data-lang-en="Your Email *" data-lang-fr="Votre email *">Votre email *</label>
+                                <input type="email" id="user_email_comment" name="user_email" placeholder="votre.email@exemple.com" data-lang-en="your.email@example.com" data-lang-fr="votre.email@exemple.com" required>
                                 <div class="error-message" id="error-user_email_comment"></div>
                             </div>
 
                             <div class="form-group">
-                                <label>Note *</label>
+                                <label data-lang-en="Rating *" data-lang-fr="Note *">Note *</label>
                                 <div class="star-rating-input" id="starRating">
                                     <i class="fas fa-star star" data-rating="1"></i>
                                     <i class="fas fa-star star" data-rating="2"></i>
@@ -962,27 +998,27 @@ $statuts = [
                             </div>
 
                             <div class="form-group">
-                                <label for="comment_content">Votre avis *</label>
-                                <textarea id="comment_content" name="comment_content" placeholder="Partagez votre expérience sur cet événement..." required></textarea>
+                                <label for="comment_content" data-lang-en="Your Review *" data-lang-fr="Votre avis *">Votre avis *</label>
+                                <textarea id="comment_content" name="comment_content" placeholder="Partagez votre expérience sur cet événement..." data-lang-en="Share your experience about this event..." data-lang-fr="Partagez votre expérience sur cet événement..." required></textarea>
                                 <div class="error-message" id="error-comment_content"></div>
                             </div>
 
-                            <button type="submit" class="btn-submit-comment">
-                                <i class="fas fa-paper-plane"></i> Publier mon avis
+                            <button type="submit" class="btn-submit-comment" data-lang-en="Publish My Review" data-lang-fr="Publier mon avis">
+                                <i class="fas fa-paper-plane"></i> <span>Publier mon avis</span>
                             </button>
                         </form>
                     </div>
 
                     <!-- Comments List -->
-                    <h3 style="color: #fff; margin-bottom: 25px; font-size: 1.3rem;">
-                        <i class="fas fa-list"></i> Tous les avis (<?= count($comments) ?>)
+                    <h3 style="color: #fff; margin-bottom: 25px; font-size: 1.3rem;" data-lang-en="All Reviews (<?= count($comments) ?>)" data-lang-fr="Tous les avis (<?= count($comments) ?>)">
+                        <i class="fas fa-list"></i> <span>Tous les avis (<?= count($comments) ?>)</span>
                     </h3>
 
                     <?php if (empty($comments)): ?>
                         <div class="empty-comments">
                             <i class="fas fa-comment-slash"></i>
-                            <h3>Aucun avis pour le moment</h3>
-                            <p>Soyez le premier à partager votre expérience !</p>
+                            <h3 data-lang-en="No Reviews Yet" data-lang-fr="Aucun avis pour le moment">Aucun avis pour le moment</h3>
+                            <p data-lang-en="Be the first to share your experience!" data-lang-fr="Soyez le premier à partager votre expérience !">Soyez le premier à partager votre expérience !</p>
                         </div>
                     <?php else: ?>
                         <?php foreach ($comments as $comment): ?>
@@ -998,15 +1034,15 @@ $statuts = [
                                                 <span class="comment-rating">
                                                     <?= str_repeat('★', $comment->getRating()) ?><?= str_repeat('☆', 5 - $comment->getRating()) ?>
                                                 </span>
-                                                <span class="comment-time">
+                                                <span class="comment-time" data-lang-en="<i class='far fa-clock'></i> <?= $comment->getTimeAgo() ?> ago" data-lang-fr="<i class='far fa-clock'></i> Il y a <?= $comment->getTimeAgo() ?>">
                                                     <i class="far fa-clock"></i> Il y a <?= $comment->getTimeAgo() ?>
                                                 </span>
                                             </div>
                                         </div>
                                     </div>
                                     <?php if ($comment->getIsReported()): ?>
-                                        <span class="reported-badge">
-                                            <i class="fas fa-flag"></i> Signalé
+                                        <span class="reported-badge" data-lang-en="Reported" data-lang-fr="Signalé">
+                                            <i class="fas fa-flag"></i> <span>Signalé</span>
                                         </span>
                                     <?php endif; ?>
                                 </div>
@@ -1016,17 +1052,17 @@ $statuts = [
                                 </div>
 
                                 <div class="comment-actions">
-                                    <button class="comment-action-btn like-btn" data-comment-id="<?= $comment->getIdComment() ?>">
+                                    <button class="comment-action-btn like-btn" data-comment-id="<?= $comment->getIdComment() ?>" title="Like" data-lang-en="Like" data-lang-fr="J'aime">
                                         <i class="fas fa-thumbs-up"></i> 
                                         <span><?= $comment->getLikes() ?></span>
                                     </button>
-                                    <button class="comment-action-btn dislike-btn" data-comment-id="<?= $comment->getIdComment() ?>">
+                                    <button class="comment-action-btn dislike-btn" data-comment-id="<?= $comment->getIdComment() ?>" title="Dislike" data-lang-en="Dislike" data-lang-fr="Je n'aime pas">
                                         <i class="fas fa-thumbs-down"></i> 
                                         <span><?= $comment->getDislikes() ?></span>
                                     </button>
                                     <?php if (!$comment->getIsReported()): ?>
-                                    <button class="comment-action-btn report-btn" data-comment-id="<?= $comment->getIdComment() ?>">
-                                        <i class="fas fa-flag"></i> Signaler
+                                    <button class="comment-action-btn report-btn" data-comment-id="<?= $comment->getIdComment() ?>" data-lang-en="Report" data-lang-fr="Signaler">
+                                        <i class="fas fa-flag"></i> <span>Signaler</span>
                                     </button>
                                     <?php endif; ?>
                                 </div>
@@ -1036,15 +1072,15 @@ $statuts = [
                 </div>
 
                 <div class="participants-list-card">
-                    <h2 class="section-title">
+                    <h2 class="section-title" data-lang-en="Registered Participants" data-lang-fr="Participants Inscrits">
                         <i class="fas fa-user-friends"></i>
-                        Registered Participants
+                        <span>Registered Participants</span>
                     </h2>
                     
                     <?php if (empty($participants)): ?>
                         <div class="empty-participants">
                             <i class="fas fa-user-slash"></i>
-                            <p>No participants yet. Be the first to join!</p>
+                            <p data-lang-en="No participants yet. Be the first to join!" data-lang-fr="Aucun participant pour le moment. Soyez le premier à rejoindre !">No participants yet. Be the first to join!</p>
                         </div>
                     <?php else: ?>
                         <?php foreach ($participants as $participant): ?>
@@ -1345,5 +1381,7 @@ $statuts = [
             });
         });
     </script>
+
+    <script src="lang-toggle.js"></script>
 </body>
 </html>

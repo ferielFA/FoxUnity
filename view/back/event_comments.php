@@ -455,6 +455,37 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
       background: rgba(255,255,255,0.05);
       color: #fff;
     }
+
+    /* Language Toggle Button */
+    .lang-toggle {
+      background: linear-gradient(135deg, rgba(245, 194, 66, 0.2), rgba(243, 156, 18, 0.2));
+      border: 2px solid rgba(245, 194, 66, 0.4);
+      border-radius: 8px;
+      padding: 8px 16px;
+      color: #f5c242;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .lang-toggle:hover {
+      background: linear-gradient(135deg, rgba(245, 194, 66, 0.3), rgba(243, 156, 18, 0.3));
+      border-color: #f5c242;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(245, 194, 66, 0.3);
+    }
+
+    .lang-toggle i {
+      font-size: 1.2rem;
+    }
+
+    #currentLang {
+      font-size: 0.9rem;
+    }
   </style>
 </head>
 
@@ -481,10 +512,16 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
   <!-- ===== MAIN ===== -->
   <div class="main">
     <div class="topbar">
-      <h1>Event Comments & Ratings</h1>
-      <div class="user">
-        <img src="../images/fery.jpg" alt="User Avatar">
-        <span>FoxLeader</span>
+      <h1 data-lang-en="Event Comments & Ratings" data-lang-fr="Commentaires & Notes de l'Événement">Event Comments & Ratings</h1>
+      <div style="display: flex; align-items: center; gap: 20px;">
+        <button id="langToggle" class="lang-toggle" onclick="toggleLanguage()">
+          <i class="fas fa-language"></i>
+          <span id="currentLang">FR</span>
+        </button>
+        <div class="user">
+          <img src="../images/fery.jpg" alt="User Avatar">
+          <span>FoxLeader</span>
+        </div>
       </div>
     </div>
 
@@ -493,7 +530,7 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
         <?php if ($message): echo $message; endif; ?>
 
         <a href="eventsb.php" class="back-button">
-          <i class="fas fa-arrow-left"></i> Back to Events
+          <i class="fas fa-arrow-left"></i> <span data-lang-en="Back to Events" data-lang-fr="Retour aux Événements">Back to Events</span>
         </a>
 
         <!-- Event Header -->
@@ -510,26 +547,26 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
           <div class="stat-card-admin rating">
             <div class="stat-icon-admin"><i class="fas fa-star"></i></div>
             <div class="stat-number"><?= number_format($ratingStats['average'], 1) ?></div>
-            <div class="stat-label">Average Rating</div>
+            <div class="stat-label" data-lang-en="Average Rating" data-lang-fr="Note Moyenne">Average Rating</div>
           </div>
 
           <div class="stat-card-admin total">
             <div class="stat-icon-admin"><i class="fas fa-comments"></i></div>
             <div class="stat-number"><?= $ratingStats['total'] ?></div>
-            <div class="stat-label">Total Comments</div>
+            <div class="stat-label" data-lang-en="Total Comments" data-lang-fr="Total Commentaires">Total Comments</div>
           </div>
 
           <div class="stat-card-admin reported">
             <div class="stat-icon-admin"><i class="fas fa-flag"></i></div>
             <div class="stat-number"><?= count($reportedComments) ?></div>
-            <div class="stat-label">Reported Comments</div>
+            <div class="stat-label" data-lang-en="Reported Comments" data-lang-fr="Commentaires Signalés">Reported Comments</div>
           </div>
         </div>
 
         <!-- Rating Distribution -->
         <?php if ($ratingStats['total'] > 0): ?>
         <div class="rating-distribution">
-          <h3><i class="fas fa-chart-bar"></i> Rating Distribution</h3>
+          <h3 data-lang-en="Rating Distribution" data-lang-fr="Distribution des Notes"><i class="fas fa-chart-bar"></i> <span>Rating Distribution</span></h3>
           <?php foreach ([5, 4, 3, 2, 1] as $stars): ?>
             <?php 
             $count = $ratingStats['distribution'][$stars];
@@ -548,10 +585,10 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
 
         <!-- Filter Tabs -->
         <div class="filter-tabs">
-          <button class="filter-tab active" onclick="filterComments('all')">
+          <button class="filter-tab active" onclick="filterComments('all')" data-lang-en="All Comments" data-lang-fr="Tous les Commentaires">
             All Comments (<?= count($comments) ?>)
           </button>
-          <button class="filter-tab" onclick="filterComments('reported')">
+          <button class="filter-tab" onclick="filterComments('reported')" data-lang-en="Reported" data-lang-fr="Signalés">
             Reported (<?= count($reportedComments) ?>)
           </button>
           <button class="filter-tab" onclick="filterComments('5stars')">
@@ -561,14 +598,14 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
 
         <!-- Comments List -->
         <div class="comments-section-admin">
-          <h3 class="section-title-admin">
-            <i class="fas fa-list"></i> All Comments
+          <h3 class="section-title-admin" data-lang-en="All Comments" data-lang-fr="Tous les Commentaires">
+            <i class="fas fa-list"></i> <span>All Comments</span>
           </h3>
 
           <?php if (empty($comments)): ?>
             <div class="empty-state">
               <i class="fas fa-comment-slash"></i>
-              <p>No comments yet for this event.</p>
+              <p data-lang-en="No comments yet for this event." data-lang-fr="Aucun commentaire pour cet événement.">No comments yet for this event.</p>
             </div>
           <?php else: ?>
             <?php foreach ($comments as $comment): ?>
@@ -601,11 +638,11 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
                     <?php endif; ?>
                     
                     <?php if ($comment->getNetScore() > 0): ?>
-                      <span class="badge positive">
+                      <span class="badge positive" data-lang-en="Popular" data-lang-fr="Populaire">
                         <i class="fas fa-thumbs-up"></i> Popular
                       </span>
                     <?php elseif ($comment->getNetScore() < -2): ?>
-                      <span class="badge negative">
+                      <span class="badge negative" data-lang-en="Negative" data-lang-fr="Négatif">
                         <i class="fas fa-thumbs-down"></i> Negative
                       </span>
                     <?php endif; ?>
@@ -614,7 +651,7 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
 
                 <?php if ($comment->getIsReported()): ?>
                   <div class="report-reason">
-                    <strong><i class="fas fa-exclamation-triangle"></i> Report Reason:</strong>
+                    <strong data-lang-en="Report Reason:" data-lang-fr="Raison du Signalement:"><i class="fas fa-exclamation-triangle"></i> <span>Report Reason:</span></strong>
                     <p><?= htmlspecialchars($comment->getReportReason() ?? 'No reason provided') ?></p>
                   </div>
                 <?php endif; ?>
@@ -624,14 +661,14 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
                 </div>
 
                 <div class="comment-stats">
-                  <div class="comment-stat-item">
-                    <i class="fas fa-thumbs-up"></i> <?= $comment->getLikes() ?> Likes
+                  <div class="comment-stat-item" data-lang-en="Likes" data-lang-fr="J'aime">
+                    <i class="fas fa-thumbs-up"></i> <?= $comment->getLikes() ?> <span>Likes</span>
+                  </div>
+                  <div class="comment-stat-item" data-lang-en="Dislikes" data-lang-fr="Je n'aime pas">
+                    <i class="fas fa-thumbs-down"></i> <?= $comment->getDislikes() ?> <span>Dislikes</span>
                   </div>
                   <div class="comment-stat-item">
-                    <i class="fas fa-thumbs-down"></i> <?= $comment->getDislikes() ?> Dislikes
-                  </div>
-                  <div class="comment-stat-item">
-                    <i class="fas fa-balance-scale"></i> Net Score: <?= $comment->getNetScore() ?>
+                    <i class="fas fa-balance-scale"></i> <span data-lang-en="Net Score:" data-lang-fr="Score Net:">Net Score:</span> <?= $comment->getNetScore() ?>
                   </div>
                 </div>
 
@@ -641,16 +678,16 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
                       <input type="hidden" name="action" value="unreport_comment">
                       <input type="hidden" name="id_comment" value="<?= $comment->getIdComment() ?>">
                       <button type="submit" class="btn-admin approve">
-                        <i class="fas fa-check"></i> Dismiss Report
+                        <i class="fas fa-check"></i> <span data-lang-en="Dismiss Report" data-lang-fr="Ignorer le Signalement">Dismiss Report</span>
                       </button>
                     </form>
                   <?php endif; ?>
                   
-                  <form method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this comment?');">
+                  <form method="POST" style="display:inline;" onsubmit="return confirmDelete();">
                     <input type="hidden" name="action" value="delete_comment">
                     <input type="hidden" name="id_comment" value="<?= $comment->getIdComment() ?>">
                     <button type="submit" class="btn-admin delete">
-                      <i class="fas fa-trash"></i> Delete
+                      <i class="fas fa-trash"></i> <span data-lang-en="Delete" data-lang-fr="Supprimer">Delete</span>
                     </button>
                   </form>
                 </div>
@@ -670,6 +707,63 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
   <div class="transition-screen"></div>
 
   <script>
+    // Language Management
+    let currentLanguage = localStorage.getItem('language') || 'en';
+
+    function toggleLanguage() {
+      currentLanguage = currentLanguage === 'en' ? 'fr' : 'en';
+      localStorage.setItem('language', currentLanguage);
+      updateLanguage();
+    }
+
+    function updateLanguage() {
+      const langButton = document.getElementById('currentLang');
+      langButton.textContent = currentLanguage.toUpperCase();
+
+      // Update all elements with language attributes
+      document.querySelectorAll('[data-lang-en]').forEach(element => {
+        const text = currentLanguage === 'en' 
+          ? element.getAttribute('data-lang-en')
+          : element.getAttribute('data-lang-fr');
+        
+        // For elements with icon + text structure
+        if (element.querySelector('i') && element.querySelector('span')) {
+          const span = element.querySelector('span');
+          span.textContent = text;
+        } else if (element.querySelector('i')) {
+          const icon = element.querySelector('i');
+          element.innerHTML = icon.outerHTML + ' ' + text;
+        } else {
+          element.textContent = text;
+        }
+      });
+
+      // Update badges
+      document.querySelectorAll('.badge.positive').forEach(badge => {
+        const icon = badge.querySelector('i');
+        const text = currentLanguage === 'en' ? 'Popular' : 'Populaire';
+        badge.innerHTML = icon.outerHTML + ' ' + text;
+      });
+
+      document.querySelectorAll('.badge.negative').forEach(badge => {
+        const icon = badge.querySelector('i');
+        const text = currentLanguage === 'en' ? 'Negative' : 'Négatif';
+        badge.innerHTML = icon.outerHTML + ' ' + text;
+      });
+    }
+
+    function confirmDelete() {
+      const message = currentLanguage === 'en' 
+        ? 'Are you sure you want to delete this comment?'
+        : 'Êtes-vous sûr de vouloir supprimer ce commentaire ?';
+      return confirm(message);
+    }
+
+    // Initialize language on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      updateLanguage();
+    });
+
     // Page transition
     window.addEventListener("load", () => {
       document.querySelector(".transition-screen").classList.add("hidden");
