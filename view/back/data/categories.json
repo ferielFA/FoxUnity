@@ -1,8 +1,0 @@
-[
-  { "idCategorie": 1, "nom": "Market", "description": "Market news and valuations" },
-  { "idCategorie": 2, "nom": "Esports", "description": "Esports league and team news" },
-  { "idCategorie": 3, "nom": "Championship", "description": "Major championship coverage" },
-  { "idCategorie": 4, "nom": "Major", "description": "CS2 Majors and large events" },
-  { "idCategorie": 5, "nom": "Events", "description": "Event announcements and schedules" },
-  { "idCategorie": 6, "nom": "Tournament", "description": "Tournament qualifiers and results" }
-]
