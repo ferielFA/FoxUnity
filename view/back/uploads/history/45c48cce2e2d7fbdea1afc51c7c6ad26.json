@@ -1,0 +1,19 @@
+[
+    {
+        "timestamp": "2025-11-26 17:40:04",
+        "action": "created",
+        "article": {
+            "idArticle": 11,
+            "id": "9",
+            "title": "EA Announces New Star Wars Game With Open-Galaxy Exploration",
+            "date": "2025-11-20",
+            "datePublication": "2025-11-24",
+            "image": "uploads\/images\/img_69272d64599e3.jpg",
+            "idCategorie": 1,
+            "category": "Gaming News",
+            "excerpt": "EA has announced a brand-new Star Wars adventure game featuring open-galaxy exploration, large-scale ship combat, and a fully customizable protagonist.",
+            "content": "EA has unveiled its next major Star Wars project, promising an ambitious open-galaxy experience unlike any previous title in the franchise. Players will explore multiple planets, engage in dynamic ship combat, and build their own character from the ground up.\r\n\r\nDevelopers emphasized freedom of exploration, branching storylines, and a mixture of first-person and third-person gameplay. While no release date has been shared, early concept footage has already impressed fans. This new title aims to deepen the Star Wars gaming universe with more player choice than ever before.",
+            "comments": []
+        }
+    }
+]

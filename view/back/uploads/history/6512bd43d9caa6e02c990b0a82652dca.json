@@ -1,0 +1,239 @@
+[
+    {
+        "timestamp": "2025-11-26 17:44:51",
+        "action": "created",
+        "article": {
+            "idArticle": 13,
+            "id": "11",
+            "title": "Assassin’s Creed: Shadows Review – Stunning World, Mixed Execution",
+            "date": "2025-11-20",
+            "datePublication": "2025-11-26",
+            "image": "uploads\/images\/img_69272e83552b6.jpg",
+            "idCategorie": 3,
+            "category": "Reviews",
+            "excerpt": "Assassin’s Creed: Shadows delivers breathtaking world-building and memorable characters, but inconsistent pacing and repetitive missions keep it from reaching masterpiece status.",
+            "content": "Assassin’s Creed: Shadows transports players to a beautifully crafted setting inspired by feudal Japan. The game's world is visually stunning, filled with atmospheric villages, detailed landscapes, and immersive ambient audio.\r\n\r\nCombat feels weighty and rewarding, especially when switching between stealth-oriented mechanics and full-on samurai combat. The dual-protagonist structure adds variety, though it sometimes disrupts pacing when missions force quick character switches.\r\n\r\nWhile exploration remains one of the strongest aspects of the game, mission design falls back on the familiar AC formula — infiltrate, assassinate, escape — which may feel repetitive to long-time fans. Side quests, however, are well-written and often steal the spotlight.\r\n\r\nAssassin’s Creed: Shadows is great for fans of the franchise and Japan-themed open worlds, but some structural issues keep it from true greatness.",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-26 17:56:06",
+        "action": "before_edit",
+        "article": {
+            "idArticle": 13,
+            "id": "11",
+            "title": "Assassin’s Creed: Shadows Review – Stunning World, Mixed Execution",
+            "date": "2025-11-26",
+            "datePublication": "2025-11-26",
+            "image": "uploads\/images\/img_69272e83552b6.jpg",
+            "idCategorie": 3,
+            "excerpt": "Assassin’s Creed: Shadows delivers breathtaking world-building and memorable characters, but inconsistent pacing and repetitive missions keep it from reaching masterpiece status.",
+            "content": "Assassin’s Creed: Shadows transports players to a beautifully crafted setting inspired by feudal Japan. The game's world is visually stunning, filled with atmospheric villages, detailed landscapes, and immersive ambient audio.\r\n\r\nCombat feels weighty and rewarding, especially when switching between stealth-oriented mechanics and full-on samurai combat. The dual-protagonist structure adds variety, though it sometimes disrupts pacing when missions force quick character switches.\r\n\r\nWhile exploration remains one of the strongest aspects of the game, mission design falls back on the familiar AC formula — infiltrate, assassinate, escape — which may feel repetitive to long-time fans. Side quests, however, are well-written and often steal the spotlight.\r\n\r\nAssassin’s Creed: Shadows is great for fans of the franchise and Japan-themed open worlds, but some structural issues keep it from true greatness.",
+            "category": "Reviews",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-26 17:56:06",
+        "action": "edited",
+        "article": {
+            "idArticle": 13,
+            "id": "11",
+            "title": "Assassin’s Creed: Shadows Review – Stunning World, Mixed Execution",
+            "date": "2025-11-26",
+            "datePublication": "2025-11-26",
+            "image": "uploads\/images\/img_69272e83552b6.jpg",
+            "idCategorie": 3,
+            "excerpt": "Assassin’s Creed: Shadows delivers breathtaking world-building and memorable characters, but inconsistent pacing and repetitive missions keep it from reaching masterpiece status.",
+            "content": "<br \/>\r\n<b>Warning<\/b>:  Undefined array key \"content\" in <b>C:\\xampp\\htdocs\\projet_web\\view\\back\\news_admin.php<\/b> on line <b>422<\/b><br \/>\r\n",
+            "category": "Reviews",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-26 17:56:28",
+        "action": "before_edit",
+        "article": {
+            "idArticle": 13,
+            "id": "11",
+            "title": "Assassin’s Creed: Shadows Review – Stunning World, Mixed Execution",
+            "date": "2025-11-26",
+            "datePublication": "2025-11-26",
+            "image": "uploads\/images\/img_69272e83552b6.jpg",
+            "idCategorie": 3,
+            "excerpt": "Assassin’s Creed: Shadows delivers breathtaking world-building and memorable characters, but inconsistent pacing and repetitive missions keep it from reaching masterpiece status.",
+            "content": "<br \/>\r\n<b>Warning<\/b>:  Undefined array key \"content\" in <b>C:\\xampp\\htdocs\\projet_web\\view\\back\\news_admin.php<\/b> on line <b>422<\/b><br \/>\r\n",
+            "category": "Reviews",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-26 17:56:28",
+        "action": "edited",
+        "article": {
+            "idArticle": 13,
+            "id": "11",
+            "title": "Assassin’s Creed: Shadows Review – Stunning World, Mixed Execution",
+            "date": "2025-11-26",
+            "datePublication": "2025-11-26",
+            "image": "uploads\/images\/img_69272e83552b6.jpg",
+            "idCategorie": 3,
+            "excerpt": "Assassin’s Creed: Shadows delivers breathtaking world-building and memorable characters, but inconsistent pacing and repetitive missions keep it from reaching masterpiece status.",
+            "content": "<br \/>\r\n<b>Warning<\/b>:  Undefined array key \"content\" in <b>C:\\xampp\\htdocs\\projet_web\\view\\back\\news_admin.php<\/b> on line <b>422<\/b><br \/>\r\n",
+            "category": "Reviews",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-26 17:57:52",
+        "action": "before_edit",
+        "article": {
+            "idArticle": 13,
+            "id": "11",
+            "title": "Assassin’s Creed: Shadows Review – Stunning World, Mixed Execution",
+            "date": "2025-11-26",
+            "datePublication": "2025-11-26",
+            "image": "uploads\/images\/img_69272e83552b6.jpg",
+            "idCategorie": 3,
+            "excerpt": "Assassin’s Creed: Shadows delivers breathtaking world-building and memorable characters, but inconsistent pacing and repetitive missions keep it from reaching masterpiece status.",
+            "content": "<br \/>\r\n<b>Warning<\/b>:  Undefined array key \"content\" in <b>C:\\xampp\\htdocs\\projet_web\\view\\back\\news_admin.php<\/b> on line <b>422<\/b><br \/>\r\n",
+            "category": "Reviews",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-26 17:57:52",
+        "action": "edited",
+        "article": {
+            "idArticle": 13,
+            "id": "11",
+            "title": "Assassin’s Creed: Shadows Review – Stunning World, Mixed Execution",
+            "date": "2025-11-26",
+            "datePublication": "2025-11-26",
+            "image": "uploads\/images\/img_69272e83552b6.jpg",
+            "idCategorie": 3,
+            "excerpt": "Assassin’s Creed: Shadows delivers breathtaking world-building and memorable characters, but inconsistent pacing and repetitive missions keep it from reaching masterpiece status.",
+            "content": "<br \/>\r\n<b>Warning<\/b>:  Undefined array key \"content\" in <b>C:\\xampp\\htdocs\\projet_web\\view\\back\\news_admin.php<\/b> on line <b>422<\/b><br \/>\r\n",
+            "category": "Reviews",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-26 17:58:31",
+        "action": "before_edit",
+        "article": {
+            "idArticle": 13,
+            "id": "11",
+            "title": "Assassin’s Creed: Shadows Review – Stunning World, Mixed Execution",
+            "date": "2025-11-26",
+            "datePublication": "2025-11-26",
+            "image": "uploads\/images\/img_69272e83552b6.jpg",
+            "idCategorie": 3,
+            "excerpt": "Assassin’s Creed: Shadows delivers breathtaking world-building and memorable characters, but inconsistent pacing and repetitive missions keep it from reaching masterpiece status.",
+            "content": "<br \/>\r\n<b>Warning<\/b>:  Undefined array key \"content\" in <b>C:\\xampp\\htdocs\\projet_web\\view\\back\\news_admin.php<\/b> on line <b>422<\/b><br \/>\r\n",
+            "category": "Reviews",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-26 17:58:31",
+        "action": "edited",
+        "article": {
+            "idArticle": 13,
+            "id": "11",
+            "title": "Assassin’s Creed: Shadows Review – Stunning World, Mixed Execution",
+            "date": "2025-11-26",
+            "datePublication": "2025-11-26",
+            "image": "uploads\/images\/img_69272e83552b6.jpg",
+            "idCategorie": 3,
+            "excerpt": "Assassin’s Creed: Shadows delivers breathtaking world-building and memorable characters, but inconsistent pacing and repetitive missions keep it from reaching masterpiece status.",
+            "content": "<br \/>\r\n<b>Warning<\/b>:  Undefined array key \"content\" in <b>C:\\xampp\\htdocs\\projet_web\\view\\back\\news_admin.php<\/b> on line <b>422<\/b><br \/>\r\n",
+            "category": "Reviews",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-26 17:58:53",
+        "action": "before_edit",
+        "article": {
+            "idArticle": 13,
+            "id": "11",
+            "title": "Assassin’s Creed: Shadows Review – Stunning World, Mixed Execution",
+            "date": "2025-11-26",
+            "datePublication": "2025-11-26",
+            "image": "uploads\/images\/img_69272e83552b6.jpg",
+            "idCategorie": 3,
+            "excerpt": "Assassin’s Creed: Shadows delivers breathtaking world-building and memorable characters, but inconsistent pacing and repetitive missions keep it from reaching masterpiece status.",
+            "content": "<br \/>\r\n<b>Warning<\/b>:  Undefined array key \"content\" in <b>C:\\xampp\\htdocs\\projet_web\\view\\back\\news_admin.php<\/b> on line <b>422<\/b><br \/>\r\n",
+            "category": "Reviews",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-26 17:58:53",
+        "action": "edited",
+        "article": {
+            "idArticle": 13,
+            "id": "11",
+            "title": "Assassin’s Creed: Shadows Review – Stunning World, Mixed Execution",
+            "date": "2025-11-26",
+            "datePublication": "2025-11-26",
+            "image": "uploads\/images\/img_69272e83552b6.jpg",
+            "idCategorie": 3,
+            "excerpt": "Assassin’s Creed: Shadows delivers breathtaking world-building and memorable characters, but inconsistent pacing and repetitive missions keep it from reaching masterpiece status.",
+            "content": "<br \/>\r\n<b>Warning<\/b>:  Undefined array key \"content\" in <b>C:\\xampp\\htdocs\\projet_web\\view\\back\\news_admin.php<\/b> on line <b>422<\/b><br \/>\r\n",
+            "category": "Reviews",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-26 18:00:30",
+        "action": "before_edit",
+        "article": {
+            "idArticle": 13,
+            "id": "11",
+            "title": "Assassin’s Creed: Shadows Review – Stunning World, Mixed Execution",
+            "date": "2025-11-26",
+            "datePublication": "2025-11-26",
+            "image": "uploads\/images\/img_69272e83552b6.jpg",
+            "idCategorie": 3,
+            "excerpt": "Assassin’s Creed: Shadows delivers breathtaking world-building and memorable characters, but inconsistent pacing and repetitive missions keep it from reaching masterpiece status.",
+            "content": "<br \/>\r\n<b>Warning<\/b>:  Undefined array key \"content\" in <b>C:\\xampp\\htdocs\\projet_web\\view\\back\\news_admin.php<\/b> on line <b>422<\/b><br \/>\r\n",
+            "category": "Reviews",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-26 18:00:30",
+        "action": "edited",
+        "article": {
+            "idArticle": 13,
+            "id": "11",
+            "title": "Assassin’s Creed: Shadows Review – Stunning World, Mixed Execution",
+            "date": "2025-11-26",
+            "datePublication": "2025-11-26",
+            "image": "uploads\/images\/img_69272e83552b6.jpg",
+            "idCategorie": 3,
+            "excerpt": "Assassin’s Creed: Shadows delivers breathtaking world-building and memorable characters, but inconsistent pacing and repetitive missions keep it from reaching masterpiece status.",
+            "content": "<br \/>\r\n<b>Warning<\/b>:  Undefined array key \"content\" in <b>C:\\xampp\\htdocs\\projet_web\\view\\back\\news_admin.php<\/b> on line <b>422<\/b><br \/>\r\n",
+            "category": "Reviews",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-29 13:51:06",
+        "action": "edited",
+        "article": {
+            "id": "11",
+            "title": "Assassin’s Creed: Shadows Review – Stunning World, Mixed Execution",
+            "date": "2025-11-26",
+            "datePublication": "2025-11-26",
+            "idCategorie": 3,
+            "excerpt": "Assassin’s Creed: Shadows delivers breathtaking world-building and memorable characters, but inconsistent pacing and repetitive missions keep it from reaching masterpiece status.",
+            "content": "Assassin’s Creed: Shadows delivers breathtaking world-building and memorable characters, but inconsistent pacing and repetitive missions keep it from reaching masterpiece status.",
+            "image": "uploads\/images\/img_69272e83552b6.jpg",
+            "hot": 1,
+            "category": "Reviews"
+        }
+    }
+]

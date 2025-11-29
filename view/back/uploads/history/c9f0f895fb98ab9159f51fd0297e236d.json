@@ -1,0 +1,19 @@
+[
+    {
+        "timestamp": "2025-11-26 17:39:00",
+        "action": "created",
+        "article": {
+            "idArticle": 10,
+            "id": "8",
+            "title": "Cyberpunk 2077 Devs Confirm New Project in the Works",
+            "date": "2025-11-24",
+            "datePublication": "2025-11-26",
+            "image": "uploads\/images\/img_69272d24780bb.jpg",
+            "idCategorie": 1,
+            "category": "Gaming News",
+            "excerpt": "CD Projekt Red has officially confirmed development on a brand-new project set within a futuristic universe, sparking excitement among Cyberpunk fans.",
+            "content": "CD Projekt Red has revealed that a new project is underway, described as a large-scale futuristic RPG building on the success of Cyberpunk 2077’s revival. While details are minimal, developers confirmed the new title will feature deeper narrative systems, improved AI, and expanded world-building.\r\n\r\nFans are already speculating whether the new project will connect to Night City or explore a completely new region of the Cyberpunk universe. With early pre-production moving forward, players can expect more concrete updates over the next year.",
+            "comments": []
+        }
+    }
+]

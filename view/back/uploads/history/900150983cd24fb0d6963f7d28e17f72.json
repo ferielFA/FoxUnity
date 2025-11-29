@@ -1,0 +1,36 @@
+[
+    {
+        "timestamp": "2025-11-25 22:59:02",
+        "action": "created",
+        "article": {
+            "idArticle": 2,
+            "id": "abc",
+            "title": "aaaaa",
+            "date": "November 25, 2025",
+            "datePublication": "2025-11-25",
+            "image": "uploads\/images\/img_692626a681266.jpg",
+            "idCategorie": 2,
+            "category": "Events",
+            "excerpt": "",
+            "content": "",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-25 23:17:59",
+        "action": "deleted",
+        "article": {
+            "idArticle": 2,
+            "id": "abc",
+            "title": "aaaaa",
+            "date": "2025-11-25",
+            "datePublication": "2025-11-25",
+            "image": null,
+            "idCategorie": 2,
+            "excerpt": "",
+            "content": "",
+            "category": "eSports",
+            "comments": []
+        }
+    }
+]
