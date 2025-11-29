@@ -1,0 +1,473 @@
+/* ======== TRADING SECTION ======== */
+.trading-section {
+  text-align: center;
+  margin-bottom: 100px;
+}
+
+.skins-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 40px;
+}
+
+/* ================= SKIN CARD ================= */
+.skin-card {
+  background: rgba(20, 20, 20, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 30px;
+  transition: all 0.4s ease;
+  position: relative;
+}
+
+.skin-card:hover {
+  transform: translateY(-10px);
+  border-color: rgba(255, 122, 0, 0.3);
+}
+
+.skin-img {
+  width: 100%;
+  border-radius: 15px;
+  margin-bottom: 20px;
+  object-fit: cover;
+}
+
+.skin-name {
+  font-size: 1.4rem;
+  color: #fff;
+  margin-bottom: 10px;
+}
+
+.skin-price {
+  color: #ff7a00;
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 5px;
+}
+
+.skin-seller {
+  color: #aaa;
+  margin-bottom: 20px;
+}
+
+.skin-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.buy-btn,
+.chat-btn,
+.desc-btn {
+  padding: 10px 20px;
+  border-radius: 25px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.buy-btn {
+  background: #ff7a00;
+  color: #000;
+}
+
+.buy-btn:hover {
+  background: #ff9500;
+  transform: translateY(-3px);
+}
+
+.chat-btn {
+  background: transparent;
+  color: #ff7a00;
+  border: 1.5px solid #ff7a00;
+}
+
+.chat-btn:hover {
+  background: rgba(255, 122, 0, 0.1);
+  transform: translateY(-3px);
+}
+
+/* DESCRIPTION BUTTON */
+.desc-btn {
+  background: transparent;
+  color: #ff7a00;
+  border: 1.5px solid #ff7a00;
+  margin-top: 10px;
+}
+
+.desc-btn:hover {
+  background: rgba(255, 122, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Chat Box */
+.chat-box {
+  display: none;
+  background: rgba(15, 15, 15, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  padding: 15px;
+  margin-top: 15px;
+  text-align: left;
+}
+
+.chat-box.active {
+  display: block;
+}
+
+.chat-messages {
+  max-height: 150px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+  font-size: 0.95rem;
+  color: #ddd;
+}
+
+.msg {
+  background: rgba(255, 122, 0, 0.1);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  word-wrap: break-word;
+}
+
+.chat-input {
+  width: 75%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 20px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.send-btn {
+  padding: 8px 16px;
+  border: none;
+  background: #ff7a00;
+  color: #000;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-left: 5px;
+}
+
+.send-btn:hover {
+  background: #ff9500;
+}
+
+/* ======== PAGE TRANSITION EFFECT ======== */
+
+/* ======== ADD TRADE DEAL BUTTON ======== */
+.add-trade-container {
+  text-align: center;
+  margin: 20px 0 50px;
+}
+
+.add-trade-btn {
+  background: #ff7a00;
+  color: #000;
+  font-weight: 700;
+  border: none;
+  border-radius: 30px;
+  padding: 12px 30px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.add-trade-btn:hover {
+  background: #ff9500;
+  transform: translateY(-3px);
+  box-shadow: 0 0 15px rgba(255, 122, 0, 0.5);
+}
+
+/* ======== FILTER BAR ======== */
+.filter-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  margin: 30px 0;
+}
+
+.filter-bar input[type="text"],
+.filter-bar select {
+  padding: 10px 15px;
+  border-radius: 25px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(30, 30, 30, 0.7);
+  color: #fff;
+  outline: none;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.filter-bar input[type="text"]::placeholder {
+  color: #bbb;
+}
+
+.filter-bar input[type="text"]:focus,
+.filter-bar select:focus {
+  border-color: #ff7a00;
+  box-shadow: 0 0 8px rgba(255, 122, 0, 0.4);
+}
+
+.filter-bar select {
+  cursor: pointer;
+}
+
+/* Cart Icon */
+.cart-icon {
+  color: #ff7a00;
+  position: relative;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.cart-icon:hover {
+  color: #ff9933;
+  transform: translateY(-2px);
+}
+
+.cart-icon i {
+  font-size: 18px;
+}
+
+.cart-count {
+  background: linear-gradient(135deg, #ff7a00, #ff4f00);
+  color: white;
+  border-radius: 50%;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 18px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(255, 122, 0, 0.4);
+}
+
+/* ================= DESCRIPTION BOX ================= */
+.description-box {
+  display: none;
+  background: rgba(30,30,30,0.95);
+  color: #fff;
+  padding: 15px;
+  border-radius: 15px;
+  margin-top: 15px;
+  font-size: 0.95rem;
+}
+
+.description-box.active {
+  display: block;
+}
+
+/* ================= CARD FOCUS EFFECT ================= */
+.skin-card.focused {
+  position: relative;
+  z-index: 999;
+  transform: scale(1.15);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 0 30px rgba(255,122,0,0.6);
+}
+
+.skins-grid.focused-mode .skin-card:not(.focused) {
+  filter: blur(5px) brightness(0.7);
+  pointer-events: none;
+}
+/* ===== ADD TRADE MODAL ===== */
+.trade-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.8);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.trade-modal.active {
+  display: flex;
+}
+
+.trade-modal-content {
+  background: #1a1a1a;
+  padding: 30px;
+  border-radius: 15px;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 0 20px rgba(255, 122, 0, 0.5);
+  color: #fff;
+  text-align: center;
+  position: relative;
+  animation: modalFade 0.3s ease-out;
+}
+
+.trade-modal-content h2 {
+  margin-bottom: 20px;
+  color: #ff7a00;
+  font-family: 'Orbitron', sans-serif;
+}
+
+.trade-modal-content input,
+.trade-modal-content textarea {
+  width: 100%;
+  margin-bottom: 15px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #444;
+  background: #222;
+  color: #fff;
+  font-family: 'Poppins', sans-serif;
+}
+
+.trade-modal-content input[type="file"] {
+  padding: 3px;
+}
+
+.trade-modal-content .add-trade-btn {
+  background: #ff7a00;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.trade-modal-content .add-trade-btn:hover {
+  background: #e06900;
+}
+
+.close-modal {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  font-size: 24px;
+  cursor: pointer;
+  color: #ff7a00;
+}
+
+/* ===== NEW SKIN CARD STYLING ===== */
+.skin-card {
+  background: #1a1a1a;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 0 15px rgba(255,122,0,0.3);
+  text-align: center;
+  transition: transform 0.3s, box-shadow 0.3s;
+  margin-bottom: 30px;
+}
+
+.skin-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0 20px rgba(255,122,0,0.6);
+}
+
+.skin-card.focused {
+  transform: scale(1.05);
+  z-index: 10;
+}
+
+.skin-card .skin-img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+}
+
+.skin-card .skin-name {
+  font-family: 'Orbitron', sans-serif;
+  color: #ff7a00;
+  margin: 10px 0;
+}
+
+.skin-card .skin-price {
+  color: #fff;
+  font-weight: 600;
+}
+
+.skin-card .skin-seller {
+  color: #ccc;
+  margin-bottom: 10px;
+}
+
+.skin-buttons button {
+  background: #ff7a00;
+  border: none;
+  color: #fff;
+  padding: 8px 12px;
+  margin: 5px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.skin-buttons button:hover {
+  background: #e06900;
+}
+
+/* ===== DESCRIPTION BOX ===== */
+.description-box {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  color: #ccc;
+  font-size: 14px;
+  margin: 0 10px;
+}
+
+.description-box.active {
+  max-height: 150px;
+  padding: 10px;
+}
+
+/* ===== CHAT BOX ===== */
+.chat-box {
+  display: none;
+  background: #111;
+  border-radius: 10px;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+.chat-box.active {
+  display: block;
+}
+
+.chat-messages {
+  max-height: 100px;
+  overflow-y: auto;
+  margin-bottom: 5px;
+}
+
+.chat-input {
+  width: 70%;
+  padding: 5px 10px;
+  border-radius: 5px;
+  border: none;
+  margin-right: 5px;
+}
+
+.send-btn {
+  padding: 5px 10px;
+  border-radius: 5px;
+  border: none;
+  background: #ff7a00;
+  color: #fff;
+  cursor: pointer;
+}
+
+/* ===== MODAL ANIMATION ===== */
+@keyframes modalFade {
+  from { transform: translateY(-50px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}

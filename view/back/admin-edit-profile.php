@@ -93,7 +93,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user'] = serialize($currentUser);
             $message = 'Profile updated successfully! Redirecting to your profile...';
             $messageType = 'success';
-            // Set flag to trigger redirect after showing message
             $shouldRedirect = true;
         } else {
             $message = 'Failed to update profile';
@@ -122,7 +121,7 @@ if ($currentUser->getImage()) {
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   
   <style>
-    /* Admin Dropdown Styles */
+    /* Admin Dropdown Styles - COHERENT */
     .admin-dropdown {
       position: relative;
       display: inline-block;
@@ -142,7 +141,28 @@ if ($currentUser->getImage()) {
       background: rgba(255, 122, 0, 0.1);
     }
 
+    .admin-user img {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #ff7a00;
+    }
+
+    .admin-user i.fa-user-circle {
+      font-size: 35px;
+      color: #ff7a00;
+    }
+
+    .admin-user span {
+      color: #fff;
+      font-weight: 600;
+      font-size: 16px;
+    }
+
     .admin-user i.fa-chevron-down {
+      font-size: 12px;
+      color: #ff7a00;
       transition: transform 0.3s ease;
     }
 
@@ -246,6 +266,9 @@ if ($currentUser->getImage()) {
       margin-bottom: 40px;
       padding-bottom: 30px;
       border-bottom: 2px solid rgba(255, 122, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     .current-avatar {
@@ -256,6 +279,22 @@ if ($currentUser->getImage()) {
       border: 4px solid #ff7a00;
       box-shadow: 0 10px 30px rgba(255, 122, 0, 0.4);
       margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 122, 0, 0.1);
+    }
+
+    .current-avatar i {
+      font-size: 80px;
+      color: #ff7a00;
+    }
+
+    .current-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
     }
 
     .upload-btn-wrapper {
@@ -524,7 +563,7 @@ if ($currentUser->getImage()) {
     <a href="dashboard.php">Overview</a>
     <a href="users.php">Users</a>
     <a href="#">Shop</a>
-    <a href="#">Trade History</a>
+    <a href="dashboard.php?section=trades">Trade History</a>
     <a href="#">Events</a>
     <a href="#">News</a>
     <a href="#">Support</a>
@@ -540,10 +579,10 @@ if ($currentUser->getImage()) {
           <?php if ($userImage): ?>
           <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
           <?php else: ?>
-          <i class="fas fa-user-circle" style="font-size: 35px; color: #ff7a00;"></i>
+          <i class="fas fa-user-circle"></i>
           <?php endif; ?>
           <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
-          <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+          <i class="fas fa-chevron-down"></i>
         </div>
         
         <div class="admin-dropdown-menu">
@@ -576,14 +615,13 @@ if ($currentUser->getImage()) {
 
         <form method="POST" enctype="multipart/form-data" id="editProfileForm">
           <div class="profile-image-section">
-            <?php if ($userImage): ?>
-            <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Current Avatar" class="current-avatar" id="avatarPreview">
-            <?php else: ?>
-            <div class="current-avatar" id="avatarPreview" style="display: flex; align-items: center; justify-content: center; background: rgba(255, 122, 0, 0.1);">
-              <i class="fas fa-user-circle" style="font-size: 60px; color: #ff7a00;"></i>
+            <div class="current-avatar" id="avatarPreview">
+              <?php if ($userImage): ?>
+              <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Current Avatar">
+              <?php else: ?>
+              <i class="fas fa-user-circle"></i>
+              <?php endif; ?>
             </div>
-            <?php endif; ?>
-            <br>
             <div class="upload-btn-wrapper">
               <div class="upload-btn">
                 <i class="fas fa-camera"></i> Change Profile Picture
@@ -687,7 +725,7 @@ if ($currentUser->getImage()) {
       }
     });
 
-    // Image preview and file name display
+    // Image preview
     const profileImage = document.getElementById('profileImage');
     const avatarPreview = document.getElementById('avatarPreview');
     const fileName = document.getElementById('fileName');
@@ -697,13 +735,9 @@ if ($currentUser->getImage()) {
       if (file) {
         fileName.textContent = file.name;
         
-        // Preview image - replace icon with image
         const reader = new FileReader();
         reader.onload = function(event) {
-          avatarPreview.innerHTML = '';
-          avatarPreview.style.backgroundImage = `url(${event.target.result})`;
-          avatarPreview.style.backgroundSize = 'cover';
-          avatarPreview.style.backgroundPosition = 'center';
+          avatarPreview.innerHTML = `<img src="${event.target.result}" alt="Preview">`;
         };
         reader.readAsDataURL(file);
       } else {
@@ -735,14 +769,12 @@ if ($currentUser->getImage()) {
       confirmModal.classList.remove('show');
     });
 
-    // Close modal on outside click
     confirmModal.addEventListener('click', function(e) {
       if (e.target === confirmModal) {
         confirmModal.classList.remove('show');
       }
     });
 
-    // Close modal on Escape key
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape' && confirmModal.classList.contains('show')) {
         confirmModal.classList.remove('show');
@@ -768,7 +800,6 @@ if ($currentUser->getImage()) {
       });
     });
 
-    // Auto-hide success/error message after 5 seconds
     setTimeout(function() {
       const message = document.querySelector('.message-alert');
       if (message) {
@@ -777,11 +808,10 @@ if ($currentUser->getImage()) {
       }
     }, 5000);
 
-    // Auto-redirect to profile page after successful update
     <?php if (isset($shouldRedirect) && $shouldRedirect): ?>
     setTimeout(function() {
       window.location.href = 'admin-profile.php';
-    }, 3000); // Redirect after 3 seconds
+    }, 3000);
     <?php endif; ?>
   </script>
   

@@ -777,12 +777,7 @@ if ($currentUser->getImage()) {
                     <a href="#"><i class="fab fa-youtube"></i></a>
                 </div>
             </div>
-            <div class="footer-section">
-                <h4>Dashboard</h4>
-                <a href="../back/dashboard.html" class="dashboard-link">
-                    <i class="fas fa-tachometer-alt"></i> My Dashboard
-                </a>
-            </div>
+
         </div>
         <div class="footer-bottom">
             <p>© 2025 FoxUnity. All rights reserved. Made with <span>♥</span> by gamers for gamers</p>

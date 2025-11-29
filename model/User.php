@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/config.php';
 
 class User {
     private ?int $id = null;
@@ -104,7 +104,7 @@ class User {
     // Create user in database
     public function create(): bool {
         try {
-            $pdo = config::getConnexion();
+            $pdo = getDB();
             $hashedPassword = password_hash($this->password, PASSWORD_DEFAULT);
             
             $sql = "INSERT INTO users (username, email, dob, password, gender, role, status, image) 
@@ -133,7 +133,7 @@ class User {
     // Read user by ID
     public static function getById(int $id): ?User {
         try {
-            $pdo = config::getConnexion();
+            $pdo = getDB();
             $sql = "SELECT * FROM users WHERE id = :id";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([':id' => $id]);
@@ -163,7 +163,7 @@ class User {
     // Read user by email
     public static function getByEmail(string $email): ?User {
         try {
-            $pdo = config::getConnexion();
+            $pdo = getDB();
             $sql = "SELECT * FROM users WHERE email = :email";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([':email' => $email]);
@@ -193,7 +193,7 @@ class User {
     // Get all users
     public static function getAll(): array {
         try {
-            $pdo = config::getConnexion();
+            $pdo = getDB();
             $sql = "SELECT * FROM users ORDER BY id DESC";
             $stmt = $pdo->query($sql);
             
@@ -221,7 +221,7 @@ class User {
     // Update user
     public function update(): bool {
         try {
-            $pdo = config::getConnexion();
+            $pdo = getDB();
             
             $sql = "UPDATE users 
                     SET username = :username, email = :email, dob = :dob, 
@@ -247,7 +247,7 @@ class User {
     // Update password
     public function updatePassword(string $newPassword): bool {
         try {
-            $pdo = config::getConnexion();
+            $pdo = getDB();
             $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
             
             $sql = "UPDATE users SET password = :password WHERE id = :id";
@@ -265,7 +265,7 @@ class User {
     // Delete user
     public function delete(): bool {
         try {
-            $pdo = config::getConnexion();
+            $pdo = getDB();
             $sql = "DELETE FROM users WHERE id = :id";
             $stmt = $pdo->prepare($sql);
             return $stmt->execute([':id' => $this->id]);
@@ -283,7 +283,7 @@ class User {
     // Check if email exists
     public static function emailExists(string $email): bool {
         try {
-            $pdo = config::getConnexion();
+            $pdo = getDB();
             $sql = "SELECT COUNT(*) FROM users WHERE email = :email";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([':email' => $email]);
@@ -297,7 +297,7 @@ class User {
     // Check if username exists
     public static function usernameExists(string $username): bool {
         try {
-            $pdo = config::getConnexion();
+            $pdo = getDB();
             $sql = "SELECT COUNT(*) FROM users WHERE username = :username";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([':username' => $username]);
