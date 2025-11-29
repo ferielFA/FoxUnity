@@ -1,19 +1,5 @@
 [
     {
-        "idArticle": 8,
-        "id": "lal",
-        "title": "new event",
-        "date": "November 20, 2025",
-        "datePublication": "2025-11-20",
-        "image": "uploads\/images\/img_691ee50994439.png",
-        "idCategorie": 1,
-        "category": "Market",
-        "excerpt": "",
-        "content": "",
-        "hot": false,
-        "comments": []
-    },
-    {
         "idArticle": 7,
         "id": "apex",
         "title": "apex legends season update",

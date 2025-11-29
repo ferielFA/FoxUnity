@@ -1,0 +1,274 @@
+[
+    {
+        "timestamp": "2025-11-25 23:09:46",
+        "action": "created",
+        "article": {
+            "idArticle": 4,
+            "id": "lala",
+            "title": "aaaaaaaaaaa",
+            "date": "November 25, 2025",
+            "datePublication": "2025-11-25",
+            "image": "uploads\/images\/img_6926292a7d403.jpg",
+            "idCategorie": 2,
+            "category": "bef",
+            "excerpt": "",
+            "content": "",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-25 23:12:22",
+        "action": "before_edit",
+        "article": {
+            "idArticle": 4,
+            "id": "lala",
+            "title": "aaaaaaaaaaa",
+            "date": "2025-11-25",
+            "datePublication": "2025-11-25",
+            "image": "uploads\/images\/img_6926292a7d403.jpg",
+            "idCategorie": 2,
+            "excerpt": "",
+            "content": "",
+            "category": "eSports",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-25 23:12:22",
+        "action": "edited",
+        "article": {
+            "idArticle": 4,
+            "id": "lala",
+            "title": "bthbth",
+            "date": "2025-11-25",
+            "datePublication": "",
+            "image": "uploads\/images\/img_6926292a7d403.jpg",
+            "idCategorie": 2,
+            "excerpt": "",
+            "content": "",
+            "category": "eSports",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-25 23:12:30",
+        "action": "before_edit",
+        "article": {
+            "idArticle": 4,
+            "id": "lala",
+            "title": "bthbth",
+            "date": "0000-00-00",
+            "datePublication": "0000-00-00",
+            "image": "uploads\/images\/img_6926292a7d403.jpg",
+            "idCategorie": 2,
+            "excerpt": "",
+            "content": "",
+            "category": "eSports",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-25 23:12:30",
+        "action": "edited",
+        "article": {
+            "idArticle": 4,
+            "id": "lala",
+            "title": "bthbthaaa",
+            "date": "0000-00-00",
+            "datePublication": "",
+            "image": "uploads\/images\/img_6926292a7d403.jpg",
+            "idCategorie": 2,
+            "excerpt": "",
+            "content": "",
+            "category": "eSports",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-25 23:13:01",
+        "action": "before_edit",
+        "article": {
+            "idArticle": 4,
+            "id": "lala",
+            "title": "bthbthaaa",
+            "date": "0000-00-00",
+            "datePublication": "0000-00-00",
+            "image": "uploads\/images\/img_6926292a7d403.jpg",
+            "idCategorie": 2,
+            "excerpt": "",
+            "content": "",
+            "category": "eSports",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-25 23:13:01",
+        "action": "edited",
+        "article": {
+            "idArticle": 4,
+            "id": "lala",
+            "title": "bthbthaaa",
+            "date": "10-25-2050",
+            "datePublication": "",
+            "image": "uploads\/images\/img_6926292a7d403.jpg",
+            "idCategorie": 2,
+            "excerpt": "",
+            "content": "",
+            "category": "eSports",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-25 23:13:25",
+        "action": "before_edit",
+        "article": {
+            "idArticle": 4,
+            "id": "lala",
+            "title": "bthbthaaa",
+            "date": "0000-00-00",
+            "datePublication": "0000-00-00",
+            "image": "uploads\/images\/img_6926292a7d403.jpg",
+            "idCategorie": 2,
+            "excerpt": "",
+            "content": "",
+            "category": "eSports",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-25 23:13:25",
+        "action": "edited",
+        "article": {
+            "idArticle": 4,
+            "id": "lala",
+            "title": "bthbthaaa",
+            "date": "2025-11-25",
+            "datePublication": "",
+            "image": "uploads\/images\/img_6926292a7d403.jpg",
+            "idCategorie": 2,
+            "excerpt": "",
+            "content": "",
+            "category": "eSports",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-25 23:15:09",
+        "action": "before_edit",
+        "article": {
+            "idArticle": 4,
+            "id": "lala",
+            "title": "bthbthaaa",
+            "date": "0000-00-00",
+            "datePublication": "0000-00-00",
+            "image": "uploads\/images\/img_6926292a7d403.jpg",
+            "idCategorie": 2,
+            "excerpt": "",
+            "content": "",
+            "category": "eSports",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-25 23:15:09",
+        "action": "edited",
+        "article": {
+            "idArticle": 4,
+            "id": "lala",
+            "title": "bthbthaaa",
+            "date": "2025-11-25",
+            "datePublication": "",
+            "image": "uploads\/images\/img_6926292a7d403.jpg",
+            "idCategorie": 2,
+            "excerpt": "",
+            "content": "",
+            "category": "eSports",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-25 23:15:27",
+        "action": "before_edit",
+        "article": {
+            "idArticle": 4,
+            "id": "lala",
+            "title": "bthbthaaa",
+            "date": "0000-00-00",
+            "datePublication": "0000-00-00",
+            "image": "uploads\/images\/img_6926292a7d403.jpg",
+            "idCategorie": 2,
+            "excerpt": "",
+            "content": "",
+            "category": "eSports",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-25 23:15:27",
+        "action": "edited",
+        "article": {
+            "idArticle": 4,
+            "id": "lala",
+            "title": "bthbthaaa",
+            "date": "2001-10-01",
+            "datePublication": "2025-11-25",
+            "image": "uploads\/images\/img_6926292a7d403.jpg",
+            "idCategorie": 2,
+            "excerpt": "",
+            "content": "<br \/>\r\n<b>Warning<\/b>:  Undefined array key \"content\" in <b>C:\\xampp\\htdocs\\projet_web\\view\\back\\news_admin.php<\/b> on line <b>361<\/b><br \/>\r\n",
+            "category": "eSports",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-25 23:17:40",
+        "action": "before_edit",
+        "article": {
+            "idArticle": 4,
+            "id": "lala",
+            "title": "bthbthaaa",
+            "date": "2025-11-25",
+            "datePublication": "2025-11-25",
+            "image": "uploads\/images\/img_6926292a7d403.jpg",
+            "idCategorie": 2,
+            "excerpt": "",
+            "content": "<br \/>\r\n<b>Warning<\/b>:  Undefined array key \"content\" in <b>C:\\xampp\\htdocs\\projet_web\\view\\back\\news_admin.php<\/b> on line <b>361<\/b><br \/>\r\n",
+            "category": "eSports",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-25 23:17:40",
+        "action": "edited",
+        "article": {
+            "idArticle": 4,
+            "id": "lala",
+            "title": "bthbthaaa",
+            "date": "2025-11-25",
+            "datePublication": "2025-11-25",
+            "image": "uploads\/images\/img_6926292a7d403.jpg",
+            "idCategorie": 2,
+            "excerpt": "",
+            "content": "<br \/>\r\n<b>Warning<\/b>:  Undefined array key \"content\" in <b>C:\\xampp\\htdocs\\projet_web\\view\\back\\news_admin.php<\/b> on line <b>361<\/b><br \/>\r\n",
+            "category": "eSports",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-26 17:33:28",
+        "action": "deleted",
+        "article": {
+            "idArticle": 4,
+            "id": "lala",
+            "title": "bthbthaaa",
+            "date": "2025-11-25",
+            "datePublication": "2025-11-25",
+            "image": "uploads\/images\/img_6926292a7d403.jpg",
+            "idCategorie": 2,
+            "excerpt": "",
+            "content": "<br \/>\r\n<b>Warning<\/b>:  Undefined array key \"content\" in <b>C:\\xampp\\htdocs\\projet_web\\view\\back\\news_admin.php<\/b> on line <b>361<\/b><br \/>\r\n",
+            "category": "eSports",
+            "comments": []
+        }
+    }
+]

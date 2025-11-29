@@ -1,19 +1,5 @@
 [
     {
-        "idArticle": 8,
-        "id": "lal",
-        "title": "new event",
-        "date": "November 20, 2025",
-        "datePublication": "2025-11-20",
-        "image": "uploads\/images\/img_691ee50994439.png",
-        "idCategorie": 1,
-        "category": "Market",
-        "excerpt": "",
-        "content": "",
-        "hot": false,
-        "comments": []
-    },
-    {
         "idArticle": 7,
         "id": "apex",
         "title": "apex legends season update",
@@ -22,22 +8,22 @@
         "image": "uploads\/images\/img_691e197a3d5df.jpg",
         "idCategorie": 5,
         "category": "Events",
-        "excerpt": "apex legends is expecting a new huge updates with new skins and tradable market",
-        "content": "apex legends is expecting a new huge updates with new skins and tradable market",
+        "excerpt": "apex legends is expecting a new huge updates with new skins and tradable market No matter whether in real life, playing a game, or trading with others, one of the main concerns that most people have is safety. When trading in a marketplace, traders feel safer and are given more options by being able to browse through similar offers by different sellers, making a judgement for themselves on who they want to trade with, or what they want to buy. They are also able to review previous feedback for others created after historical transactions, meaning that every seller has a feedback score that gives buyers an indication of what trading with them is like.",
+        "content": "apex legends is expecting a new huge updates with new skins and tradable market No matter whether in real life, playing a game, or trading with others, one of the main concerns that most people have is safety. When trading in a marketplace, traders feel safer and are given more options by being able to browse through similar offers by different sellers, making a judgement for themselves on who they want to trade with, or what they want to buy. They are also able to review previous feedback for others created after historical transactions, meaning that every seller has a feedback score that gives buyers an indication of what trading with them is like.",
         "hot": false,
         "comments": []
     },
     {
         "idArticle": 1,
         "id": "cs2",
-        "title": "CS2 Skin Market Surge: Dragon Lore Reaches $750K",
+        "title": "CS2 Skin Market Surge: Dragon Lore Reaches $780K",
         "date": "November 11, 2025",
         "datePublication": "2025-11-11",
         "image": "..\/images\/cs2.png",
         "idCategorie": 1,
         "category": "Market",
         "excerpt": "The AWP Dragon Lore (Factory New) hits record highs on third-party markets.",
-        "content": "The AWP Dragon Lore (Factory New) has reached unprecedented valuations on third-party markets, with collectors and investors pushing bids to new heights. Early listings that once sat for months are now selling within hours as demand outpaces the limited supply.\n\nAs interest grows, marketplaces are seeing increased volatility: some listings receive immediate buyouts while others spike drastically after viral social posts. Sellers are carefully timing drops and many are opting for private sales to capture top-dollar offers.\n\nIndustry analysts warn that while the current surge is driven by genuine collector demand, market corrections are possible. Long-term holders who prioritize rarity and provenance are currently reaping substantial returns, but newcomers should exercise caution and research before buying into speculative listings.",
+        "content": "The AWP Dragon Lore (Factory New) hits record highs on third-party markets.",
         "hot": true,
         "comments": []
     },

@@ -1,0 +1,98 @@
+[
+    {
+        "timestamp": "2025-11-26 17:46:13",
+        "action": "created",
+        "article": {
+            "idArticle": 14,
+            "id": "12",
+            "title": "Nintendo Teases Major Announcement for Early 2026",
+            "date": "2025-11-18",
+            "datePublication": "2025-11-26",
+            "image": "uploads\/images\/img_69272ed50a9a8.jpg",
+            "idCategorie": 1,
+            "category": "Gaming News",
+            "excerpt": "Nintendo has confirmed a surprise broadcast event for early 2026, teasing what many believe could be the reveal of a brand-new console or major first-party title.",
+            "content": "Nintendo has officially announced a special broadcast scheduled for early 2026, instantly sparking massive speculation throughout the gaming community. In the brief teaser, Nintendo mentioned “a new chapter” for its future roadmap, leading many fans to believe this could be the reveal of their next-generation hardware.\r\n\r\nOthers speculate the announcement may focus on a major first-party project, possibly tied to flagship franchises like Mario, Breath of the Wild, or Metroid.\r\n\r\nNintendo has not released further details, but the timing — combined with industry rumors and production leaks — strongly suggests a significant reveal. With hype building across social platforms, fans will be watching closely as the gaming giant prepares to define its next era.",
+            "comments": []
+        }
+    },
+    {
+        "timestamp": "2025-11-26 19:34:46",
+        "action": "edited",
+        "article": {
+            "title": "Nintendo Teases Major Announcement for Early 2026.",
+            "date": "2025-11-26",
+            "datePublication": "2025-11-26",
+            "idCategorie": 1,
+            "category": "",
+            "excerpt": "Nintendo has confirmed a surprise broadcast event for early 2026, teasing what many believe could be the reveal of a brand-new console or major first-party title.",
+            "content": "<br \/>\r\n<b>Warning<\/b>:  Undefined array key \"content\" in <b>C:\\xampp\\htdocs\\projet_web 2\\view\\back\\news_admin.php<\/b> on line <b>394<\/b><br \/>\r\n",
+            "image": "uploads\/images\/img_69272ed50a9a8.jpg",
+            "hot": 0
+        }
+    },
+    {
+        "timestamp": "2025-11-26 19:36:28",
+        "action": "edited",
+        "article": {
+            "id": "12",
+            "title": "Nintendo Teases Major Announcement for Early 2026.",
+            "datePublication": "2025-11-26",
+            "idCategorie": 1,
+            "excerpt": "Nintendo has confirmed a surprise broadcast event for early 2026, teasing what many believe could be the reveal of a brand-new console or major first-party title.",
+            "content": "<br \/>\r\n<b>Warning<\/b>:  Undefined array key \"content\" in <b>C:\\xampp\\htdocs\\projet_web 2\\view\\back\\news_admin.php<\/b> on line <b>394<\/b><br \/>\r\n",
+            "image": "uploads\/images\/img_69272ed50a9a8.jpg",
+            "hot": 0,
+            "date": "2025-11-26",
+            "category": ""
+        }
+    },
+    {
+        "timestamp": "2025-11-26 19:36:39",
+        "action": "edited",
+        "article": {
+            "id": "12",
+            "title": "Nintendo Teases Major Announcement for Early 2026..",
+            "datePublication": "2025-11-26",
+            "idCategorie": 1,
+            "excerpt": "Nintendo has confirmed a surprise broadcast event for early 2026, teasing what many believe could be the reveal of a brand-new console or major first-party title.",
+            "content": "<br \/>\r\n<b>Warning<\/b>:  Undefined array key \"content\" in <b>C:\\xampp\\htdocs\\projet_web 2\\view\\back\\news_admin.php<\/b> on line <b>408<\/b><br \/>\r\n",
+            "image": "uploads\/images\/img_69272ed50a9a8.jpg",
+            "hot": 0,
+            "date": "2025-11-26",
+            "category": ""
+        }
+    },
+    {
+        "timestamp": "2025-11-26 19:36:51",
+        "action": "edited",
+        "article": {
+            "id": "12",
+            "title": "Nintendo Teases Major Announcement for Early 2026..",
+            "datePublication": "2025-11-26",
+            "idCategorie": 1,
+            "excerpt": "Nintendo has confirmed a surprise broadcast event for early 2026, teasing what many believe could be the reveal of a brand-new console or major first-party title.",
+            "content": "<br \/>\r\n<b>Warning<\/b>:  Undefined array key \"content\" in <b>C:\\xampp\\htdocs\\projet_web 2\\view\\back\\news_admin.php<\/b> on line <b>408<\/b><br \/>\r\n",
+            "image": "uploads\/images\/img_69272ed50a9a8.jpg",
+            "hot": 1,
+            "date": "2025-11-26",
+            "category": ""
+        }
+    },
+    {
+        "timestamp": "2025-11-26 20:43:28",
+        "action": "edited",
+        "article": {
+            "id": "12",
+            "title": "Nintendo Teases Major Announcement for Early 2026..",
+            "datePublication": "2025-11-26",
+            "idCategorie": 1,
+            "excerpt": "Nintendo has confirmed a surprise broadcast event for early 2026, teasing what many believe could be the reveal of a brand-new console or major first-party title.",
+            "content": "\r\nNintendo has confirmed a surprise broadcast event for early 2026, teasing what many believe could be the reveal of a brand-new console or major first-party title.",
+            "image": "uploads\/images\/img_69272ed50a9a8.jpg",
+            "hot": 1,
+            "date": "2025-11-26",
+            "category": "Gaming News"
+        }
+    }
+]

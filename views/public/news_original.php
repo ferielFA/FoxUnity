@@ -2,14 +2,14 @@
 // news.php
 // Loads all news from MySQL (article / categorie tables) and shows them
 
-require __DIR__ . '/db.php';
+require __DIR__ . '/../back/db.php';
 
 // Helper to resolve image paths and check if they exist
 function getImagePath($imagePath) {
     if (empty($imagePath)) return '../images/nopic.png';
     // If path starts with uploads/, it's a relative path from this file
     if (strpos($imagePath, 'uploads/') === 0) {
-        $fullPath = __DIR__ . '/' . $imagePath;
+        $fullPath = __DIR__ . '/../back/' . $imagePath;
         if (file_exists($fullPath)) return $imagePath;
     }
     // If path starts with ../, it's already relative to this file
