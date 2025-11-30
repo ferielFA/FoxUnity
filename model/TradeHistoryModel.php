@@ -11,6 +11,30 @@ class TradeHistoryModel {
     
     public function __construct() {
         $this->db = getDB();
+        $this->upgradeSchema();
+    }
+
+    /**
+     * Upgrade schema to support new features
+     */
+    private function upgradeSchema(): void {
+        try {
+            // Check if 'bought' is in the ENUM for trade_history
+            $stmt = $this->db->query("SHOW COLUMNS FROM trade_history LIKE 'action'");
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row && strpos($row['Type'], "'bought'") === false) {
+                $this->db->exec("ALTER TABLE trade_history MODIFY COLUMN action ENUM('created', 'updated', 'deleted', 'buy', 'bought') NOT NULL");
+            }
+
+            // Check if 'bought' is in the ENUM for trade_history_trading_view
+            $stmt = $this->db->query("SHOW COLUMNS FROM trade_history_trading_view LIKE 'action'");
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row && strpos($row['Type'], "'bought'") === false) {
+                $this->db->exec("ALTER TABLE trade_history_trading_view MODIFY COLUMN action ENUM('created', 'updated', 'deleted', 'buy', 'bought') NOT NULL");
+            }
+        } catch (PDOException $e) {
+            error_log("TradeHistoryModel::upgradeSchema error: " . $e->getMessage());
+        }
     }
     
     /**
@@ -25,7 +49,7 @@ class TradeHistoryModel {
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         user_id INT NOT NULL,
                         skin_id INT NOT NULL,
-                        action ENUM('created', 'updated', 'deleted') NOT NULL,
+                        action ENUM('created', 'updated', 'deleted', 'buy', 'bought') NOT NULL,
                         skin_name VARCHAR(255) NOT NULL,
                         skin_price DECIMAL(10,2) NOT NULL,
                         skin_category VARCHAR(50) NOT NULL,
@@ -53,7 +77,7 @@ class TradeHistoryModel {
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         user_id INT NOT NULL,
                         skin_id INT NOT NULL,
-                        action ENUM('created', 'updated', 'deleted') NOT NULL,
+                        action ENUM('created', 'updated', 'deleted', 'buy', 'bought') NOT NULL,
                         skin_name VARCHAR(255) NOT NULL,
                         skin_price DECIMAL(10,2) NOT NULL,
                         skin_category VARCHAR(50) NOT NULL,
@@ -80,11 +104,13 @@ class TradeHistoryModel {
      * @return bool
      */
     public function logTradeHistory(int $userId, int $skinId, string $action, string $skinName, float $skinPrice, string $skinCategory): bool {
-        try {
-            $this->ensureTradeHistoryTable();
-            $this->ensureTradingViewTable();
-            
+        $this->ensureTradeHistoryTable();
+        $this->ensureTradingViewTable();
+        
+        $success = true;
 
+        // Insert into trade_history table
+        try {
             $stmt = $this->db->prepare("
                 INSERT INTO trade_history (user_id, skin_id, action, skin_name, skin_price, skin_category, created_at)
                 VALUES (:user_id, :skin_id, :action, :skin_name, :skin_price, :skin_category, NOW())
@@ -98,8 +124,13 @@ class TradeHistoryModel {
                 ':skin_price' => $skinPrice,
                 ':skin_category' => $skinCategory
             ]);
-            
+        } catch (PDOException $e) {
+            error_log("TradeHistoryModel::logTradeHistory - trade_history error: " . $e->getMessage());
+            $success = false;
+        }
 
+        // Insert into trade_history_trading_view table
+        try {
             $tradingStmt = $this->db->prepare("
                 INSERT INTO trade_history_trading_view (user_id, skin_id, action, skin_name, skin_price, skin_category, created_at)
                 VALUES (:user_id, :skin_id, :action, :skin_name, :skin_price, :skin_category, NOW())
@@ -113,12 +144,11 @@ class TradeHistoryModel {
                 ':skin_price' => $skinPrice,
                 ':skin_category' => $skinCategory
             ]);
-            
-            return true;
         } catch (PDOException $e) {
-            error_log("TradeHistoryModel::logTradeHistory error: " . $e->getMessage());
-            return false;
+            error_log("TradeHistoryModel::logTradeHistory - trade_history_trading_view error: " . $e->getMessage());
         }
+        
+        return $success;
     }
     
     /**
@@ -197,9 +227,13 @@ class TradeHistoryModel {
             $stmt = $this->db->prepare("
                 SELECT 
                     COUNT(*) as total_trades,
-                    COUNT(DISTINCT user_id) as total_users,
-                    (SELECT COUNT(*) FROM skins) as total_skins,
-                    COALESCE(SUM(CASE WHEN action = 'finished' THEN skin_price ELSE 0 END), 0) as total_value
+                    (SELECT COUNT(DISTINCT owner_id) FROM skins WHERE is_listed = 1) as total_users,
+                    (SELECT COUNT(*) FROM skins WHERE is_listed = 1) as total_skins,
+                    COALESCE(
+                        SUM(CASE WHEN action = 'finished' THEN skin_price ELSE 0 END) +
+                        SUM(CASE WHEN action = 'bought' THEN skin_price * 0.20 ELSE 0 END),
+                        0
+                    ) as total_value
                 FROM trade_history
             ");
             $stmt->execute();

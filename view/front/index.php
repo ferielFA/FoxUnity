@@ -1,7 +1,7 @@
 =<?php
 require_once __DIR__ . '/../../controller/UserController.php';
 
-// Check if user is logged in
+
 $isLoggedIn = UserController::isLoggedIn();
 $currentUser = null;
 
@@ -9,7 +9,7 @@ if ($isLoggedIn) {
     $currentUser = UserController::getCurrentUser();
 }
 
-// Get user image - NO DEFAULT IMAGE, just check if exists
+
 $userImage = null;
 if ($currentUser && $currentUser->getImage()) {
     $userImage = '../../view/' . $currentUser->getImage();
@@ -492,7 +492,7 @@ if ($currentUser && $currentUser->getImage()) {
                 </div>
             </div>
             
-            <a href="panier.html" class="cart-icon">
+            <a href="panier.php" class="cart-icon">
                 <i class="fas fa-shopping-cart"></i> Cart
                 <span class="cart-count">0</span>
             </a>
@@ -759,12 +759,7 @@ if ($currentUser && $currentUser->getImage()) {
                     <a href="#"><i class="fab fa-youtube"></i></a>
                 </div>
             </div>
-            <div class="footer-section">
-                <h4>Dashboard</h4>
-                <a href="../back/dashboard.html" class="dashboard-link">
-                    <i class="fas fa-tachometer-alt"></i> My Dashboard
-                </a>
-            </div>
+
         </div>
         <div class="footer-bottom">
             <p>© 2025 FoxUnity. All rights reserved. Made with <span>♥</span> by gamers for gamers</p>

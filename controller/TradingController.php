@@ -13,8 +13,10 @@ class TradingController {
     private $tradeHistoryModel;
     private $conversationModel;
     private $currentUser;
+    private $db;
     
     public function __construct(?string $currentUser = null) {
+        $this->db = getDB();
         $this->userModel = new UserModel();
         $this->skinModel = new SkinModel();
         $this->tradeHistoryModel = new TradeHistoryModel();
@@ -60,9 +62,84 @@ class TradingController {
             return $this->handleSendMessage();
         } elseif (isset($_POST['get_messages'])) {
             return $this->handleGetMessages();
+        } elseif (isset($_POST['buy_skins'])) {
+            return $this->handleBuy();
         }
         
         return null;
+    }
+
+    private function handleBuy(): ?array {
+        $skinIds = isset($_POST['skin_ids']) ? json_decode($_POST['skin_ids'], true) : [];
+        
+        if (empty($skinIds) || !is_array($skinIds)) {
+            return ['success' => false, 'error' => 'No items selected'];
+        }
+        
+        $buyerId = $this->userModel->getUserIdByUsername($this->currentUser);
+        if (!$buyerId) {
+            return ['success' => false, 'error' => 'User not found'];
+        }
+        
+        $successCount = 0;
+        $errors = [];
+        
+        foreach ($skinIds as $skinData) {
+            // Support both simple ID array or object array
+            $skinId = is_array($skinData) ? ($skinData['id'] ?? 0) : $skinData;
+            
+            if (!$skinId) continue;
+            
+            $skin = $this->skinModel->getSkinById($skinId);
+            if (!$skin) {
+                $errors[] = "Skin ID $skinId not found";
+                continue;
+            }
+            
+            // Prevent buying own skin
+            if ($skin['seller_username'] === $this->currentUser) {
+                $errors[] = "You cannot buy your own skin: {$skin['name']}";
+                continue;
+            }
+            
+            // Transfer ownership
+            if ($this->skinModel->transferOwnership($skinId, $buyerId)) {
+                // Log history
+                $this->tradeHistoryModel->logTradeHistory(
+                    $buyerId,
+                    $skinId,
+                    'bought',
+                    $skin['name'],
+                    $skin['price'],
+                    $skin['category']
+                );
+                
+                // Insert into trade table
+                try {
+                    $stmt = $this->db->prepare("
+                        INSERT INTO trade (buyer_id, seller_id, skin_id, trade_type, trade_date)
+                        VALUES (:buyer_id, :seller_id, :skin_id, 'buy', NOW())
+                    ");
+                    $stmt->execute([
+                        ':buyer_id' => $buyerId,
+                        ':seller_id' => $skin['seller_id'],
+                        ':skin_id' => $skinId
+                    ]);
+                } catch (PDOException $e) {
+                    error_log("Failed to insert trade record: " . $e->getMessage());
+                }
+                
+                $successCount++;
+            } else {
+                $errors[] = "Failed to purchase {$skin['name']}";
+            }
+        }
+        
+        if ($successCount > 0) {
+            return ['success' => true, 'count' => $successCount, 'errors' => $errors];
+        } else {
+            return ['success' => false, 'error' => 'Purchase failed', 'details' => $errors];
+        }
     }
     
 

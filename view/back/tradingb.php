@@ -246,6 +246,11 @@ $error = $viewData['error'];
         color: #007bff;
         border: 1px solid #007bff;
     }
+    .action-bought {
+        background: rgba(155, 89, 182, 0.1);
+        color: #9b59b6;
+        border: 1px solid #9b59b6;
+    }
     .table-container {
         max-height: 600px;
         overflow-y: auto;
@@ -446,6 +451,7 @@ $error = $viewData['error'];
                 <option value="created">Created</option>
                 <option value="updated">Updated</option>
                 <option value="deleted">Deleted</option>
+
                 <option value="finished">Finished</option>
             </select>
             <select id="gameFilter">
@@ -463,6 +469,7 @@ $error = $viewData['error'];
             <button class="filter-btn" data-filter="created">Created</button>
             <button class="filter-btn" data-filter="updated">Updated</button>
             <button class="filter-btn" data-filter="deleted">Deleted</button>
+
             <button class="filter-btn" data-filter="finished">Finished</button>
         </div>
 
@@ -499,6 +506,7 @@ $error = $viewData['error'];
                                 case 'created': $actionClass = 'action-created'; break;
                                 case 'updated': $actionClass = 'action-updated'; break;
                                 case 'deleted': $actionClass = 'action-deleted'; break;
+                                case 'bought':  $actionClass = 'action-bought'; break;
                                 case 'finished': $actionClass = 'action-finished'; break;
                             }
                         ?>
@@ -590,7 +598,7 @@ $error = $viewData['error'];
             const game = row.getAttribute('data-game');
 
             const matchesSearch = skinName.includes(searchValue) || username.includes(searchValue);
-            const matchesAction = selectedAction === 'all' || action === selectedAction;
+            const matchesAction = selectedAction === 'all' || action === selectedAction || (selectedAction === 'finished' && (action === 'bought' || action === 'buy' || action === 'finished'));
             const matchesGame = selectedGame === 'all' || game === selectedGame;
 
             row.style.display = (matchesSearch && matchesAction && matchesGame) ? '' : 'none';

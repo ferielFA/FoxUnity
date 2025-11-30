@@ -7,6 +7,22 @@ class SkinModel {
     
     public function __construct() {
         $this->db = getDB();
+        $this->upgradeSchema();
+    }
+
+    /**
+     * Upgrade schema to support new features
+     */
+    private function upgradeSchema(): void {
+        try {
+            // Check if 'is_listed' column exists
+            $stmt = $this->db->query("SHOW COLUMNS FROM skins LIKE 'is_listed'");
+            if ($stmt->rowCount() == 0) {
+                $this->db->exec("ALTER TABLE skins ADD COLUMN is_listed TINYINT(1) DEFAULT 1 AFTER category");
+            }
+        } catch (PDOException $e) {
+            // Ignore errors
+        }
     }
     
     /**
@@ -20,6 +36,7 @@ class SkinModel {
                 SELECT s.*, u.username
                 FROM skins s
                 LEFT JOIN users u ON s.owner_id = u.id
+                WHERE s.is_listed = 1
                 ORDER BY s.created_at DESC
             ");
             $stmt->execute();
@@ -42,7 +59,7 @@ class SkinModel {
                 SELECT s.*, u.username
                 FROM skins s
                 JOIN users u ON s.owner_id = u.id
-                WHERE u.username = :username
+                WHERE u.username = :username AND s.is_listed = 1
                 ORDER BY s.created_at DESC
             ");
             $stmt->execute([':username' => $username]);
@@ -182,6 +199,25 @@ class SkinModel {
             return $stmt->execute([':skin_id' => $skinId]);
         } catch (PDOException $e) {
             error_log("SkinModel::deleteSkin error: " . $e->getMessage());
+            return false;
+        }
+    }
+    /**
+     * Transfer skin ownership and unlist it
+     * 
+     * @param int $skinId
+     * @param int $newOwnerId
+     * @return bool
+     */
+    public function transferOwnership(int $skinId, int $newOwnerId): bool {
+        try {
+            $stmt = $this->db->prepare("UPDATE skins SET owner_id = :owner_id, is_listed = 0 WHERE skin_id = :skin_id");
+            return $stmt->execute([
+                ':owner_id' => $newOwnerId,
+                ':skin_id' => $skinId
+            ]);
+        } catch (PDOException $e) {
+            error_log("SkinModel::transferOwnership error: " . $e->getMessage());
             return false;
         }
     }

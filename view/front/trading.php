@@ -289,6 +289,16 @@ $currentUser = $viewData['currentUser'];
         background: rgba(255, 71, 87, 0.2);
         color: #ff4757;
     }
+    .action-bought {
+        background: rgba(155, 89, 182, 0.1);
+        color: #9b59b6;
+        border: 1px solid rgba(155, 89, 182, 0.2);
+    }
+    .badge-bought {
+        background: rgba(155, 89, 182, 0.1);
+        color: #9b59b6;
+        border: 1px solid rgba(155, 89, 182, 0.2);
+    }
     .no-history {
         text-align: center;
         padding: 40px;
@@ -521,7 +531,7 @@ $currentUser = $viewData['currentUser'];
         </div>
       </div>
       
-      <a href="panier.html" class="cart-icon">
+      <a href="panier.php" class="cart-icon">
         <i class="fas fa-shopping-cart"></i> Cart
         <span class="cart-count">0</span>
       </a>
@@ -583,7 +593,7 @@ $currentUser = $viewData['currentUser'];
             $category = $row['category'] ?? 'custom';
             $description = $row['description'] ?? 'No description provided';
           ?>
-          <div class="skin-card" data-game="<?= htmlspecialchars($category) ?>">
+          <div class="skin-card" data-game="<?= htmlspecialchars($category) ?>" data-id="<?= $row['skin_id'] ?>">
             <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($row['name']) ?>" class="skin-img" onerror="this.src='../images/skin1.png'">
             <h3 class="skin-name"><?= htmlspecialchars($row['name']) ?></h3>
             <p class="skin-price">$<?= number_format((float)$row['price'], 2) ?></p>
@@ -601,8 +611,7 @@ $currentUser = $viewData['currentUser'];
               </form>
             </div>
 
-            <button class="desc-btn"><i class="fas fa-info-circle"></i> Description</button>
-            <div class="description-box"><p><?= htmlspecialchars($description) ?></p></div>
+            <a href="description.php?id=<?= $row['skin_id'] ?>" class="desc-btn" style="text-decoration: none; display: inline-block; text-align: center;"><i class="fas fa-info-circle"></i> Description</a>
           </div>
           <?php endforeach; ?>
         <?php endif; ?>
@@ -648,6 +657,7 @@ $currentUser = $viewData['currentUser'];
                   case 'created': $actionClass = 'action-created'; break;
                   case 'updated': $actionClass = 'action-updated'; break;
                   case 'deleted': $actionClass = 'action-deleted'; break;
+                  case 'bought':  $actionClass = 'action-bought'; break;
                 }
               ?>
               <tr class="history-row" data-action="<?= $history['action'] ?>">
@@ -691,7 +701,7 @@ $currentUser = $viewData['currentUser'];
             $description = $row['description'] ?? 'No description provided';
             $isOwner = ($username === $currentUser);
           ?>
-          <div class="skin-card" data-game="<?= htmlspecialchars($category) ?>">
+          <div class="skin-card" data-game="<?= htmlspecialchars($category) ?>" data-id="<?= $row['skin_id'] ?>">
             <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($row['name']) ?>" class="skin-img" onerror="this.src='../images/skin1.png'">
             <h3 class="skin-name"><?= htmlspecialchars($row['name']) ?></h3>
             <p class="skin-price">$<?= number_format((float)$row['price'], 2) ?></p>
@@ -709,8 +719,7 @@ $currentUser = $viewData['currentUser'];
               </button>
             </div>
 
-            <button class="desc-btn"><i class="fas fa-info-circle"></i> Description</button>
-            <div class="description-box"><p><?= htmlspecialchars($description) ?></p></div>
+            <a href="description.php?id=<?= $row['skin_id'] ?>" class="desc-btn" style="text-decoration: none; display: inline-block; text-align: center;"><i class="fas fa-info-circle"></i> Description</a>
           </div>
           <?php endforeach; ?>
         <?php endif; ?>
@@ -830,12 +839,7 @@ $currentUser = $viewData['currentUser'];
           <a href="#"><i class="fab fa-youtube"></i></a>
         </div>
       </div>
-      <div class="footer-section">
-        <h4>Dashboard</h4>
-        <a href="../back/dashboard.html" class="dashboard-link">
-          <i class="fas fa-tachometer-alt"></i> My Dashboard
-        </a>
-      </div>
+
     </div>
     <div class="footer-bottom">
       <p>© 2025 FoxUnity. All rights reserved. Made with <span>♥</span> by gamers for gamers</p>
@@ -1225,26 +1229,7 @@ $currentUser = $viewData['currentUser'];
 
 
     
-    let activeCard = null;
-    const grid = document.querySelector('.skins-grid');
-    
-    document.querySelectorAll('.desc-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const card = btn.closest('.skin-card');
-        const desc = card.querySelector('.description-box');
-        
-        if (activeCard && activeCard !== card) {
-          activeCard.classList.remove('focused');
-          activeCard.querySelector('.description-box').classList.remove('active');
-        }
-        
-        const isActive = card.classList.contains('focused');
-        card.classList.toggle('focused', !isActive);
-        desc.classList.toggle('active', !isActive);
-        grid.classList.toggle('focused-mode', !isActive);
-        activeCard = !isActive ? card : null;
-      });
-    });
+
 
 
     const flash = document.querySelector('.flash');
@@ -1255,6 +1240,69 @@ $currentUser = $viewData['currentUser'];
       }, 3500);
     }
 
+
+    // Cart Logic
+    function updateCartCount() {
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        const cartCount = document.querySelector('.cart-count');
+        if (cartCount) {
+            cartCount.textContent = cart.length;
+        }
+    }
+
+    // Initialize cart count
+    updateCartCount();
+
+    // Handle Buy Button Click
+    document.querySelectorAll('.buy-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const card = this.closest('.skin-card');
+            const name = card.querySelector('.skin-name').textContent;
+            const price = card.querySelector('.skin-price').textContent.replace('$', '');
+            const image = card.querySelector('.skin-img').src;
+            // Extract ID from data-id attribute
+            const id = card.getAttribute('data-id');
+
+            const item = {
+                id: id,
+                name: name,
+                price: price,
+                image: image
+            };
+            
+            const cart = JSON.parse(localStorage.getItem('cart')) || [];
+            
+            // Check if item already exists in cart
+            const existingItem = cart.find(cartItem => cartItem.id === id);
+            if (existingItem) {
+                // Item already in cart
+                this.innerHTML = '<i class="fas fa-exclamation-circle"></i> Already in Cart';
+                this.style.background = '#ffa500';
+                setTimeout(() => {
+                    this.innerHTML = originalText;
+                    this.style.background = '';
+                }, 1500);
+                return;
+            }
+            
+            cart.push(item);
+            localStorage.setItem('cart', JSON.stringify(cart));
+            
+            updateCartCount();
+            
+            // Optional: Show feedback
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-check"></i> Added';
+            this.style.background = '#2ed573';
+            setTimeout(() => {
+                this.innerHTML = originalText;
+                this.style.background = '';
+            }, 1000);
+        });
+    });
 
   </script>
 </body>
