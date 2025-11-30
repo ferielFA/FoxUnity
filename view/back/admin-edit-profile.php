@@ -49,6 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
+    
     if (empty($gender)) {
         $errors[] = "Gender is required";
     }
