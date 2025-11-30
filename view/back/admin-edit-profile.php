@@ -40,6 +40,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if (empty($dob)) {
         $errors[] = "Date of birth is required";
+    } else {
+        // Validate date of birth - cannot be in the future
+        $dobDate = new DateTime($dob);
+        $today = new DateTime();
+        if ($dobDate > $today) {
+            $errors[] = 'Date of birth cannot be in the future!';
+        }
     }
     
     if (empty($gender)) {
@@ -93,7 +100,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user'] = serialize($currentUser);
             $message = 'Profile updated successfully! Redirecting to your profile...';
             $messageType = 'success';
-            // Set flag to trigger redirect after showing message
             $shouldRedirect = true;
         } else {
             $message = 'Failed to update profile';
@@ -122,7 +128,7 @@ if ($currentUser->getImage()) {
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   
   <style>
-    /* Admin Dropdown Styles */
+    /* Admin Dropdown Styles - COHERENT */
     .admin-dropdown {
       position: relative;
       display: inline-block;
@@ -142,7 +148,28 @@ if ($currentUser->getImage()) {
       background: rgba(255, 122, 0, 0.1);
     }
 
+    .admin-user img {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #ff7a00;
+    }
+
+    .admin-user i.fa-user-circle {
+      font-size: 35px;
+      color: #ff7a00;
+    }
+
+    .admin-user span {
+      color: #fff;
+      font-weight: 600;
+      font-size: 16px;
+    }
+
     .admin-user i.fa-chevron-down {
+      font-size: 12px;
+      color: #ff7a00;
       transition: transform 0.3s ease;
     }
 
@@ -246,6 +273,9 @@ if ($currentUser->getImage()) {
       margin-bottom: 40px;
       padding-bottom: 30px;
       border-bottom: 2px solid rgba(255, 122, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     .current-avatar {
@@ -256,6 +286,22 @@ if ($currentUser->getImage()) {
       border: 4px solid #ff7a00;
       box-shadow: 0 10px 30px rgba(255, 122, 0, 0.4);
       margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 122, 0, 0.1);
+    }
+
+    .current-avatar i {
+      font-size: 80px;
+      color: #ff7a00;
+    }
+
+    .current-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
     }
 
     .upload-btn-wrapper {
@@ -298,8 +344,9 @@ if ($currentUser->getImage()) {
       font-size: 14px;
     }
 
-    .form-group {
-      margin-bottom: 25px;
+    /* Input Group avec validation */
+    .input-group {
+      margin-bottom: 20px;
     }
 
     .form-label {
@@ -327,6 +374,42 @@ if ($currentUser->getImage()) {
       font-size: 16px;
       transition: all 0.3s ease;
       font-family: 'Poppins', sans-serif;
+    }
+
+    /* États de validation */
+    .form-input.valid,
+    .form-select.valid {
+      border-color: #4caf50 !important;
+      background: rgba(76, 175, 80, 0.05) !important;
+    }
+
+    .form-input.invalid,
+    .form-select.invalid {
+      border-color: #f44336 !important;
+      background: rgba(244, 67, 54, 0.05) !important;
+    }
+
+    /* Message de validation */
+    .validation-message {
+      font-size: 11px;
+      margin-top: 4px;
+      text-align: left;
+      padding-left: 5px;
+      min-height: 16px;
+      transition: all 0.3s ease;
+    }
+
+    .validation-message.success {
+      color: #4caf50;
+    }
+
+    .validation-message.error {
+      color: #f44336;
+    }
+
+    .validation-message i {
+      margin-right: 4px;
+      font-size: 10px;
     }
 
     .form-input:focus, .form-select:focus {
@@ -524,7 +607,7 @@ if ($currentUser->getImage()) {
     <a href="dashboard.php">Overview</a>
     <a href="users.php">Users</a>
     <a href="#">Shop</a>
-    <a href="#">Trade History</a>
+    <a href="dashboard.php?section=trades">Trade History</a>
     <a href="#">Events</a>
     <a href="#">News</a>
     <a href="#">Support</a>
@@ -540,10 +623,10 @@ if ($currentUser->getImage()) {
           <?php if ($userImage): ?>
           <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
           <?php else: ?>
-          <i class="fas fa-user-circle" style="font-size: 35px; color: #ff7a00;"></i>
+          <i class="fas fa-user-circle"></i>
           <?php endif; ?>
           <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
-          <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+          <i class="fas fa-chevron-down"></i>
         </div>
         
         <div class="admin-dropdown-menu">
@@ -574,16 +657,15 @@ if ($currentUser->getImage()) {
         <h2 class="page-title"><i class="fas fa-user-edit"></i> Edit Your Profile</h2>
         <p class="page-subtitle">Update your personal information and profile picture</p>
 
-        <form method="POST" enctype="multipart/form-data" id="editProfileForm">
+        <form method="POST" enctype="multipart/form-data" id="editProfileForm" novalidate>
           <div class="profile-image-section">
-            <?php if ($userImage): ?>
-            <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Current Avatar" class="current-avatar" id="avatarPreview">
-            <?php else: ?>
-            <div class="current-avatar" id="avatarPreview" style="display: flex; align-items: center; justify-content: center; background: rgba(255, 122, 0, 0.1);">
-              <i class="fas fa-user-circle" style="font-size: 60px; color: #ff7a00;"></i>
+            <div class="current-avatar" id="avatarPreview">
+              <?php if ($userImage): ?>
+              <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Current Avatar">
+              <?php else: ?>
+              <i class="fas fa-user-circle"></i>
+              <?php endif; ?>
             </div>
-            <?php endif; ?>
-            <br>
             <div class="upload-btn-wrapper">
               <div class="upload-btn">
                 <i class="fas fa-camera"></i> Change Profile Picture
@@ -593,40 +675,44 @@ if ($currentUser->getImage()) {
             <div class="file-name" id="fileName">No file chosen</div>
           </div>
 
-          <div class="form-group">
+          <div class="input-group">
             <label class="form-label">
               <i class="fas fa-user"></i> Username
             </label>
-            <input type="text" name="username" class="form-input" 
-                   value="<?php echo htmlspecialchars($currentUser->getUsername()); ?>" required>
+            <input type="text" id="username" name="username" class="form-input" 
+                   value="<?php echo htmlspecialchars($currentUser->getUsername()); ?>">
+            <div class="validation-message" id="username-message"></div>
           </div>
 
-          <div class="form-group">
+          <div class="input-group">
             <label class="form-label">
               <i class="fas fa-envelope"></i> Email
             </label>
-            <input type="email" name="email" class="form-input" 
-                   value="<?php echo htmlspecialchars($currentUser->getEmail()); ?>" required>
+            <input type="text" id="email" name="email" class="form-input" 
+                   value="<?php echo htmlspecialchars($currentUser->getEmail()); ?>">
+            <div class="validation-message" id="email-message"></div>
           </div>
 
-          <div class="form-group">
+          <div class="input-group">
             <label class="form-label">
               <i class="fas fa-calendar"></i> Date of Birth
             </label>
-            <input type="date" name="dob" class="form-input" 
-                   value="<?php echo htmlspecialchars($currentUser->getDob()); ?>" required>
+            <input type="date" id="dob" name="dob" class="form-input" 
+                   value="<?php echo htmlspecialchars($currentUser->getDob()); ?>">
+            <div class="validation-message" id="dob-message"></div>
           </div>
 
-          <div class="form-group">
+          <div class="input-group">
             <label class="form-label">
               <i class="fas fa-venus-mars"></i> Gender
             </label>
-            <select name="gender" class="form-select" required>
+            <select id="gender" name="gender" class="form-select">
               <option value="">Select Gender</option>
               <option value="Male" <?php echo $currentUser->getGender() === 'Male' ? 'selected' : ''; ?>>Male</option>
               <option value="Female" <?php echo $currentUser->getGender() === 'Female' ? 'selected' : ''; ?>>Female</option>
               <option value="Other" <?php echo $currentUser->getGender() === 'Other' ? 'selected' : ''; ?>>Other</option>
             </select>
+            <div class="validation-message" id="gender-message"></div>
           </div>
 
           <button type="submit" class="btn-submit">
@@ -661,7 +747,7 @@ if ($currentUser->getImage()) {
   <div class="transition-screen"></div>
 
   <script>
-    // Admin Dropdown Toggle
+    // ========== ADMIN DROPDOWN TOGGLE ==========
     document.addEventListener('DOMContentLoaded', function() {
       const adminDropdown = document.getElementById('adminDropdown');
       
@@ -687,7 +773,114 @@ if ($currentUser->getImage()) {
       }
     });
 
-    // Image preview and file name display
+    // ========== VALIDATION FUNCTIONS ==========
+    
+    // Helper function pour afficher validation
+    function showValidation(inputId, messageId, isValid, message) {
+      const input = document.getElementById(inputId);
+      const messageEl = document.getElementById(messageId);
+      
+      if (!input || !messageEl) return;
+      
+      input.classList.remove('valid', 'invalid');
+      messageEl.classList.remove('success', 'error');
+      
+      if (isValid) {
+        input.classList.add('valid');
+        messageEl.classList.add('success');
+        messageEl.innerHTML = '<i class="fas fa-check-circle"></i> ' + message;
+      } else if (message) {
+        input.classList.add('invalid');
+        messageEl.classList.add('error');
+        messageEl.innerHTML = '<i class="fas fa-times-circle"></i> ' + message;
+      } else {
+        messageEl.innerHTML = '';
+      }
+    }
+
+    // Validation Username
+    function validateUsername() {
+      const username = document.getElementById('username').value.trim();
+      
+      if (username.length === 0) {
+        showValidation('username', 'username-message', false, '');
+        return false;
+      } else if (username.length < 3) {
+        showValidation('username', 'username-message', false, 'Min 3 characters');
+        return false;
+      } else {
+        showValidation('username', 'username-message', true, 'Valid');
+        return true;
+      }
+    }
+
+    // Validation Email
+    function validateEmail() {
+      const email = document.getElementById('email').value.trim();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      
+      if (email.length === 0) {
+        showValidation('email', 'email-message', false, '');
+        return false;
+      } else if (!emailRegex.test(email)) {
+        showValidation('email', 'email-message', false, 'Invalid email');
+        return false;
+      } else {
+        showValidation('email', 'email-message', true, 'Valid');
+        return true;
+      }
+    }
+
+    // Validation Date of Birth
+    function validateDOB() {
+      const dob = document.getElementById('dob').value;
+      
+      if (!dob) {
+        showValidation('dob', 'dob-message', false, 'Required');
+        return false;
+      }
+      
+      // Vérifier que la date n'est pas dans le futur
+      const dobDate = new Date(dob);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to compare only dates
+      
+      if (dobDate > today) {
+        showValidation('dob', 'dob-message', false, 'Cannot be in the future');
+        return false;
+      } else {
+        showValidation('dob', 'dob-message', true, 'Valid');
+        return true;
+      }
+    }
+
+    // Validation Gender
+    function validateGender() {
+      const gender = document.getElementById('gender').value;
+      
+      if (!gender) {
+        showValidation('gender', 'gender-message', false, 'Required');
+        return false;
+      } else {
+        showValidation('gender', 'gender-message', true, 'Valid');
+        return true;
+      }
+    }
+
+    // ========== EVENT LISTENERS - REAL-TIME VALIDATION ==========
+    document.getElementById('username').addEventListener('input', validateUsername);
+    document.getElementById('username').addEventListener('blur', validateUsername);
+
+    document.getElementById('email').addEventListener('input', validateEmail);
+    document.getElementById('email').addEventListener('blur', validateEmail);
+
+    document.getElementById('dob').addEventListener('change', validateDOB);
+    document.getElementById('dob').addEventListener('blur', validateDOB);
+
+    document.getElementById('gender').addEventListener('change', validateGender);
+    document.getElementById('gender').addEventListener('blur', validateGender);
+
+    // ========== IMAGE PREVIEW ==========
     const profileImage = document.getElementById('profileImage');
     const avatarPreview = document.getElementById('avatarPreview');
     const fileName = document.getElementById('fileName');
@@ -697,13 +890,9 @@ if ($currentUser->getImage()) {
       if (file) {
         fileName.textContent = file.name;
         
-        // Preview image - replace icon with image
         const reader = new FileReader();
         reader.onload = function(event) {
-          avatarPreview.innerHTML = '';
-          avatarPreview.style.backgroundImage = `url(${event.target.result})`;
-          avatarPreview.style.backgroundSize = 'cover';
-          avatarPreview.style.backgroundPosition = 'center';
+          avatarPreview.innerHTML = '<img src="' + event.target.result + '" alt="Preview">';
         };
         reader.readAsDataURL(file);
       } else {
@@ -711,7 +900,7 @@ if ($currentUser->getImage()) {
       }
     });
 
-    // Custom confirmation modal
+    // ========== FORM SUBMISSION WITH VALIDATION ==========
     const form = document.getElementById('editProfileForm');
     const confirmModal = document.getElementById('confirmModal');
     const confirmYes = document.getElementById('confirmYes');
@@ -721,16 +910,28 @@ if ($currentUser->getImage()) {
     form.addEventListener('submit', function(e) {
       if (!formSubmitPending) {
         e.preventDefault();
-        confirmModal.classList.add('show');
+        
+        // Valider tous les champs
+        const isUsernameValid = validateUsername();
+        const isEmailValid = validateEmail();
+        const isDOBValid = validateDOB();
+        const isGenderValid = validateGender();
+        
+        // Si tout est valide, montrer modal
+        if (isUsernameValid && isEmailValid && isDOBValid && isGenderValid) {
+          confirmModal.classList.add('show');
+        }
       }
     });
 
+    // Confirm changes
     confirmYes.addEventListener('click', function() {
       formSubmitPending = true;
       confirmModal.classList.remove('show');
       form.submit();
     });
 
+    // Cancel changes
     confirmNo.addEventListener('click', function() {
       confirmModal.classList.remove('show');
     });
@@ -749,7 +950,7 @@ if ($currentUser->getImage()) {
       }
     });
 
-    // Page transitions
+    // ========== PAGE TRANSITIONS ==========
     window.addEventListener("load", () => {
       document.querySelector(".transition-screen").classList.add("hidden");
     });
@@ -768,7 +969,7 @@ if ($currentUser->getImage()) {
       });
     });
 
-    // Auto-hide success/error message after 5 seconds
+    // Auto-hide message alert
     setTimeout(function() {
       const message = document.querySelector('.message-alert');
       if (message) {
@@ -777,11 +978,11 @@ if ($currentUser->getImage()) {
       }
     }, 5000);
 
-    // Auto-redirect to profile page after successful update
+    // Auto-redirect after successful update
     <?php if (isset($shouldRedirect) && $shouldRedirect): ?>
     setTimeout(function() {
       window.location.href = 'admin-profile.php';
-    }, 3000); // Redirect after 3 seconds
+    }, 3000);
     <?php endif; ?>
   </script>
   

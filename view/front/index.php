@@ -437,7 +437,7 @@ if ($currentUser && $currentUser->getImage()) {
             <a href="index.php" class="active">Home</a>
             <a href="events.html">Events</a>
             <a href="shop.html">Shop</a>
-            <a href="trading.html">Trading</a>
+            <a href="trading.php">Trading</a>
             <a href="news.html">News</a>
             <a href="reclamation.html">Support</a>
             <a href="about.html">About Us</a>
@@ -580,7 +580,7 @@ if ($currentUser && $currentUser->getImage()) {
                         <li><i class="fas fa-check"></i> Secure Trading System</li>
                         <li><i class="fas fa-check"></i> 10% Goes to Charity</li>
                     </ul>
-                    <a href="trading.html" class="feature-btn">
+                    <a href="trading.php" class="feature-btn">
                         <i class="fas fa-exchange-alt"></i> Start Trading
                     </a>
                 </div>

@@ -26,6 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
+    
     // Delete user from database
     if ($currentUser->delete()) {
         // Destroy session

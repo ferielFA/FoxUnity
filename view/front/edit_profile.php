@@ -21,10 +21,32 @@ $shouldRedirect = false;
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $_POST['username'] ?? '';
-    $email = $_POST['email'] ?? '';
-    $dob = $_POST['dob'] ?? '';
+    $username = trim($_POST['username'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $dob = trim($_POST['dob'] ?? '');
     $imagePath = $currentUser->getImage();
+    
+    // Server-side validation
+    if (empty($username)) {
+        $errors[] = 'Username is required';
+    }
+    
+    if (empty($email)) {
+        $errors[] = 'Email is required';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors[] = 'Invalid email format';
+    }
+    
+    if (empty($dob)) {
+        $errors[] = 'Date of birth is required';
+    } else {
+        // Validate date of birth - cannot be in the future
+        $dobDate = new DateTime($dob);
+        $today = new DateTime();
+        if ($dobDate > $today) {
+            $errors[] = 'Date of birth cannot be in the future!';
+        }
+    }
     
     // Handle image upload
     if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] !== UPLOAD_ERR_NO_FILE) {
@@ -37,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
-    // Update profile if no upload errors
+    // Update profile if no errors
     if (empty($errors)) {
         $result = $controller->updateProfile(
             $currentUser->getId(),
@@ -329,11 +351,12 @@ if ($currentUser->getImage()) {
             margin-bottom: 25px;
         }
 
-        .form-group {
-            margin-bottom: 25px;
+        /* Input Group avec validation */
+        .input-group {
+            margin-bottom: 20px;
         }
 
-        .form-group.full-width {
+        .input-group.full-width {
             grid-column: 1 / -1;
         }
 
@@ -362,6 +385,42 @@ if ($currentUser->getImage()) {
             font-size: 15px;
             transition: all 0.3s ease;
             font-family: 'Poppins', sans-serif;
+        }
+
+        /* États de validation */
+        .form-input.valid,
+        .form-select.valid {
+            border-color: #4caf50 !important;
+            background: rgba(76, 175, 80, 0.05) !important;
+        }
+
+        .form-input.invalid,
+        .form-select.invalid {
+            border-color: #f44336 !important;
+            background: rgba(244, 67, 54, 0.05) !important;
+        }
+
+        /* Message de validation */
+        .validation-message {
+            font-size: 11px;
+            margin-top: 4px;
+            text-align: left;
+            padding-left: 5px;
+            min-height: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .validation-message.success {
+            color: #4caf50;
+        }
+
+        .validation-message.error {
+            color: #f44336;
+        }
+
+        .validation-message i {
+            margin-right: 4px;
+            font-size: 10px;
         }
 
         .form-input:focus,
@@ -685,7 +744,7 @@ if ($currentUser->getImage()) {
                 </div>
                 <?php endif; ?>
 
-                <form method="POST" enctype="multipart/form-data" id="editProfileForm">
+                <form method="POST" enctype="multipart/form-data" id="editProfileForm" novalidate>
                     <!-- Profile Picture -->
                     <div class="edit-card">
                         <h3 class="section-title"><i class="fas fa-camera"></i> Profile Picture</h3>
@@ -713,22 +772,25 @@ if ($currentUser->getImage()) {
                         <h3 class="section-title"><i class="fas fa-user"></i> Personal Information</h3>
                         
                         <div class="form-row">
-                            <div class="form-group">
+                            <div class="input-group">
                                 <label class="form-label"><i class="fas fa-id-card"></i> Username</label>
-                                <input type="text" class="form-input" name="username" value="<?php echo htmlspecialchars($currentUser->getUsername()); ?>" placeholder="Enter your username" required>
+                                <input type="text" id="username" class="form-input" name="username" value="<?php echo htmlspecialchars($currentUser->getUsername()); ?>" placeholder="Enter your username">
+                                <div class="validation-message" id="username-message"></div>
                             </div>
-                            <div class="form-group">
+                            <div class="input-group">
                                 <label class="form-label"><i class="fas fa-envelope"></i> Email</label>
-                                <input type="email" class="form-input" name="email" value="<?php echo htmlspecialchars($currentUser->getEmail()); ?>" placeholder="your@email.com" required>
+                                <input type="text" id="email" class="form-input" name="email" value="<?php echo htmlspecialchars($currentUser->getEmail()); ?>" placeholder="your@email.com">
+                                <div class="validation-message" id="email-message"></div>
                             </div>
                         </div>
 
                         <div class="form-row">
-                            <div class="form-group">
+                            <div class="input-group">
                                 <label class="form-label"><i class="fas fa-calendar"></i> Date of Birth</label>
-                                <input type="date" class="form-input" name="dob" value="<?php echo htmlspecialchars($currentUser->getDob()); ?>" required>
+                                <input type="date" id="dob" class="form-input" name="dob" value="<?php echo htmlspecialchars($currentUser->getDob()); ?>">
+                                <div class="validation-message" id="dob-message"></div>
                             </div>
-                            <div class="form-group">
+                            <div class="input-group">
                                 <label class="form-label"><i class="fas fa-user-tag"></i> Role</label>
                                 <input type="text" class="form-input" value="<?php echo htmlspecialchars($currentUser->getRole()); ?>" disabled>
                                 <p class="form-hint">Your role cannot be changed</p>
@@ -806,27 +868,24 @@ if ($currentUser->getImage()) {
     </div>
 
     <script>
-        // Dropdown Menu Toggle
+        // ========== DROPDOWN MENU TOGGLE ==========
         document.addEventListener('DOMContentLoaded', function() {
             const userDropdown = document.getElementById('userDropdown');
             
             if (userDropdown) {
                 const usernameDisplay = userDropdown.querySelector('.username-display');
                 
-                // Toggle dropdown on click
                 usernameDisplay.addEventListener('click', function(e) {
                     e.stopPropagation();
                     userDropdown.classList.toggle('active');
                 });
                 
-                // Close dropdown when clicking outside
                 document.addEventListener('click', function(e) {
                     if (!userDropdown.contains(e.target)) {
                         userDropdown.classList.remove('active');
                     }
                 });
                 
-                // Close dropdown when pressing Escape
                 document.addEventListener('keydown', function(e) {
                     if (e.key === 'Escape') {
                         userDropdown.classList.remove('active');
@@ -842,7 +901,98 @@ if ($currentUser->getImage()) {
             }
         });
 
-        // Preview avatar when file is selected
+        // ========== VALIDATION FUNCTIONS ==========
+        
+        // Helper function pour afficher validation
+        function showValidation(inputId, messageId, isValid, message) {
+            const input = document.getElementById(inputId);
+            const messageEl = document.getElementById(messageId);
+            
+            if (!input || !messageEl) return;
+            
+            input.classList.remove('valid', 'invalid');
+            messageEl.classList.remove('success', 'error');
+            
+            if (isValid) {
+                input.classList.add('valid');
+                messageEl.classList.add('success');
+                messageEl.innerHTML = '<i class="fas fa-check-circle"></i> ' + message;
+            } else if (message) {
+                input.classList.add('invalid');
+                messageEl.classList.add('error');
+                messageEl.innerHTML = '<i class="fas fa-times-circle"></i> ' + message;
+            } else {
+                messageEl.innerHTML = '';
+            }
+        }
+
+        // Validation Username
+        function validateUsername() {
+            const username = document.getElementById('username').value.trim();
+            
+            if (username.length === 0) {
+                showValidation('username', 'username-message', false, '');
+                return false;
+            } else if (username.length < 3) {
+                showValidation('username', 'username-message', false, 'Min 3 characters');
+                return false;
+            } else {
+                showValidation('username', 'username-message', true, 'Valid');
+                return true;
+            }
+        }
+
+        // Validation Email
+        function validateEmail() {
+            const email = document.getElementById('email').value.trim();
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (email.length === 0) {
+                showValidation('email', 'email-message', false, '');
+                return false;
+            } else if (!emailRegex.test(email)) {
+                showValidation('email', 'email-message', false, 'Invalid email');
+                return false;
+            } else {
+                showValidation('email', 'email-message', true, 'Valid');
+                return true;
+            }
+        }
+
+        // Validation Date of Birth
+        function validateDOB() {
+            const dob = document.getElementById('dob').value;
+            
+            if (!dob) {
+                showValidation('dob', 'dob-message', false, 'Required');
+                return false;
+            }
+            
+            // Vérifier que la date n'est pas dans le futur
+            const dobDate = new Date(dob);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Reset time to compare only dates
+            
+            if (dobDate > today) {
+                showValidation('dob', 'dob-message', false, 'Cannot be in the future');
+                return false;
+            } else {
+                showValidation('dob', 'dob-message', true, 'Valid');
+                return true;
+            }
+        }
+
+        // ========== EVENT LISTENERS - REAL-TIME VALIDATION ==========
+        document.getElementById('username').addEventListener('input', validateUsername);
+        document.getElementById('username').addEventListener('blur', validateUsername);
+
+        document.getElementById('email').addEventListener('input', validateEmail);
+        document.getElementById('email').addEventListener('blur', validateEmail);
+
+        document.getElementById('dob').addEventListener('change', validateDOB);
+        document.getElementById('dob').addEventListener('blur', validateDOB);
+
+        // ========== PREVIEW AVATAR ==========
         function previewAvatar(event) {
             const file = event.target.files[0];
             if (file) {
@@ -850,9 +1000,8 @@ if ($currentUser->getImage()) {
                 const preview = document.getElementById('avatar-preview');
                 
                 reader.onload = function(e) {
-                    // Replace icon with actual image
                     preview.innerHTML = '';
-                    preview.style.backgroundImage = `url(${e.target.result})`;
+                    preview.style.backgroundImage = 'url(' + e.target.result + ')';
                     preview.style.backgroundSize = 'cover';
                     preview.style.backgroundPosition = 'center';
                 };
@@ -860,48 +1009,51 @@ if ($currentUser->getImage()) {
             }
         }
 
-        // Custom confirmation modal
+        // ========== FORM SUBMISSION WITH VALIDATION ==========
         const form = document.getElementById('editProfileForm');
         const confirmModal = document.getElementById('confirmModal');
         const confirmYes = document.getElementById('confirmYes');
         const confirmNo = document.getElementById('confirmNo');
         let formSubmitPending = false;
 
-        if (form) {
-            form.addEventListener('submit', function(e) {
-                if (!formSubmitPending) {
-                    e.preventDefault();
+        form.addEventListener('submit', function(e) {
+            if (!formSubmitPending) {
+                e.preventDefault();
+                
+                // Valider tous les champs
+                const isUsernameValid = validateUsername();
+                const isEmailValid = validateEmail();
+                const isDOBValid = validateDOB();
+                
+                // Si tout est valide, montrer modal
+                if (isUsernameValid && isEmailValid && isDOBValid) {
                     confirmModal.classList.add('show');
                 }
-            });
-        }
+            }
+        });
 
-        if (confirmYes) {
-            confirmYes.addEventListener('click', function() {
-                formSubmitPending = true;
-                confirmModal.classList.remove('show');
-                form.submit();
-            });
-        }
+        // Confirm changes
+        confirmYes.addEventListener('click', function() {
+            formSubmitPending = true;
+            confirmModal.classList.remove('show');
+            form.submit();
+        });
 
-        if (confirmNo) {
-            confirmNo.addEventListener('click', function() {
-                confirmModal.classList.remove('show');
-            });
-        }
+        // Cancel changes
+        confirmNo.addEventListener('click', function() {
+            confirmModal.classList.remove('show');
+        });
 
         // Close modal on outside click
-        if (confirmModal) {
-            confirmModal.addEventListener('click', function(e) {
-                if (e.target === confirmModal) {
-                    confirmModal.classList.remove('show');
-                }
-            });
-        }
+        confirmModal.addEventListener('click', function(e) {
+            if (e.target === confirmModal) {
+                confirmModal.classList.remove('show');
+            }
+        });
 
         // Close modal on Escape key
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && confirmModal && confirmModal.classList.contains('show')) {
+            if (e.key === 'Escape' && confirmModal.classList.contains('show')) {
                 confirmModal.classList.remove('show');
             }
         });
@@ -910,7 +1062,7 @@ if ($currentUser->getImage()) {
         <?php if (isset($shouldRedirect) && $shouldRedirect): ?>
         setTimeout(function() {
             window.location.href = 'profile.php';
-        }, 3000); // Redirect after 3 seconds
+        }, 3000);
         <?php endif; ?>
     </script>
 </body>

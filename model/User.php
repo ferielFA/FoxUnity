@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/config.php';
 
 class User {
     private ?int $id = null;
@@ -104,7 +104,7 @@ class User {
     // Create user in database
     public function create(): bool {
         try {
-            $pdo = config::getConnexion();
+            $pdo = getDB();
             $hashedPassword = password_hash($this->password, PASSWORD_DEFAULT);
             
             $sql = "INSERT INTO users (username, email, dob, password, gender, role, status, image) 
@@ -133,7 +133,7 @@ class User {
     // Read user by ID
     public static function getById(int $id): ?User {
         try {
-            $pdo = config::getConnexion();
+            $pdo = getDB();
             $sql = "SELECT * FROM users WHERE id = :id";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([':id' => $id]);
@@ -163,7 +163,7 @@ class User {
     // Read user by email
     public static function getByEmail(string $email): ?User {
         try {
-            $pdo = config::getConnexion();
+            $pdo = getDB();
             $sql = "SELECT * FROM users WHERE email = :email";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([':email' => $email]);
@@ -193,7 +193,7 @@ class User {
     // Get all users
     public static function getAll(): array {
         try {
-            $pdo = config::getConnexion();
+            $pdo = getDB();
             $sql = "SELECT * FROM users ORDER BY id DESC";
             $stmt = $pdo->query($sql);
             
@@ -221,11 +221,16 @@ class User {
     // Update user
     public function update(): bool {
         try {
-            $pdo = config::getConnexion();
+            $pdo = getDB();
             
             $sql = "UPDATE users 
-                    SET username = :username, email = :email, dob = :dob, 
-                        role = :role, status = :status, image = :image 
+                    SET username = :username, 
+                        email = :email, 
+                        dob = :dob, 
+                        gender = :gender,
+                        role = :role, 
+                        status = :status, 
+                        image = :image 
                     WHERE id = :id";
             
             $stmt = $pdo->prepare($sql);
@@ -234,6 +239,7 @@ class User {
                 ':username' => $this->username,
                 ':email' => $this->email,
                 ':dob' => $this->dob,
+                ':gender' => $this->gender,
                 ':role' => $this->role,
                 ':status' => $this->status,
                 ':image' => $this->image
@@ -247,7 +253,7 @@ class User {
     // Update password
     public function updatePassword(string $newPassword): bool {
         try {
-            $pdo = config::getConnexion();
+            $pdo = getDB();
             $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
             
             $sql = "UPDATE users SET password = :password WHERE id = :id";
@@ -265,7 +271,7 @@ class User {
     // Delete user
     public function delete(): bool {
         try {
-            $pdo = config::getConnexion();
+            $pdo = getDB();
             $sql = "DELETE FROM users WHERE id = :id";
             $stmt = $pdo->prepare($sql);
             return $stmt->execute([':id' => $this->id]);
@@ -283,7 +289,7 @@ class User {
     // Check if email exists
     public static function emailExists(string $email): bool {
         try {
-            $pdo = config::getConnexion();
+            $pdo = getDB();
             $sql = "SELECT COUNT(*) FROM users WHERE email = :email";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([':email' => $email]);
@@ -297,7 +303,7 @@ class User {
     // Check if username exists
     public static function usernameExists(string $username): bool {
         try {
-            $pdo = config::getConnexion();
+            $pdo = getDB();
             $sql = "SELECT COUNT(*) FROM users WHERE username = :username";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([':username' => $username]);
@@ -305,6 +311,300 @@ class User {
         } catch (Exception $e) {
             error_log("Error checking username existence: " . $e->getMessage());
             return false;
+        }
+    }
+    
+    // ✅ EMAIL VERIFICATION - Save verification token
+    public static function saveVerificationToken(int $userId, string $token, string $expires): bool {
+        try {
+            $pdo = getDB();
+            
+            // Check if table exists, if not create it
+            $createTable = "CREATE TABLE IF NOT EXISTS email_verifications (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                token VARCHAR(64) NOT NULL UNIQUE,
+                expires_at DATETIME NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )";
+            $pdo->exec($createTable);
+            
+            // Delete any existing tokens for this user
+            $deleteSql = "DELETE FROM email_verifications WHERE user_id = :user_id";
+            $deleteStmt = $pdo->prepare($deleteSql);
+            $deleteStmt->execute([':user_id' => $userId]);
+            
+            // Insert new token
+            $sql = "INSERT INTO email_verifications (user_id, token, expires_at) 
+                    VALUES (:user_id, :token, :expires)";
+            $stmt = $pdo->prepare($sql);
+            return $stmt->execute([
+                ':user_id' => $userId,
+                ':token' => $token,
+                ':expires' => $expires
+            ]);
+        } catch (Exception $e) {
+            error_log("Error saving verification token: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    // ✅ EMAIL VERIFICATION - Verify token and activate account
+    public static function verifyEmailToken(string $token): bool {
+        try {
+            $pdo = getDB();
+            
+            // Find token
+            $sql = "SELECT user_id, expires_at FROM email_verifications 
+                    WHERE token = :token";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([':token' => $token]);
+            $verification = $stmt->fetch();
+            
+            if (!$verification) {
+                return false; // Token not found
+            }
+            
+            // Check if token expired
+            $expiresAt = new DateTime($verification['expires_at']);
+            $now = new DateTime();
+            
+            if ($now > $expiresAt) {
+                return false; // Token expired
+            }
+            
+            // Activate user account
+            $updateSql = "UPDATE users SET status = 'active' WHERE id = :id";
+            $updateStmt = $pdo->prepare($updateSql);
+            $updateStmt->execute([':id' => $verification['user_id']]);
+            
+            // Delete used token
+            $deleteSql = "DELETE FROM email_verifications WHERE token = :token";
+            $deleteStmt = $pdo->prepare($deleteSql);
+            $deleteStmt->execute([':token' => $token]);
+            
+            return true;
+        } catch (Exception $e) {
+            error_log("Error verifying email token: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    // ✅ FORGOT PASSWORD - Save password reset token
+    public static function savePasswordResetToken(int $userId, string $token, string $expires): bool {
+        try {
+            $pdo = getDB();
+            
+            // Check if table exists, if not create it
+            $createTable = "CREATE TABLE IF NOT EXISTS password_resets (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                token VARCHAR(64) NOT NULL UNIQUE,
+                expires_at DATETIME NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )";
+            $pdo->exec($createTable);
+            
+            // Delete any existing tokens for this user
+            $deleteSql = "DELETE FROM password_resets WHERE user_id = :user_id";
+            $deleteStmt = $pdo->prepare($deleteSql);
+            $deleteStmt->execute([':user_id' => $userId]);
+            
+            // Insert new token
+            $sql = "INSERT INTO password_resets (user_id, token, expires_at) 
+                    VALUES (:user_id, :token, :expires)";
+            $stmt = $pdo->prepare($sql);
+            return $stmt->execute([
+                ':user_id' => $userId,
+                ':token' => $token,
+                ':expires' => $expires
+            ]);
+        } catch (Exception $e) {
+            error_log("Error saving password reset token: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    // ✅ FORGOT PASSWORD - Get password reset token data
+    public static function getPasswordResetToken(string $token): ?array {
+        try {
+            $pdo = getDB();
+            
+            $sql = "SELECT user_id, expires_at FROM password_resets 
+                    WHERE token = :token";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([':token' => $token]);
+            $result = $stmt->fetch();
+            
+            if (!$result) {
+                return null;
+            }
+            
+            // Check if token expired
+            $expiresAt = new DateTime($result['expires_at']);
+            $now = new DateTime();
+            
+            if ($now > $expiresAt) {
+                return null; // Token expired
+            }
+            
+            return $result;
+        } catch (Exception $e) {
+            error_log("Error getting password reset token: " . $e->getMessage());
+            return null;
+        }
+    }
+    
+    // ✅ FORGOT PASSWORD - Reset password with token
+    public static function resetPasswordWithToken(string $token, string $newPassword): bool {
+        try {
+            $pdo = getDB();
+            
+            // Get token data
+            $tokenData = self::getPasswordResetToken($token);
+            
+            if (!$tokenData) {
+                return false; // Token invalid or expired
+            }
+            
+            // Hash new password
+            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+            
+            // Update password
+            $updateSql = "UPDATE users SET password = :password WHERE id = :id";
+            $updateStmt = $pdo->prepare($updateSql);
+            $updateStmt->execute([
+                ':password' => $hashedPassword,
+                ':id' => $tokenData['user_id']
+            ]);
+            
+            // Delete used token
+            $deleteSql = "DELETE FROM password_resets WHERE token = :token";
+            $deleteStmt = $pdo->prepare($deleteSql);
+            $deleteStmt->execute([':token' => $token]);
+            
+            return true;
+        } catch (Exception $e) {
+            error_log("Error resetting password: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    // ✅ GOOGLE LOGIN - Get user by Google ID
+    public static function getByGoogleId($googleId) {
+        try {
+            $pdo = getDB();
+            
+            $sql = "SELECT * FROM users WHERE google_id = :google_id LIMIT 1";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([':google_id' => $googleId]);
+            $userData = $stmt->fetch();
+            
+            if (!$userData) {
+                return null;
+            }
+            
+            $user = new User(
+                $userData['id'],
+                $userData['username'],
+                $userData['email'],
+                $userData['dob'],
+                $userData['password'],
+                $userData['gender'],
+                $userData['role'],
+                $userData['status'],
+                $userData['image']
+            );
+            
+            return $user;
+        } catch (Exception $e) {
+            error_log("Error getting user by Google ID: " . $e->getMessage());
+            return null;
+        }
+    }
+    
+    // ✅ GOOGLE LOGIN - Link Google account to existing user
+    public static function linkGoogleAccount($userId, $googleId, $imageUrl = null) {
+        try {
+            $pdo = getDB();
+            
+            // Only update google_id, not the image
+            $sql = "UPDATE users 
+                    SET google_id = :google_id 
+                    WHERE id = :id";
+            
+            $stmt = $pdo->prepare($sql);
+            return $stmt->execute([
+                ':google_id' => $googleId,
+                ':id' => $userId
+            ]);
+        } catch (Exception $e) {
+            error_log("Error linking Google account: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    // ✅ GOOGLE LOGIN - Create user with Google
+    public static function createGoogleUser($googleId, $email, $username, $imageUrl = null) {
+        try {
+            $pdo = getDB();
+            
+            // Generate random password (user won't use it)
+            $randomPassword = password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT);
+            
+            // Don't set image - let user upload their own
+            $sql = "INSERT INTO users 
+                    (username, email, password, google_id, status, role) 
+                    VALUES 
+                    (:username, :email, :password, :google_id, 'active', 'Gamer')";
+            
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                ':username' => $username,
+                ':email' => $email,
+                ':password' => $randomPassword,
+                ':google_id' => $googleId
+            ]);
+            
+            return (int) $pdo->lastInsertId();
+        } catch (Exception $e) {
+            error_log("Error creating Google user: " . $e->getMessage());
+            return null;
+        }
+    }
+    
+    // ✅ GOOGLE LOGIN - Get user by username
+    public static function getByUsername($username) {
+        try {
+            $pdo = getDB();
+            
+            $sql = "SELECT * FROM users WHERE username = :username LIMIT 1";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([':username' => $username]);
+            $userData = $stmt->fetch();
+            
+            if (!$userData) {
+                return null;
+            }
+            
+            $user = new User(
+                $userData['id'],
+                $userData['username'],
+                $userData['email'],
+                $userData['dob'],
+                $userData['password'],
+                $userData['gender'],
+                $userData['role'],
+                $userData['status'],
+                $userData['image']
+            );
+            
+            return $user;
+        } catch (Exception $e) {
+            error_log("Error getting user by username: " . $e->getMessage());
+            return null;
         }
     }
 }
