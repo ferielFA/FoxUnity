@@ -221,11 +221,26 @@ body::after {
   text-decoration: none;
   transition: all 0.3s ease;
   background: rgba(255, 122, 0, 0.05);
+<<<<<<< HEAD
+=======
+  overflow: hidden;
+>>>>>>> user
 }
 
 .profile-icon:hover {
   background: rgba(255, 122, 0, 0.15);
   transform: translateY(-2px);
+<<<<<<< HEAD
+=======
+  box-shadow: 0 5px 15px rgba(255, 122, 0, 0.3);
+}
+
+.header-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+>>>>>>> user
 }
 
 /* ======== MAIN SECTION ======== */
@@ -553,6 +568,7 @@ body::after {
   transform: translateY(-2px);
 }
 
+<<<<<<< HEAD
 /* ======== DASHBOARD BUTTON ======== */
 .dashboard-section {
   background: rgba(20, 20, 20, 0.4);
@@ -602,6 +618,8 @@ body::after {
   background: linear-gradient(135deg, #ff9500 0%, #ff7a00 100%);
 }
 
+=======
+>>>>>>> user
 /* ======== FOOTER ======== */
 .site-footer {
   background: rgba(10, 10, 10, 0.95);
@@ -646,6 +664,21 @@ body::after {
   padding-left: 5px;
 }
 
+<<<<<<< HEAD
+=======
+.dashboard-link {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  color: #888 !important;
+  font-size: 0.9rem !important;
+}
+
+.dashboard-link:hover {
+  color: #ff7a00 !important;
+}
+
+>>>>>>> user
 .back-to-top-link {
   display: inline-flex !important;
   align-items: center;
