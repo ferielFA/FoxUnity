@@ -34,7 +34,7 @@ function findCategoryName($id, $categories){
   <div class="sidebar">
     <img src="../images/Nine__1_-removebg-preview.png" alt="Nine Tailed Fox Logo" class="dashboard-logo">
     <h2>Dashboard</h2>
-    <a href="#" class="">Overview</a>
+    <a href="dashboard.php" class="">Overview</a>
     <a href="#">Users</a>
     <a href="#">Shop</a>
     <a href="#">Trade History</a>
@@ -42,15 +42,15 @@ function findCategoryName($id, $categories){
     <a href="news_admin.php">News</a>
     <a href="news_history.php" class="active">News History</a>
     <a href="#">Support</a>
-    <a href="../front/indexf.html">← Return Homepage</a>
+    <a href="../front/indexf.php">← Return Homepage</a>
   </div>
 
   <div class="main">
     <div class="topbar">
       <h1>News History</h1>
       <div class="user">
-        <img src="../images/meriem.png" alt="User Avatar">
-        <span>FoxLeader</span>
+        <img src="../images/rayen.png" alt="User Avatar">
+        <span>FoxAdmin</span>
       </div>
     </div>
 

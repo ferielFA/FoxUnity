@@ -2,26 +2,32 @@
 // news.php
 // Loads all news from MySQL (article / categorie tables) and shows them
 
-require __DIR__ . '/db.php';
+require __DIR__ . '/../back/db.php';
 
 // Helper to resolve image paths and check if they exist
 function getImagePath($imagePath) {
-    if (empty($imagePath)) return '../images/nopic.png';
-    // If path starts with uploads/, it's a relative path from this file
-    if (strpos($imagePath, 'uploads/') === 0) {
-        $fullPath = __DIR__ . '/' . $imagePath;
-        if (file_exists($fullPath)) return $imagePath;
-    }
-    // If path starts with ../, it's already relative to this file
-    if (strpos($imagePath, '../') === 0) {
-        $fullPath = __DIR__ . '/' . $imagePath;
-        if (file_exists($fullPath)) return $imagePath;
-    }
-    // Check if it's an absolute-ish path in images/
-    if (strpos($imagePath, 'images/') === 0 || strpos($imagePath, '../images/') === 0) {
-        return $imagePath;
-    }
-    return '../images/nopic.png';
+  if (empty($imagePath)) return '../images/nopic.png';
+  // If path starts with uploads/, try the front uploads first, then back uploads
+  if (strpos($imagePath, 'uploads/') === 0) {
+    // front uploads (unlikely)
+    $frontFull = __DIR__ . '/' . $imagePath;
+    if (file_exists($frontFull)) return $imagePath;
+    // back uploads (admin upload location)
+    $backFull = __DIR__ . '/../back/' . $imagePath;
+    if (file_exists($backFull)) return '../back/' . $imagePath;
+  }
+  // If path starts with ../, it's already relative to this file
+  if (strpos($imagePath, '../') === 0) {
+    $fullPath = __DIR__ . '/' . $imagePath;
+    if (file_exists($fullPath)) return $imagePath;
+  }
+  // If path starts with images/ (relative to view/), check view/images
+  if (strpos($imagePath, 'images/') === 0) {
+    $fullPath = __DIR__ . '/../' . $imagePath;
+    if (file_exists($fullPath)) return '../' . $imagePath;
+  }
+  // Otherwise, fall back to default placeholder
+  return '../images/nopic.png';
 }
 
 // Load articles from DB with hot column handling
@@ -227,6 +233,7 @@ function findCategoryName($id, $categories){
       display:flex;
       flex-direction:column;
     }
+    /* read-later and reading-time styles moved to global front/style.css */
     .news-card-date{
       font-size:0.82rem;
       color:#888;
@@ -319,7 +326,7 @@ function findCategoryName($id, $categories){
     </div>
     
     <nav class="site-nav">
-      <a href="../front/indexf.html">Home</a>
+      <a href="http://localhost/projet_web/view/front/indexf.php">Home</a>
       <a href="../front/events.html">Events</a>
       <a href="../front/shop.html">Shop</a>
       <a href="../front/trading.html">Trading</a>
@@ -340,7 +347,13 @@ function findCategoryName($id, $categories){
 
   <main class="main-section">
     <div class="news-container">
-        <h1 class="news-title">Gaming News</h1>
+        <h1 class="news-title">Gaming News <span id="saved-count" class="saved-count" style="display:none">0</span>
+          <span class="saved-controls" id="saved-controls" style="display:none">
+            <button id="view-saved">View Saved</button>
+            <button id="copy-saved">Copy Saved Links</button>
+            <button id="clear-saved">Clear Saved</button>
+          </span>
+        </h1>
         <div class="news-controls">
           <input id="news-search" class="news-search" placeholder="Search news by title or excerpt...">
           <select id="news-perpage" class="news-perpage">
@@ -349,6 +362,8 @@ function findCategoryName($id, $categories){
             <option value="12">12 per page</option>
           </select>
         </div>
+
+        <!-- Saved articles placeholder (moved below the news grid) -->
 
       <div class="hot-news">
         <h3>🔥 Hot News</h3>
@@ -376,21 +391,34 @@ function findCategoryName($id, $categories){
           $imgPath = getImagePath($a['image'] ?? '');
           // Mark as new if datePublication is today
           $isNew = (($a['date'] ?? '') === date('Y-m-d')) ? 'new-article' : '';
+          // reading time computed from content words
+          $plain = strip_tags($a['content'] ?? '');
+          $words = str_word_count($plain);
+          $rt = max(1, (int)ceil($words/200));
         ?>
         <div id="news-<?php echo htmlspecialchars($a['id']); ?>" class="news-card <?php echo $isNew; ?>">
           <div class="news-card-image">
             <img src="<?php echo htmlspecialchars($imgPath); ?>" alt="<?php echo htmlspecialchars($a['title'] ?? ''); ?>" onerror="this.src='../images/nopic.png'">
           </div>
           <div class="news-card-content">
-            <div class="news-card-date"><?php echo htmlspecialchars($a['date'] ?? ''); ?> • <?php echo htmlspecialchars($dispCat); ?></div>
+            <div class="news-card-date"><?php echo htmlspecialchars($a['date'] ?? ''); ?> • <?php echo htmlspecialchars($dispCat); ?> <span class="reading-time-badge"><?php echo $rt; ?> min</span></div>
             <h2 class="news-card-title"><?php echo htmlspecialchars($a['title'] ?? ''); ?></h2>
             <p class="news-card-excerpt"><?php echo htmlspecialchars($a['excerpt'] ?? ''); ?></p>
-            <a class="read-more" href="news_article.php?id=<?php echo urlencode($a['id']); ?>">Read More →</a>
+            <div style="display:flex;gap:8px;align-items:center;justify-content:flex-start">
+              <a class="read-more" href="news_article.php?id=<?php echo urlencode($a['id']); ?>">Read More →</a>
+              <button class="read-later-btn" data-slug="<?php echo htmlspecialchars($a['id']); ?>">Save</button>
+            </div>
           </div>
         </div>
       <?php endforeach; ?>
     </div>
     <div class="pagination" id="news-pagination" style="justify-content:center"></div>
+    
+    <!-- Saved articles (client-side localStorage) - separate section below news -->
+    <section id="saved-articles" class="saved-articles" style="display:none;margin-top:28px">
+      <h3>Saved Articles</h3>
+      <div class="news-grid" id="saved-grid"></div>
+    </section>
     <script>
       // Client-side search + pagination for news cards
       (function(){
@@ -453,6 +481,90 @@ function findCategoryName($id, $categories){
         // initial layout: ensure flex display on cards
         cards.forEach(function(c){ c.style.display='flex'; });
         applyFilter();
+      })();
+      // Read later functionality + render saved articles
+        (function(){
+        function getSaved(){ try{ return JSON.parse(localStorage.getItem('read_later')||'[]'); }catch(e){return []} }
+        function setSaved(arr){ localStorage.setItem('read_later', JSON.stringify(arr)); }
+
+        // Toggle save button state and persist
+        function toggleSaveButton(btn){
+          var slug = btn.dataset.slug;
+          var s = getSaved();
+          var idx = s.indexOf(slug);
+          if(idx === -1){ s.push(slug); btn.classList.add('saved'); btn.textContent = 'Saved'; }
+          else { s.splice(idx,1); btn.classList.remove('saved'); btn.textContent = 'Save'; }
+          setSaved(s);
+          renderSaved();
+        }
+
+        // Render saved articles into #saved-grid and update UI
+        function renderSaved(){
+          var saved = getSaved();
+          var container = document.getElementById('saved-grid');
+          var section = document.getElementById('saved-articles');
+          var countEl = document.getElementById('saved-count');
+          var controls = document.getElementById('saved-controls');
+          if(!container || !section) return;
+          container.innerHTML = '';
+          if(!saved || saved.length === 0){ section.style.display = 'none'; if(countEl) countEl.style.display='none'; if(controls) controls.style.display='none'; return; }
+          section.style.display = 'block';
+          if(countEl){ countEl.style.display='inline-block'; countEl.textContent = saved.length + ' saved'; }
+          if(controls) controls.style.display='inline-flex';
+          saved.forEach(function(slug){
+            var src = document.getElementById('news-' + slug);
+            if(!src) return; // article not on this page
+            var clone = src.cloneNode(true);
+            // replace Save button in clone with a remove button
+            var btn = clone.querySelector('.read-later-btn');
+            if(btn){
+              btn.textContent = 'Remove';
+              btn.classList.add('saved');
+              btn.addEventListener('click', function(e){ e.preventDefault();
+                // remove from saved list
+                var orig = findOriginalButton(slug);
+                if(orig) toggleSaveButton(orig);
+              });
+            }
+            container.appendChild(clone);
+          });
+        }
+
+        function findOriginalButton(slug){ return document.querySelector('.read-later-btn[data-slug="'+slug+'"]'); }
+
+        // Initialize buttons on the main grid
+        document.querySelectorAll('.read-later-btn').forEach(function(btn){
+          var slug = btn.dataset.slug;
+          var saved = getSaved();
+          if(saved.indexOf(slug) !== -1){ btn.classList.add('saved'); btn.textContent = 'Saved'; }
+          btn.addEventListener('click', function(e){ e.preventDefault(); toggleSaveButton(btn); });
+        });
+
+        // Controls: clear, copy, view toggle
+        var clearBtn = document.getElementById('clear-saved');
+        var copyBtn = document.getElementById('copy-saved');
+        var viewBtn = document.getElementById('view-saved');
+        function clearSaved(){ setSaved([]); // reset UI
+          document.querySelectorAll('.read-later-btn.saved').forEach(function(b){ b.classList.remove('saved'); b.textContent='Save'; });
+          renderSaved();
+        }
+        function copySavedLinks(){ var saved = getSaved(); if(!saved || saved.length===0){ alert('No saved articles'); return; } var list = saved.map(function(s){ return window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '') + '/news_article.php?id='+encodeURIComponent(s); }); navigator.clipboard && navigator.clipboard.writeText(list.join('\n')).then(function(){ alert('Saved links copied'); }, function(){ prompt('Saved links', list.join('\n')); }); }
+        function toggleViewSaved(){
+          // when viewing saved, hide non-saved cards
+          var saved = getSaved(); var grid = document.getElementById('news-grid'); if(!grid) return;
+          if(viewBtn.classList.contains('active')){ // turn off
+            viewBtn.classList.remove('active'); viewBtn.textContent='View Saved'; document.querySelectorAll('#news-grid .news-card').forEach(function(c){ c.style.display='flex'; }); renderPage(1);
+          } else {
+            viewBtn.classList.add('active'); viewBtn.textContent='Show All'; document.querySelectorAll('#news-grid .news-card').forEach(function(c){ var id = c.id.replace('news-',''); if(saved.indexOf(id) === -1) c.style.display='none'; else c.style.display='flex'; });
+          }
+        }
+
+        if(clearBtn) clearBtn.addEventListener('click', function(e){ e.preventDefault(); if(confirm('Clear all saved articles?')) clearSaved(); });
+        if(copyBtn) copyBtn.addEventListener('click', function(e){ e.preventDefault(); copySavedLinks(); });
+        if(viewBtn) viewBtn.addEventListener('click', function(e){ e.preventDefault(); toggleViewSaved(); });
+
+        // Initial render of saved section
+        renderSaved();
       })();
     </script>
     </div>

@@ -13,6 +13,11 @@ SET time_zone = "+00:00";
 
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+
+-- Constraints for table `comments`
+-- (link comments to article)
+ALTER TABLE `comments`
+  ADD CONSTRAINT `comments_ibfk_1` FOREIGN KEY (`article_id`) REFERENCES `article` (`idArticle`) ON DELETE CASCADE;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8mb4 */;
@@ -40,11 +45,30 @@ CREATE TABLE `article` (
   `idCategorie` int(11) DEFAULT NULL,
   `category` varchar(100) DEFAULT NULL,
   `hot` tinyint(1) NOT NULL DEFAULT 0,
+  `comments` longtext DEFAULT NULL,
+  `comments_count` int(11) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+
 -- --------------------------------------------------------
+--
+-- Table structure for table `comments`
+--
+
+CREATE TABLE `comments` (
+  `idComment` int(11) NOT NULL,
+  `article_id` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `email` varchar(150) DEFAULT NULL,
+  `text` text NOT NULL,
+  `is_deleted` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
 
 --
 -- Table structure for table `categorie`
@@ -334,6 +358,11 @@ ALTER TABLE `users`
 --
 ALTER TABLE `article`
   MODIFY `idArticle` int(11) NOT NULL AUTO_INCREMENT;
+
+-- AUTO_INCREMENT for table `comments`
+--
+ALTER TABLE `comments`
+  MODIFY `idComment` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `categorie`

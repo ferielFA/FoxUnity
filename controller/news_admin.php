@@ -23,7 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             list($ok, $item) = addArticle(array_merge($_POST, ['id'=>$postedId]), $_FILES);
             if ($ok) {
                 $messages[] = 'Article added successfully. View it on the news page.';
-                header('Refresh: 1.5; url=news.php');
+                // redirect to public news page moved to view/front
+                header('Refresh: 1.5; url=../view/front/news.php');
             } else {
                 $errors[] = 'Failed to save article — database error.';
             }

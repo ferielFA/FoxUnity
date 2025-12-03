@@ -2,24 +2,28 @@
 // news_article.php
 // Shows a single news article with comments
 
-require __DIR__ . '/db.php';
+require __DIR__ . '/../back/db.php';
+require_once __DIR__ . '/../../model/comment_model.php';
 
 // Helper to resolve image paths and check if they exist
 function getImagePath($imagePath) {
   if (empty($imagePath)) return '../images/nopic.png';
-  // If path starts with uploads/, it's a relative path from this file
+  // If path starts with uploads/, prefer front uploads then back uploads
   if (strpos($imagePath, 'uploads/') === 0) {
-    $fullPath = __DIR__ . '/' . $imagePath;
-    if (file_exists($fullPath)) return $imagePath;
+    $frontFull = __DIR__ . '/' . $imagePath;
+    if (file_exists($frontFull)) return $imagePath;
+    $backFull = __DIR__ . '/../back/' . $imagePath;
+    if (file_exists($backFull)) return '../back/' . $imagePath;
   }
   // If path starts with ../, it's already relative to this file
   if (strpos($imagePath, '../') === 0) {
     $fullPath = __DIR__ . '/' . $imagePath;
     if (file_exists($fullPath)) return $imagePath;
   }
-  // Check if it's an absolute-ish path in images/
-  if (strpos($imagePath, 'images/') === 0 || strpos($imagePath, '../images/') === 0) {
-    return $imagePath;
+  // If path looks like images/ (relative to view), check view/images
+  if (strpos($imagePath, 'images/') === 0) {
+    $fullPath = __DIR__ . '/../' . $imagePath;
+    if (file_exists($fullPath)) return '../' . $imagePath;
   }
   return '../images/nopic.png';
 }
@@ -62,36 +66,40 @@ if (!$a) {
   exit;
 }
 
-// --- Comments handling (file-backed, per-article) ---
-$commentsDir = __DIR__ . '/uploads/comments';
-@mkdir($commentsDir, 0755, true);
-$commentsFile = $commentsDir . '/' . md5($slug) . '.json';
-$comments = [];
-if (file_exists($commentsFile)) {
-  $comments = json_decode(file_get_contents($commentsFile), true) ?: [];
-}
+// Admin flag: articles are public-facing; admin editing should be done in admin pages.
+// Keep a defined variable to avoid undefined warnings. Set to true only when explicit admin mode is required.
+$isAdmin = false;
 
-// Handle comment POST
+// Comments handling: use embedded comments in article.comments when available,
+// otherwise fall back to file-backed comments in view/front/uploads/comments
+$mutesFile = __DIR__ . '/uploads/comments/mutes.json';
+@mkdir(dirname($mutesFile), 0755, true);
+if (!file_exists($mutesFile)) file_put_contents($mutesFile, json_encode(new stdClass()));
+$comments = getEmbeddedCommentsBySlug($slug);
+
+// Handle public comment POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment_submit'])) {
-  $name = trim((string)($_POST['name'] ?? '')); 
+  $name = trim((string)($_POST['name'] ?? ''));
   $text = trim((string)($_POST['comment'] ?? ''));
   $errors = [];
+
   if ($name === '') $errors[] = 'Name is required.';
   if ($text === '') $errors[] = 'Comment is required.';
-  if (empty($errors)) {
-    $entry = [
-      'name' => $name,
-      'text' => $text,
-      'date' => date('Y-m-d H:i:s')
-    ];
-    array_unshift($comments, $entry);
-    // save (atomic)
-    file_put_contents($commentsFile . '.tmp', json_encode($comments, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    rename($commentsFile . '.tmp', $commentsFile);
-    // redirect to avoid repost
-    header('Location: news_article.php?id=' . urlencode($slug) . '#comments');
-    exit;
+
+  // check mutes (global by lowercase name)
+  $mutes = json_decode(file_get_contents($mutesFile), true) ?: [];
+  $lower = strtolower($name);
+  if ($lower && isset($mutes[$lower]) && intval($mutes[$lower]) > time()) {
+    $errors[] = 'You are muted until ' . date('Y-m-d H:i:s', intval($mutes[$lower])) . '. You cannot post comments.';
   }
+
+    if (empty($errors)) {
+      // Save via model (embedded or fallback)
+      addEmbeddedCommentBySlug($slug, $name, '', $text);
+      // redirect to avoid repost
+      header('Location: news_article.php?id=' . urlencode($slug) . '#comments');
+      exit;
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -243,6 +251,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment_submit'])) {
       }
     }
   </style>
+  </style>
 </head>
 <body>
   <!-- Bulles animées rouges -->
@@ -264,7 +273,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment_submit'])) {
     </div>
     
     <nav class="site-nav">
-      <a href="../front/indexf.html">Home</a>
+      <a href="http://localhost/projet_web/view/front/indexf.php">Home</a>
       <a href="../front/events.html">Events</a>
       <a href="../front/shop.html">Shop</a>
       <a href="../front/trading.html">Trading</a>
@@ -289,9 +298,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment_submit'])) {
       
       <div class="article-header">
         <h1 class="article-title"><?php echo htmlspecialchars($a['title']); ?></h1>
+        <?php
+        // Calculate reading time (words / 200 wpm)
+        $plainText = strip_tags($a['content'] ?? '');
+        $wordCount = str_word_count($plainText);
+        $readingMinutes = max(1, (int)ceil($wordCount / 200));
+
+        // Prepare Table of Contents from headings if content contains HTML headings
+        $tocHtml = '';
+        $contentHtml = $a['content'] ?? '';
+        if (strip_tags($contentHtml) !== $contentHtml) {
+          libxml_use_internal_errors(true);
+          $doc = new DOMDocument();
+          // ensure proper encoding
+          $doc->loadHTML('<?xml encoding="utf-8" ?>' . $contentHtml);
+          $xpath = new DOMXPath($doc);
+          $headings = $xpath->query('//h2 | //h3');
+          if ($headings && $headings->length) {
+            $tocParts = [];
+            foreach ($headings as $h) {
+              $text = trim($h->textContent);
+              $id = preg_replace('/[^a-z0-9_-]+/i', '-', strtolower($text));
+              // ensure unique id
+              $base = $id; $i = 1; while ($doc->getElementById($id)) { $id = $base . '-' . $i; $i++; }
+              $h->setAttribute('id', $id);
+              $tocParts[] = ['tag' => $h->nodeName, 'id' => $id, 'text' => $text];
+            }
+            if (!empty($tocParts)) {
+              $tocHtml = '<nav class="article-toc"><strong>On this page</strong><ul>';
+              foreach ($tocParts as $t) {
+                $indent = $t['tag'] === 'h3' ? ' class="toc-sub"' : '';
+                $tocHtml .= '<li' . $indent . '><a href="#' . htmlspecialchars($t['id']) . '">' . htmlspecialchars($t['text']) . '</a></li>';
+              }
+              $tocHtml .= '</ul></nav>';
+            }
+            // Export back modified HTML
+            $body = $doc->getElementsByTagName('body')->item(0);
+            $newContent = '';
+            foreach ($body->childNodes as $cn) { $newContent .= $doc->saveHTML($cn); }
+            $contentHtml = $newContent;
+          }
+          libxml_clear_errors();
+        }
+        ?>
         <div class="article-meta">
           <span class="article-category"><?php echo htmlspecialchars(findCategoryName($a['idCategorie'] ?? 0, $categories) ?? 'Uncategorized'); ?></span>
           <span><?php echo htmlspecialchars($a['date'] ?? ''); ?></span>
+          <span class="reading-time"><?php echo $readingMinutes; ?> min read</span>
           <?php if ($a['hot']): ?>
             <span style="color: #ff7a00;">🔥 Hot News</span>
           <?php endif; ?>
@@ -302,29 +355,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment_submit'])) {
         <img src="<?php echo htmlspecialchars(getImagePath($a['image'] ?? '')); ?>" alt="<?php echo htmlspecialchars($a['title'] ?? ''); ?>" onerror="this.src='../images/nopic.png'">
       </div>
 
-      <div class="article-content">
+        <div class="article-content">
         <?php 
-        // Handle different content formats
-        $content = $a['content'] ?? '';
-        
-        // If content contains HTML tags, display as-is (assuming it's from TinyMCE)
-        if (strip_tags($content) !== $content) {
-            echo $content;
+        // Use processed HTML content if available (with heading ids), otherwise fallback to original handling
+        if (!empty($contentHtml)) {
+          echo $contentHtml;
         } else {
-            // If plain text, convert newlines to <p> tags
+          $content = $a['content'] ?? '';
+          if (strip_tags($content) !== $content) {
+            echo $content;
+          } else {
             $paragraphs = explode("\n\n", $content);
             foreach ($paragraphs as $paragraph) {
-                if (trim($paragraph)) {
-                    echo '<p>' . htmlspecialchars(trim($paragraph)) . '</p>';
-                }
+              if (trim($paragraph)) {
+                echo '<p>' . htmlspecialchars(trim($paragraph)) . '</p>';
+              }
             }
+          }
         }
         ?>
       </div>
+        <?php if (!empty($tocHtml)): ?>
+        <aside class="toc-container">
+          <?php echo $tocHtml; ?>
+        </aside>
+        <?php endif; ?>
       
       <!-- Comments -->
       <div id="comments" class="comments-section" style="max-width:900px;margin:0 auto 60px;padding:0 40px">
         <h3 style="color:#fff;margin-bottom:12px">Comments (<?php echo count($comments); ?>)</h3>
+
         <?php if (!empty($errors)): ?>
           <div style="color:#ffd6d6;background:#2b0b0b;padding:10px;border-radius:6px;margin-bottom:12px">
             <?php foreach ($errors as $err) echo '<div>' . htmlspecialchars($err) . '</div>'; ?>
@@ -353,6 +413,143 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment_submit'])) {
       </div>
     </div>
   </main>
+
+  <?php if ($isAdmin): ?>
+  <script>
+    // AJAX handlers for admin comment edit/delete/clear
+    (function(){
+      function postAjax(url, formData){
+        formData.append('ajax', '1');
+        return fetch(url, { method: 'POST', body: formData, credentials: 'same-origin' }).then(function(r){ return r.json(); });
+      }
+
+      // Update forms
+      document.querySelectorAll('.comment-update-form').forEach(function(f){
+        f.addEventListener('submit', function(e){
+          e.preventDefault();
+          var idx = f.querySelector('input[name="index"]').value;
+          var fd = new FormData(f);
+          postAjax(f.action, fd).then(function(json){
+            if(json && json.ok){
+              var container = document.querySelector('.comment-admin[data-index="'+json.index+'"]');
+              if(container){
+                // update date and displayed text
+                var dateEl = container.querySelector('.comment-date');
+                if(dateEl && json.comment && json.comment.date) dateEl.textContent = json.comment.date;
+                // maybe flash success
+                adminToast('Comment saved');
+              }
+            } else {
+              adminToast('Save failed');
+            }
+          }).catch(function(){ adminToast('Save failed'); });
+        });
+      });
+
+      // Delete forms
+      document.querySelectorAll('.comment-delete-form').forEach(function(f){
+        f.addEventListener('submit', function(e){
+          e.preventDefault();
+          if(!confirm('Delete this comment?')) return;
+          var idx = f.querySelector('input[name="index"]').value;
+          var fd = new FormData(f);
+          postAjax(f.action, fd).then(function(json){
+            if(json && json.ok){
+              var container = document.querySelector('.comment-admin[data-index="'+json.index+'"]');
+              if(container) container.parentNode.removeChild(container);
+              adminToast('Comment deleted');
+            } else {
+              adminToast('Delete failed');
+            }
+          }).catch(function(){ adminToast('Delete failed'); });
+        });
+      });
+
+      // Clear all comments button (form)
+      var clearForm = document.querySelector('form[action*="clear_comments"]');
+      if(clearForm){
+        clearForm.addEventListener('submit', function(e){
+          e.preventDefault();
+          if(!confirm('Clear all comments for this article?')) return;
+          var fd = new FormData(clearForm);
+          postAjax(clearForm.action, fd).then(function(json){
+            if(json && json.ok){
+              // remove all comment-admin elements
+              document.querySelectorAll('.comment-admin').forEach(function(el){ el.parentNode.removeChild(el); });
+              adminToast('All comments cleared');
+            } else {
+              adminToast('Clear failed');
+            }
+          }).catch(function(){ adminToast('Clear failed'); });
+        });
+      }
+
+      // Cancel edit buttons - simply reload admin fragment
+      document.querySelectorAll('.cancel-edit').forEach(function(btn){
+        btn.addEventListener('click', function(){ window.location.href = window.location.pathname + '?id=' + encodeURIComponent('<?php echo addslashes($slug); ?>') + '&admin=1#comments'; });
+      });
+    })();
+  </script>
+  <?php endif; ?>
+
+  <script>
+    // Improved share buttons: Twitter, Facebook, Instagram (copy fallback)
+    (function(){
+      function copyToClipboard(text){
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          return navigator.clipboard.writeText(text).then(function(){ alert('Link copied to clipboard'); });
+        }
+        // fallback
+        var ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); alert('Link copied to clipboard'); } catch(e) { prompt('Copy this link', text); }
+        ta.parentNode.removeChild(ta);
+        return Promise.resolve();
+      }
+
+      var header = document.querySelector('.article-header');
+      if (!header) return;
+      var share = document.createElement('div');
+      share.className = 'article-share';
+      share.style.marginTop = '8px';
+      var url = window.location.href;
+      var title = document.title || document.querySelector('.article-title')?.textContent || '';
+
+      function openPopup(u){ window.open(u, '_blank', 'noopener,noreferrer,width=700,height=500'); }
+
+      var tBtn = document.createElement('button');
+      tBtn.className = 'share-btn twitter'; tBtn.innerHTML = '<i class="fab fa-twitter" aria-hidden="true"></i><span>Tweet</span>';
+      tBtn.setAttribute('aria-label','Share on Twitter');
+      tBtn.addEventListener('click', function(){
+        var u = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(title) + '&url=' + encodeURIComponent(url);
+        openPopup(u);
+      });
+
+      var fBtn = document.createElement('button');
+      fBtn.className = 'share-btn facebook'; fBtn.innerHTML = '<i class="fab fa-facebook-f" aria-hidden="true"></i><span>Facebook</span>';
+      fBtn.setAttribute('aria-label','Share on Facebook');
+      fBtn.addEventListener('click', function(){
+        var u = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url);
+        openPopup(u);
+      });
+
+      var igBtn = document.createElement('button');
+      igBtn.className = 'share-btn instagram'; igBtn.innerHTML = '<i class="fab fa-instagram" aria-hidden="true"></i><span>Instagram</span>';
+      igBtn.title = 'Instagram: copy link then open app';
+      igBtn.setAttribute('aria-label','Share to Instagram (copy link)');
+      igBtn.addEventListener('click', function(){
+        copyToClipboard(url).then(function(){ window.open('https://www.instagram.com/', '_blank'); });
+      });
+
+      var copyBtn = document.createElement('button');
+      copyBtn.className = 'share-btn copy'; copyBtn.innerHTML = '<i class="fas fa-link" aria-hidden="true"></i><span>Copy link</span>';
+      copyBtn.setAttribute('aria-label','Copy link');
+      copyBtn.addEventListener('click', function(){ copyToClipboard(url); });
+
+      share.appendChild(tBtn); share.appendChild(fBtn); share.appendChild(igBtn); share.appendChild(copyBtn);
+      header.appendChild(share);
+    })();
+  </script>
 
   <!-- ========== FOOTER ========== -->
   <footer class="site-footer">

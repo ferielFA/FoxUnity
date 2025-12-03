@@ -14,6 +14,7 @@ $id = $_GET['id'] ?? '';
 // use existing model functions for categories and articles
 require_once __DIR__ . '/../../model/article_model.php';
 require_once __DIR__ . '/../../model/category_model.php';
+require_once __DIR__ . '/../../model/comment_model.php';
 
 $categories = getCategories();
 
@@ -33,6 +34,9 @@ $commentsDir = __DIR__ . '/uploads/comments';
 @mkdir($uploadsDir, 0755, true);
 @mkdir($historyDir, 0755, true);
 @mkdir($commentsDir, 0755, true);
+// mutes file (store muted commenter names -> expiry timestamp)
+$mutesFile = $commentsDir . '/mutes.json';
+if (!file_exists($mutesFile)) file_put_contents($mutesFile, json_encode(new stdClass()));
 
 // POST actions: add/save/delete/toggle_hot
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -119,8 +123,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $item['idArticle'] = (int)$pdo->lastInsertId();
         saveArticleVersion($postedId, $item, 'created');
         $messages[] = 'Article added successfully. View it on the news page.';
-        // After 1.5 seconds, redirect to news page to show new article
-        header('Refresh: 1.5; url=news.php');
+        // After 1.5 seconds, redirect to public news page (moved to front)
+        header('Refresh: 1.5; url=../front/news.php');
       } else {
         $errors[] = 'Failed to save article — database error.';
       }
@@ -242,35 +246,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($act === 'delete_comment' && !empty($_POST['slug'])) {
       $slug = $_POST['slug'];
       $index = isset($_POST['index']) ? intval($_POST['index']) : -1;
-      $file = $commentsDir . '/' . md5($slug) . '.json';
-      if (file_exists($file)) {
-        $list = json_decode(file_get_contents($file), true) ?: [];
-        if ($index >= 0 && $index < count($list)) {
-          array_splice($list, $index, 1);
-          if (empty($list)) {
-            @unlink($file);
-          } else {
-            file_put_contents($file, json_encode($list, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-          }
-          $messages[] = 'Comment deleted.';
-        } else {
-          $errors[] = 'Invalid comment index.';
-        }
+      $ok = deleteEmbeddedCommentBySlug($slug, $index);
+      if ($ok) {
+        $messages[] = 'Comment deleted.';
       } else {
-        $errors[] = 'No comments found for that article.';
+        $errors[] = 'Failed to delete comment (invalid index or storage error).';
       }
     }
     if ($act === 'clear_comments' && !empty($_POST['slug'])) {
       $slug = $_POST['slug'];
-      $file = $commentsDir . '/' . md5($slug) . '.json';
-      if (file_exists($file)) {
-        @unlink($file);
+      $ok = clearEmbeddedCommentsBySlug($slug);
+      if ($ok) {
         $messages[] = 'All comments cleared for that article.';
       } else {
-        $errors[] = 'No comments to clear for that article.';
+        $errors[] = 'Failed to clear comments for that article.';
+      }
+    }
+
+    // Mute / unmute commenter (global by name)
+    if ($act === 'mute_user' && !empty($_POST['slug'])) {
+      $slug = $_POST['slug'];
+      $name = trim($_POST['name'] ?? '');
+      $minutes = max(0, intval($_POST['minutes'] ?? 0));
+      if ($name === '' || $minutes <= 0) {
+        $errors[] = 'Name and positive minutes are required to mute.';
+      } else {
+        $mutes = json_decode(file_get_contents($mutesFile), true) ?: [];
+        $mutes[strtolower($name)] = time() + ($minutes * 60);
+        file_put_contents($mutesFile, json_encode($mutes, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        $messages[] = 'User ' . htmlspecialchars($name) . ' muted for ' . intval($minutes) . ' minutes.';
+      }
+    }
+    if ($act === 'unmute_user' && !empty($_POST['slug'])) {
+      $slug = $_POST['slug'];
+      $name = trim($_POST['name'] ?? '');
+      if ($name === '') {
+        $errors[] = 'Name is required to unmute.';
+      } else {
+        $mutes = json_decode(file_get_contents($mutesFile), true) ?: [];
+        $key = strtolower($name);
+        if (isset($mutes[$key])) {
+          unset($mutes[$key]);
+          file_put_contents($mutesFile, json_encode($mutes, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+          $messages[] = 'User ' . htmlspecialchars($name) . ' unmuted.';
+        } else {
+          $errors[] = 'User not muted.';
+        }
+      }
+    }
+
+    // Update/edit a single comment
+    if ($act === 'update_comment' && !empty($_POST['slug'])) {
+      $slug = $_POST['slug'];
+      $index = isset($_POST['index']) ? intval($_POST['index']) : -1;
+      $name = trim($_POST['name'] ?? '');
+      $text = trim($_POST['text'] ?? '');
+      $ok = updateEmbeddedCommentBySlug($slug, $index, $name, $text);
+      if ($ok) {
+        $messages[] = 'Comment updated.';
+      } else {
+        $errors[] = 'Failed to update comment (invalid index or storage error).';
       }
     }
 }
+
 
 // For edit form
 $editing = null;
@@ -313,7 +352,7 @@ if ($action === 'edit' && $id !== '') {
   <div class="sidebar">
     <img src="../images/Nine__1_-removebg-preview.png" alt="Nine Tailed Fox Logo" class="dashboard-logo">
     <h2>Dashboard</h2>
-    <a href="#" class="">Overview</a>
+    <a href="dashboard.php" class="">Overview</a>
     <a href="#">Users</a>
     <a href="#">Shop</a>
     <a href="#">Trade History</a>
@@ -322,15 +361,15 @@ if ($action === 'edit' && $id !== '') {
     <a href="news_history.php" id="news-history-link">News History</a>
     <a href="categories.php" id="categories-link">Categories</a>
     <a href="#">Support</a>
-    <a href="../front/indexf.html">← Return Homepage</a>
+    <a href="../front/indexf.php">← Return Homepage</a>
   </div>
 
   <div class="main">
     <div class="topbar">
       <h1>News Administration</h1>
       <div class="user">
-        <img src="../images/meriem.png" alt="User Avatar">
-        <span>FoxLeader</span>
+        <img src="../images/rayen.png" alt="User Avatar">
+        <span>FoxAdmin</span>
       </div>
     </div>
 
@@ -338,17 +377,15 @@ if ($action === 'edit' && $id !== '') {
       <div class="card" style="width:100%; grid-column: 1 / -1;">
       
         <div style="margin-bottom:16px;border-bottom:1px solid #333;padding-bottom:12px">
-          <button id="tab-manage" class="tab-btn active" style="margin-right:8px">Manage News</button>
-          <button id="tab-history" class="tab-btn">News History</button>
-          <button id="tab-comments" class="tab-btn" style="margin-left:8px">Comments</button>
+          <span style="font-weight:700;color:#fff;font-size:1.05rem">Manage News</span>
         </div>
 
         <div id="tab-manage-content">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <h2 style="margin:0">Manage News</h2>
-            <div>
+              <div>
               <a class="btn" href="news_admin.php?action=new">+ Add Article</a>
-              <a class="btn" href="news.php" target="_blank">View Public News</a>
+              <a class="btn" href="../front/news.php" target="_blank">View Public News</a>
             </div>
           </div>
 
@@ -425,9 +462,10 @@ if ($action === 'edit' && $id !== '') {
                     <td><?php echo htmlspecialchars((findCategoryName($row['idCategorie'] ?? 0, $categories) ?? '') . (empty($row['idCategorie']) ? '' : ' (ID:'. ($row['idCategorie']) .')')); ?></td>
                     <td><?php echo $row['hot'] ? '🔥 Yes' : 'No'; ?></td>
                     <td class="admin-actions">
-                      <a href="news_article.php?id=<?php echo urlencode($row['id']); ?>" target="_blank">View</a> |
+                      <a href="../front/news_article.php?id=<?php echo urlencode($row['id']); ?>" target="_blank">View</a> |
                       <a href="news_admin.php?action=edit&id=<?php echo urlencode($row['id']); ?>">Edit</a> |
                       <a href="news_admin.php?action=delete&id=<?php echo urlencode($row['id']); ?>" onclick="return confirm('Delete this article?');">Delete</a>
+                      | <a href="news_admin.php?comments=<?php echo urlencode($row['id']); ?>">Comments</a>
                       <?php if ($row['hot']): ?>
                         | <a href="news_admin.php" onclick="toggleHot('<?php echo urlencode($row['id']); ?>'); return false;" style="color:#ff7a00">🔥 Hot</a>
                       <?php else: ?>
@@ -452,86 +490,84 @@ if ($action === 'edit' && $id !== '') {
               </section>
             <?php endif; ?>
 
-          <?php endif; ?>
-
-        </div>
-
-        <!-- HISTORY TAB -->
-        <div id="tab-history-content" style="display:none">
-          <h2 style="margin:0 0 16px">Article Edit History</h2>
-          <div id="history-list" style="max-height:600px;overflow-y:auto">
-            <?php 
-              $historyFiles = glob($historyDir . '/*.json') ?: [];
-              if (empty($historyFiles)): ?>
-              <p style="color:#bbb">No history available yet.</p>
-            <?php else:
-              foreach ($historyFiles as $hf) {
-                $versions = json_decode(file_get_contents($hf), true) ?: [];
-                if (empty($versions)) continue;
-                $articleId = $versions[count($versions)-1]['article']['id'] ?? 'unknown';
-                echo '<div style="background:#111;padding:12px;border-radius:8px;margin-bottom:12px;border-left:3px solid #ff7a00">';
-                echo '<strong>' . htmlspecialchars($articleId) . '</strong> (' . count($versions) . ' version' . (count($versions)!==1?'s':'') . ')<br>';
-                echo '<table style="width:100%;margin-top:8px;font-size:0.85rem;border-collapse:collapse">';
-                echo '<thead><tr style="border-bottom:1px solid #333"><th style="text-align:left;padding:6px">Timestamp</th><th style="text-align:left;padding:6px">Action</th></tr></thead><tbody>';
-                foreach ($versions as $idx => $v) {
-                  $ts = $v['timestamp'] ?? '';
-                  $act = $v['action'] ?? '';
-                  $art = $v['article'] ?? [];
-                  echo '<tr style="border-bottom:1px solid #222"><td style="padding:6px">' . htmlspecialchars($ts) . '</td><td style="padding:6px">' . htmlspecialchars($act) . '</td>';
-                  if ($act !== 'deleted') {
-                    echo '<td style="padding:6px"><form method="post" action="news_admin.php?action=restore" style="display:inline"><input type="hidden" name="restore_data" value="' . htmlspecialchars(json_encode($art)) . '"><button type="submit" class="btn" style="padding:4px 8px;font-size:0.8rem">Restore</button></form></td>';
-                  }
-                  echo '</tr>';
-                }
-                echo '</tbody></table>';
-                echo '</div>';
-              }
-            endif;
-            ?>
-          </div>
-        </div>
-        
-        <!-- COMMENTS TAB -->
-        <div id="tab-comments-content" style="display:none">
-          <h2 style="margin:0 0 16px">Comments Moderation</h2>
-          <div style="max-height:600px;overflow:auto">
             <?php
-            // List articles that have comment files
-            $foundAny = false;
-            foreach ($data as $row) {
-              $slug = $row['id'] ?? '';
-              if (!$slug) continue;
-              $cf = $commentsDir . '/' . md5($slug) . '.json';
-              if (!file_exists($cf)) continue;
-              $foundAny = true;
-              $list = json_decode(file_get_contents($cf), true) ?: [];
-              echo '<div style="background:#111;padding:12px;border-radius:8px;margin-bottom:12px;border-left:3px solid #ff7a00">';
-              echo '<strong>' . htmlspecialchars($slug) . '</strong> — ' . count($list) . ' comment' . (count($list)!==1?'s':'') . '<br>';
-              echo '<div style="margin-top:8px">';
-              foreach ($list as $i => $c) {
-                echo '<div style="background:#0b0b0b;padding:10px;border-radius:6px;margin-bottom:8px">';
-                echo '<div style="font-weight:700;color:#fff">' . htmlspecialchars($c['name'] ?? 'Anonymous') . ' <span style="font-weight:400;color:#999;margin-left:8px">' . htmlspecialchars($c['date'] ?? '') . '</span></div>';
-                echo '<div style="color:#ddd;margin-top:6px">' . nl2br(htmlspecialchars($c['text'] ?? '')) . '</div>';
-                // delete single comment form
-                echo '<form method="post" action="news_admin.php" style="margin-top:8px">';
-                echo '<input type="hidden" name="action" value="delete_comment">';
-                echo '<input type="hidden" name="slug" value="' . htmlspecialchars($slug) . '">';
-                echo '<input type="hidden" name="index" value="' . intval($i) . '">';
-                echo '<button class="btn" type="submit" style="background:#c33;color:#fff;border-color:#c33">Delete</button>';
-                echo '</form>';
+            // If comments for a specific article were requested, render them here
+            $showCommentsFor = $_GET['comments'] ?? '';
+            if ($showCommentsFor) {
+              $slug = $showCommentsFor;
+                echo '<div style="margin-top:18px;background:#0b0b0b;padding:12px;border-radius:8px;border-left:3px solid #ff7a00">';
+                echo '<h3 style="margin-top:0;color:#ff7a00">Comments for: ' . htmlspecialchars($slug) . '</h3>';
+                $list = getEmbeddedCommentsBySlug($slug);
+                if (empty($list)) {
+                  echo '<p style="color:#bbb">No comments for this article.</p>';
+                } else {
+                  foreach ($list as $i => $c) {
+                    $name = htmlspecialchars($c['name'] ?? '');
+                    $date = htmlspecialchars($c['date'] ?? '');
+                    $text = htmlspecialchars($c['text'] ?? '');
+                    // check mute status for this commenter
+                    $mutes = json_decode(file_get_contents($mutesFile), true) ?: [];
+                    $isMuted = false; $mutedUntil = 0;
+                    $lower = strtolower($c['name'] ?? '');
+                    if ($lower && isset($mutes[$lower]) && intval($mutes[$lower]) > time()) { $isMuted = true; $mutedUntil = intval($mutes[$lower]); }
+
+                    echo '<form method="post" action="news_admin.php" style="background:#111;padding:10px;border-radius:6px;margin-bottom:10px">';
+                    echo '<input type="hidden" name="action" value="update_comment">';
+                    echo '<input type="hidden" name="slug" value="' . htmlspecialchars($slug) . '">';
+                    echo '<input type="hidden" name="index" value="' . intval($i) . '">';
+                    echo '<div style="display:flex;gap:8px;align-items:flex-start">';
+                    echo '<div style="flex:1">';
+                    echo '<label style="color:#ccc;display:block;margin-bottom:6px">Name</label>';
+                    echo '<input name="name" value="' . $name . '" style="width:100%;padding:8px;margin-bottom:8px;background:#0b0b0b;border:1px solid #333;color:#fff;border-radius:6px">';
+                    echo '<label style="color:#ccc;display:block;margin-bottom:6px">Comment</label>';
+                    echo '<textarea name="text" rows="4" style="width:100%;padding:8px;background:#0b0b0b;border:1px solid #333;color:#fff;border-radius:6px">' . $text . '</textarea>';
+                    echo '<div style="margin-top:8px">';
+                    echo '<button class="btn" type="submit">Save</button> ';
+                    echo '</div>';
+                    echo '</div>';
+                    echo '<div style="width:140px;text-align:right;">';
+                    echo '<div style="color:#999;font-size:0.85rem;margin-bottom:12px">' . $date . '</div>';
+                    if ($isMuted) {
+                      echo '<div style="color:#ffb67a;font-size:0.85rem;margin-bottom:8px">Muted until: ' . date('Y-m-d H:i:s', $mutedUntil) . '</div>';
+                      echo '<form method="post" action="news_admin.php" style="margin:0">';
+                      echo '<input type="hidden" name="action" value="unmute_user">';
+                      echo '<input type="hidden" name="slug" value="' . htmlspecialchars($slug) . '">';
+                      echo '<input type="hidden" name="name" value="' . $name . '">';
+                      echo '<button class="btn" type="submit" style="background:#666;color:#fff;border-color:#666;margin-top:6px">Unmute</button>';
+                      echo '</form>';
+                    } else {
+                      echo '<div style="margin-bottom:8px">';
+                      echo '<form method="post" action="news_admin.php" style="display:flex;gap:6px;justify-content:flex-end;align-items:center;margin:0">';
+                      echo '<input type="hidden" name="action" value="mute_user">';
+                      echo '<input type="hidden" name="slug" value="' . htmlspecialchars($slug) . '">';
+                      echo '<input type="hidden" name="name" value="' . $name . '">';
+                      echo '<input type="number" name="minutes" value="60" min="1" style="width:72px;padding:6px;border-radius:6px;border:1px solid #333;background:#0b0b0b;color:#fff">';
+                      echo '<button class="btn" type="submit" style="background:#444;color:#fff;border-color:#444">Mute (min)</button>';
+                      echo '</form>';
+                      echo '</div>';
+                    }
+                    echo '<form method="post" action="news_admin.php" onsubmit="return confirm(\'Delete this comment?\')">';
+                    echo '<input type="hidden" name="action" value="delete_comment">';
+                    echo '<input type="hidden" name="slug" value="' . htmlspecialchars($slug) . '">';
+                    echo '<input type="hidden" name="index" value="' . intval($i) . '">';
+                    echo '<button class="btn" type="submit" style="background:#c33;color:#fff;border-color:#c33;margin-top:6px">Delete</button>';
+                    echo '</form>';
+                    echo '</div>';
+                    echo '</div>';
+                    echo '</form>';
+                  }
+                  echo '<form method="post" action="news_admin.php">';
+                  echo '<input type="hidden" name="action" value="clear_comments">';
+                  echo '<input type="hidden" name="slug" value="' . htmlspecialchars($slug) . '">';
+                  echo '<button class="btn" type="submit" style="background:#444;color:#fff">Clear all comments for this article</button>';
+                  echo ' <a class="btn" href="news_admin.php">Back</a>';
+                  echo '</form>';
+                }
                 echo '</div>';
-              }
-              // clear all comments for article
-              echo '<form method="post" action="news_admin.php" style="margin-top:6px">';
-              echo '<input type="hidden" name="action" value="clear_comments">';
-              echo '<input type="hidden" name="slug" value="' . htmlspecialchars($slug) . '">';
-              echo '<button class="btn" type="submit" style="background:#444;color:#fff">Clear all comments for this article</button>';
-              echo '</form>';
-              echo '</div>';
             }
-            if (!$foundAny) echo '<p style="color:#bbb">No comments available.</p>';
             ?>
-          </div>
+
+          <?php endif; ?>
         </div>
       </div>
     </div>

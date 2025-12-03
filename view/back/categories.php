@@ -33,7 +33,7 @@ require_once __DIR__ . '/../../controller/categories_admin.php';
     <a href="news_history.php">News History</a>
     <a href="categories.php" class="active">Categories</a>
     <a href="#">Support</a>
-    <a href="../front/indexf.html">← Return Homepage</a>
+    <a href="../front/indexf.php">← Return Homepage</a>
   </div>
 
   <div class="main">

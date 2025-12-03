@@ -25,7 +25,7 @@
     <a href="#">Events</a>
     <a href="news_admin.php">News</a>
     <a href="#">Support</a>
-    <a href="../front/indexf.html">← Return Homepage</a>
+    <a href="../front/indexf.php">← Return Homepage</a>
   </div>
 
   <!-- ===== MAIN ===== -->

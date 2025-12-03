@@ -63,11 +63,11 @@
         </div>
         
         <nav class="site-nav">
-            <a href="indexf.html" class="active">Home</a>
+            <a href="http://localhost/projet_web/view/front/indexf.php" class="active">Home</a>
             <a href="events.html">Events</a>
             <a href="shop.html">Shop</a>
             <a href="trading.html">Trading</a>
-            <a href="../back/news.php">News</a>
+            <a href="news.php">News</a>
             <a href="reclamation.html">Support</a>
             <a href="about.html">About Us</a>
         </nav>
@@ -215,7 +215,7 @@
                         <li><i class="fas fa-check"></i> Charity Milestones</li>
                         <li><i class="fas fa-check"></i> Gaming Industry News</li>
                     </ul>
-                    <a href="../back/news.php#news-cs2" class="feature-btn">
+                    <a href="news.php#news-cs2" class="feature-btn">
                         <i class="fas fa-newspaper"></i> Read Latest News
                     </a>
                 </div>
@@ -589,7 +589,7 @@
             </div>
             <div class="footer-section">
                 <h4>Dashboard</h4>
-                <a href="../back/dashboard.html" class="dashboard-link">
+                <a href="../back/dashboard.php" class="dashboard-link">
                     <i class="fas fa-tachometer-alt"></i> My Dashboard
                 </a>
             </div>
