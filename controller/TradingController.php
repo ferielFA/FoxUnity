@@ -280,8 +280,9 @@ class TradingController {
         $skinId = isset($_POST['skin_id']) ? (int)$_POST['skin_id'] : 0;
         $message = isset($_POST['message']) ? trim((string)$_POST['message']) : '';
         
-        if (empty($message) || $skinId <= 0) {
-            return ['success' => false, 'error' => 'Invalid message or skin'];
+        // Allow either message or image (or both)
+        if ((empty($message) && (!isset($_FILES['image']) || $_FILES['image']['size'] == 0)) || $skinId <= 0) {
+            return ['success' => false, 'error' => 'Please provide a message or image'];
         }
                 $skin = $this->skinModel->getSkinById($skinId);
         if (!$skin) {
@@ -298,11 +299,15 @@ class TradingController {
         $isSeller = ($skin['seller_username'] === $this->currentUser);
         
         if ($isSeller) {
-
+            // Seller sending - first try to get conversation partner
             $receiverId = $this->conversationModel->getConversationPartner($skinId, $senderId);
-
             if (!$receiverId) {
-                return ['success' => false, 'error' => 'No conversation partner found. Please wait for a buyer to start the conversation.'];
+                // No existing conversation partner - try to get any buyer who messaged about this skin
+                $receiverId = $this->conversationModel->getAnyBuyerForSkin($skinId, $senderId);
+            }
+            if (!$receiverId) {
+                // Still no buyer found - seller cannot message without someone to send to
+                return ['success' => false, 'error' => 'No buyers have messaged you about this skin yet.'];
             }
         } else {
             // Buyer is sending - receiver is the seller
@@ -313,13 +318,23 @@ class TradingController {
         if ($senderId === $receiverId) {
             return ['success' => false, 'error' => 'You cannot send messages to yourself'];
         }
+
+        // Handle image upload
+        $imagePath = null;
+        if (isset($_FILES['image']) && $_FILES['image']['size'] > 0) {
+            $imagePath = $this->handleMessageImageUpload($_FILES['image']);
+            if (!$imagePath) {
+                return ['success' => false, 'error' => 'Failed to upload image'];
+            }
+        }
         
         // Send message
         $messageId = $this->conversationModel->sendMessage(
             $skinId,
             $senderId,
             $receiverId,
-            $message
+            $message,
+            $imagePath
         );
         
         if ($messageId) {
@@ -351,10 +366,13 @@ class TradingController {
         // Determine the conversation partner
         $isSeller = ($skin['seller_username'] === $this->currentUser);
         $partnerId = null;
+        $canMessage = true;  // By default, can message (both buyers and sellers can message)
         
         if ($isSeller) {
             // If seller, get the conversation partner (buyer) from existing messages
             $partnerId = $this->conversationModel->getConversationPartner($skinId, $userId);
+            // Seller can now message anytime (removed the restriction)
+            $canMessage = true;
             if ($partnerId) {
                 // Get messages between seller and specific buyer
                 $messages = $this->conversationModel->getMessagesBetweenUsers($skinId, $userId, $partnerId);
@@ -364,8 +382,10 @@ class TradingController {
                 $messages = $this->conversationModel->getMessages($skinId, $userId);
             }
         } else {
-            // If buyer, always show messages between buyer and seller
+            // If buyer, always get messages with the seller
             $partnerId = $skin['seller_id'];
+            // Buyer can always message
+            $canMessage = true;
             if ($partnerId) {
                 $messages = $this->conversationModel->getMessagesBetweenUsers($skinId, $userId, $partnerId);
             } else {
@@ -374,7 +394,7 @@ class TradingController {
             }
         }
         
-        return ['success' => true, 'messages' => $messages];
+        return ['success' => true, 'messages' => $messages, 'isSeller' => $isSeller, 'canMessage' => $canMessage];
     }
     
     /**
@@ -411,6 +431,50 @@ class TradingController {
             return $uploadDirRelative . $newFileName;
         }
         
+        return null;
+    }
+
+    /**
+     * Handle image upload for messages
+     * 
+     * @param array $file
+     * @return string|null Returns the relative path to the uploaded image or null on failure
+     */
+    private function handleMessageImageUpload(array $file): ?string {
+        // Validate file
+        $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!in_array($file['type'], $allowed)) {
+            error_log("Invalid image type: " . $file['type']);
+            return null;
+        }
+
+        $maxSize = 5 * 1024 * 1024; // 5MB
+        if ($file['size'] > $maxSize) {
+            error_log("Image too large: " . $file['size']);
+            return null;
+        }
+
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            error_log("Upload error: " . $file['error']);
+            return null;
+        }
+
+        // Create uploads/messages directory if it doesn't exist
+        $uploadDir = __DIR__ . '/../view/uploads/messages';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        // Generate unique filename
+        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $newFileName = uniqid('msg_', true) . '.' . $ext;
+        $targetPath = $uploadDir . '/' . $newFileName;
+
+        // Move uploaded file
+        if (move_uploaded_file($file['tmp_name'], $targetPath)) {
+            return 'uploads/messages/' . $newFileName;
+        }
+
         return null;
     }
     
