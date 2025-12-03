@@ -18,40 +18,64 @@ class TicketController {
      */
     public function generateTicket(int $idParticipation, int $idEvenement) {
         try {
+            error_log("TicketController::generateTicket() START");
+            error_log("Participation ID: $idParticipation, Event ID: $idEvenement");
+            
             // Check if ticket already exists
             $existingTicket = $this->getTicketByParticipationAndEvent($idParticipation, $idEvenement);
             if ($existingTicket) {
-                return $existingTicket; // Return existing ticket
+                error_log("Ticket already exists, returning existing ticket");
+                return $existingTicket;
             }
 
-            // Generate unique token
-            $token = Ticket::generateUniqueToken();
+            error_log("Generating unique ticket number...");
+            // Generate unique ticket number
+            $ticketNumber = 'TKT-' . strtoupper(substr(md5(uniqid(rand(), true)), 0, 10));
+            error_log("Ticket number: " . $ticketNumber);
             
-            // Create ticket object
-            $ticket = new Ticket($idParticipation, $idEvenement, $token);
-            
+            error_log("Generating QR code...");
             // Generate QR code
-            $qrCodePath = $this->generateQRCode($token, $idParticipation, $idEvenement);
-            $ticket->setQrCodePath($qrCodePath);
+            $qrCodePath = $this->generateQRCode($ticketNumber, $idParticipation, $idEvenement);
+            error_log("QR code path: " . $qrCodePath);
             
-            // Save to database
+            error_log("Saving ticket to database...");
+            // Save to database - using actual table columns (token, not ticket_number)
             $sql = "INSERT INTO tickets (id_participation, id_evenement, token, qr_code_path, status) 
                     VALUES (:id_participation, :id_evenement, :token, :qr_code_path, :status)";
             
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([
-                ':id_participation' => $ticket->getIdParticipation(),
-                ':id_evenement' => $ticket->getIdEvenement(),
-                ':token' => $ticket->getToken(),
-                ':qr_code_path' => $ticket->getQrCodePath(),
-                ':status' => $ticket->getStatus()
+            $result = $stmt->execute([
+                ':id_participation' => $idParticipation,
+                ':id_evenement' => $idEvenement,
+                ':token' => $ticketNumber,
+                ':qr_code_path' => $qrCodePath,
+                ':status' => 'active'
             ]);
             
-            $ticket->setIdTicket((int)$this->pdo->lastInsertId());
+            error_log("INSERT execute result: " . ($result ? "TRUE" : "FALSE"));
             
-            return $ticket;
+            $lastId = (int)$this->pdo->lastInsertId();
+            error_log("Last insert ID: " . $lastId);
+            
+            if ($lastId > 0) {
+                error_log("✅ Ticket generated successfully with ID: " . $lastId);
+                
+                // Create and return ticket object
+                $ticket = new Ticket($idParticipation, $idEvenement, $ticketNumber);
+                $ticket->setIdTicket($lastId);
+                $ticket->setQrCodePath($qrCodePath);
+                
+                return $ticket;
+            } else {
+                error_log("❌ Failed to get last insert ID");
+                return false;
+            }
         } catch (PDOException $e) {
-            error_log("Error generating ticket: " . $e->getMessage());
+            error_log("❌ PDOException in generateTicket: " . $e->getMessage());
+            error_log("SQL Error Code: " . $e->getCode());
+            return false;
+        } catch (Exception $e) {
+            error_log("❌ Exception in generateTicket: " . $e->getMessage());
             return false;
         }
     }
@@ -63,7 +87,7 @@ class TicketController {
      * @param int $idEvenement
      * @return string Path to QR code image
      */
-    private function generateQRCode(string $token, int $idParticipation, int $idEvenement): string {
+    private function generateQRCode(string $ticketNumber, int $idParticipation, int $idEvenement): string {
         $qrCodeDir = __DIR__ . '/../view/front/qrcodes/';
         
         // Create directory if it doesn't exist
@@ -75,8 +99,8 @@ class TicketController {
         $filename = 'ticket_' . $idParticipation . '_' . $idEvenement . '_' . time() . '.png';
         $filepath = $qrCodeDir . $filename;
         
-        // QR code content (verification URL with token)
-        $qrContent = "TICKET:" . $token . "|PARTICIPATION:" . $idParticipation . "|EVENT:" . $idEvenement;
+        // QR code content (verification URL with ticket number)
+        $qrContent = "TICKET:" . $ticketNumber . "|PARTICIPATION:" . $idParticipation . "|EVENT:" . $idEvenement;
         
         // Generate QR code (level L = Low error correction, size 4, margin 2)
         QRcode::png($qrContent, $filepath, QR_ECLEVEL_L, 4, 2);
@@ -215,11 +239,12 @@ class TicketController {
         );
         
         $ticket->setIdTicket((int)$row['id_ticket']);
-        $ticket->setStatus($row['status']);
+        $ticket->setStatus($row['status'] ?? 'active');
         
         if (isset($row['created_at'])) {
             $ticket->setCreatedAt(new DateTime($row['created_at']));
         }
+        
         if (isset($row['updated_at'])) {
             $ticket->setUpdatedAt(new DateTime($row['updated_at']));
         }

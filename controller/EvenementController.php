@@ -1,3 +1,4 @@
+
 <?php
 
 require_once __DIR__ . '/../config/database.php';
@@ -12,6 +13,26 @@ class EvenementController {
 
     public function creer(Evenement $evenement): bool {
         try {
+            // Check for duplicate event (same title, creator, and date)
+            $checkSql = "SELECT COUNT(*) FROM evenement 
+                        WHERE titre = :titre 
+                        AND createur_email = :createur_email 
+                        AND DATE(date_debut) = DATE(:date_debut)";
+            
+            $checkStmt = $this->db->prepare($checkSql);
+            $checkStmt->execute([
+                ':titre' => $evenement->getTitre(),
+                ':createur_email' => $evenement->getCreateurEmail(),
+                ':date_debut' => $evenement->getDateDebut()->format('Y-m-d H:i:s')
+            ]);
+            
+            $count = $checkStmt->fetchColumn();
+            
+            if ($count > 0) {
+                error_log("Duplicate event detected: " . $evenement->getTitre());
+                return false; // Event already exists
+            }
+            
             $sql = "INSERT INTO evenement (titre, description, date_debut, date_fin, lieu, createur_email, statut) 
                     VALUES (:titre, :description, :date_debut, :date_fin, :lieu, :createur_email, :statut)";
             

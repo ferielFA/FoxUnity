@@ -1,4 +1,14 @@
 <?php
+// CRITICAL: Clean all output buffers before generating image
+while (ob_get_level()) {
+    ob_end_clean();
+}
+ob_start();
+
+// Suppress all errors
+error_reporting(0);
+ini_set('display_errors', '0');
+
 require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../model/Ticket.php';
 
@@ -59,36 +69,15 @@ function generateTicketImage($ticketId) {
         // Ligne de séparation dorée
         imagefilledrectangle($ticket, 12, 78, $width - 12, 82, $primaryColor);
         
-        // Charger la police (utiliser une police système)
-        $fontPath = __DIR__ . '/../assets/fonts/';
-        
-        // Si pas de police custom, utiliser imagestring
+        // Use built-in fonts only for maximum compatibility
         $useCustomFont = false;
-        $fontFile = '';
-        
-        // Essayer de charger une police TrueType
-        if (file_exists($fontPath . 'Arial.ttf')) {
-            $fontFile = $fontPath . 'Arial.ttf';
-            $useCustomFont = true;
-        } elseif (file_exists('C:/Windows/Fonts/arial.ttf')) {
-            $fontFile = 'C:/Windows/Fonts/arial.ttf';
-            $useCustomFont = true;
-        }
         
         // HEADER - Titre "EVENT TICKET"
-        if ($useCustomFont) {
-            imagettftext($ticket, 28, 0, 30, 55, $primaryColor, $fontFile, "EVENT TICKET");
-        } else {
-            imagestring($ticket, 5, 30, 30, "EVENT TICKET", $primaryColor);
-        }
+        imagestring($ticket, 5, 30, 30, "EVENT TICKET", $primaryColor);
         
         // Ticket Number (top right)
         $ticketNumber = "#" . str_pad($data['id_ticket'], 6, '0', STR_PAD_LEFT);
-        if ($useCustomFont) {
-            imagettftext($ticket, 16, 0, $width - 180, 55, $grayColor, $fontFile, $ticketNumber);
-        } else {
-            imagestring($ticket, 4, $width - 150, 30, $ticketNumber, $grayColor);
-        }
+        imagestring($ticket, 4, $width - 150, 30, $ticketNumber, $grayColor);
         
         // QR CODE (Left side)
         $qrCodePath = __DIR__ . '/../view/front/' . $data['qr_code_path'];
@@ -97,69 +86,40 @@ function generateTicketImage($ticketId) {
             $qrSize = 200;
             imagecopyresampled($ticket, $qrCode, 40, 120, 0, 0, $qrSize, $qrSize, imagesx($qrCode), imagesy($qrCode));
             imagedestroy($qrCode);
-            
-            // QR Code label
-            if ($useCustomFont) {
-                imagettftext($ticket, 10, 0, 80, 335, $grayColor, $fontFile, "SCAN AT ENTRANCE");
-            } else {
-                imagestring($ticket, 2, 70, 330, "SCAN AT ENTRANCE", $grayColor);
-            }
+            imagestring($ticket, 2, 70, 330, "SCAN AT ENTRANCE", $grayColor);
         }
         
         // EVENT DETAILS (Right side)
         $startX = 280;
         $startY = 110;
-        $lineHeight = 35;
         
         // Event Title
-        if ($useCustomFont) {
-            imagettftext($ticket, 20, 0, $startX, $startY, $whiteColor, $fontFile, strtoupper(substr($data['titre'], 0, 30)));
-            
-            // Location
-            imagettftext($ticket, 12, 0, $startX, $startY + $lineHeight, $grayColor, $fontFile, "LOCATION:");
-            imagettftext($ticket, 14, 0, $startX + 100, $startY + $lineHeight, $whiteColor, $fontFile, substr($data['lieu'], 0, 25));
-            
-            // Date
-            $dateDebut = new DateTime($data['date_debut']);
-            $dateFin = new DateTime($data['date_fin']);
-            imagettftext($ticket, 12, 0, $startX, $startY + $lineHeight * 2, $grayColor, $fontFile, "DATE:");
-            imagettftext($ticket, 14, 0, $startX + 100, $startY + $lineHeight * 2, $whiteColor, $fontFile, $dateDebut->format('d/m/Y H:i'));
-            
-            // Participant
-            imagettftext($ticket, 12, 0, $startX, $startY + $lineHeight * 3, $grayColor, $fontFile, "PARTICIPANT:");
-            imagettftext($ticket, 14, 0, $startX + 130, $startY + $lineHeight * 3, $primaryColor, $fontFile, strtoupper(substr($data['nom_participant'], 0, 20)));
-            
-            // Status
-            $status = strtoupper($data['status']);
-            $statusColor = $data['status'] === 'active' ? imagecolorallocate($ticket, 46, 213, 115) : $grayColor;
-            imagettftext($ticket, 12, 0, $startX, $startY + $lineHeight * 4, $grayColor, $fontFile, "STATUS:");
-            imagettftext($ticket, 14, 0, $startX + 100, $startY + $lineHeight * 4, $statusColor, $fontFile, $status);
-        } else {
-            // Fallback to built-in fonts
-            imagestring($ticket, 5, $startX, $startY, strtoupper(substr($data['titre'], 0, 30)), $whiteColor);
-            
-            imagestring($ticket, 3, $startX, $startY + 30, "LOCATION:", $grayColor);
-            imagestring($ticket, 4, $startX + 90, $startY + 30, substr($data['lieu'], 0, 25), $whiteColor);
-            
-            $dateDebut = new DateTime($data['date_debut']);
-            imagestring($ticket, 3, $startX, $startY + 60, "DATE:", $grayColor);
-            imagestring($ticket, 4, $startX + 90, $startY + 60, $dateDebut->format('d/m/Y H:i'), $whiteColor);
-            
-            imagestring($ticket, 3, $startX, $startY + 90, "PARTICIPANT:", $grayColor);
-            imagestring($ticket, 4, $startX + 120, $startY + 90, strtoupper(substr($data['nom_participant'], 0, 20)), $primaryColor);
-            
-            $status = strtoupper($data['status']);
-            $statusColor = $data['status'] === 'active' ? imagecolorallocate($ticket, 46, 213, 115) : $grayColor;
-            imagestring($ticket, 3, $startX, $startY + 120, "STATUS:", $grayColor);
-            imagestring($ticket, 4, $startX + 90, $startY + 120, $status, $statusColor);
-        }
+        imagestring($ticket, 5, $startX, $startY, strtoupper(substr($data['titre'], 0, 30)), $whiteColor);
+        
+        // Location
+        imagestring($ticket, 3, $startX, $startY + 30, "LOCATION:", $grayColor);
+        imagestring($ticket, 4, $startX + 90, $startY + 30, substr($data['lieu'], 0, 25), $whiteColor);
+        
+        // Date
+        $dateDebut = new DateTime($data['date_debut']);
+        imagestring($ticket, 3, $startX, $startY + 60, "DATE:", $grayColor);
+        imagestring($ticket, 4, $startX + 90, $startY + 60, $dateDebut->format('d/m/Y H:i'), $whiteColor);
+        
+        // Participant
+        imagestring($ticket, 3, $startX, $startY + 90, "PARTICIPANT:", $grayColor);
+        imagestring($ticket, 4, $startX + 120, $startY + 90, strtoupper(substr($data['nom_participant'], 0, 20)), $primaryColor);
+        
+        // Status
+        $status = strtoupper($data['status']);
+        $statusColor = $data['status'] === 'active' ? imagecolorallocate($ticket, 46, 213, 115) : $grayColor;
+        imagestring($ticket, 3, $startX, $startY + 120, "STATUS:", $grayColor);
+        imagestring($ticket, 4, $startX + 90, $startY + 120, $status, $statusColor);
         
         // Footer - Nine Tailed Fox branding
-        if ($useCustomFont) {
-            imagettftext($ticket, 10, 0, $width / 2 - 100, $height - 20, $grayColor, $fontFile, "NINE TAILED FOX - 2025");
-        } else {
-            imagestring($ticket, 2, $width / 2 - 80, $height - 25, "NINE TAILED FOX - 2025", $grayColor);
-        }
+        imagestring($ticket, 2, $width / 2 - 80, $height - 25, "NINE TAILED FOX - 2025", $grayColor);
+        
+        // Clean any previous output
+        ob_clean();
         
         // Output image
         header('Content-Type: image/png');
@@ -167,7 +127,14 @@ function generateTicketImage($ticketId) {
         imagepng($ticket);
         imagedestroy($ticket);
         
+        // Flush and exit
+        ob_end_flush();
+        exit;
+        
     } catch (Exception $e) {
+        // Clean any previous output
+        ob_clean();
+        
         // Create error image
         $errorImg = imagecreatetruecolor(400, 200);
         $bgColor = imagecolorallocate($errorImg, 220, 53, 69);
@@ -177,6 +144,10 @@ function generateTicketImage($ticketId) {
         header('Content-Type: image/png');
         imagepng($errorImg);
         imagedestroy($errorImg);
+        
+        // Flush and exit
+        ob_end_flush();
+        exit;
     }
 }
 

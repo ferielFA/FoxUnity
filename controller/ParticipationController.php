@@ -15,37 +15,64 @@ class ParticipationController {
 
     public function inscrire(Participation $participation): bool {
         try {
+            error_log("ParticipationController::inscrire() START");
+            error_log("Email: " . $participation->getEmailParticipant());
+            error_log("Event ID: " . $participation->getIdEvenement());
+            
             // Check if already registered
-            if ($this->verifierInscription($participation->getEmailParticipant(), $participation->getIdEvenement())) {
+            $alreadyRegistered = $this->verifierInscription($participation->getEmailParticipant(), $participation->getIdEvenement());
+            error_log("Already registered check: " . ($alreadyRegistered ? "YES" : "NO"));
+            
+            if ($alreadyRegistered) {
+                error_log("User already registered - returning false");
                 return false;
             }
 
+            error_log("Preparing INSERT query...");
             $sql = "INSERT INTO participation (id_evenement, nom_participant, email_participant, date_participation) 
                     VALUES (:id_evenement, :nom_participant, :email_participant, :date_participation)";
             
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([
+            $params = [
                 ':id_evenement' => $participation->getIdEvenement(),
                 ':nom_participant' => $participation->getNomParticipant(),
                 ':email_participant' => $participation->getEmailParticipant(),
                 ':date_participation' => $participation->getDateParticipation()->format('Y-m-d H:i:s')
-            ]);
+            ];
+            
+            error_log("Executing INSERT with params: " . json_encode($params));
+            $executeResult = $stmt->execute($params);
+            error_log("Execute result: " . ($executeResult ? "TRUE" : "FALSE"));
             
             // Get the newly created participation ID
             $idParticipation = (int)$this->db->lastInsertId();
+            error_log("Last insert ID: " . $idParticipation);
             
-            // Automatically generate ticket for this participation
-            $this->ticketController->generateTicket($idParticipation, $participation->getIdEvenement());
-            
-            return true;
+            if ($idParticipation > 0) {
+                // Automatically generate ticket for this participation
+                error_log("Generating ticket for participation ID: " . $idParticipation);
+                $this->ticketController->generateTicket($idParticipation, $participation->getIdEvenement());
+                error_log("Ticket generated successfully");
+                return true;
+            } else {
+                error_log("ERROR: Last insert ID is 0 or negative");
+                return false;
+            }
         } catch (PDOException $e) {
-            error_log("Erreur inscription: " . $e->getMessage());
+            error_log("PDOException in inscrire: " . $e->getMessage());
+            error_log("SQL Error Code: " . $e->getCode());
+            return false;
+        } catch (Exception $e) {
+            error_log("Exception in inscrire: " . $e->getMessage());
             return false;
         }
     }
 
     public function verifierInscription(string $email, int $id_evenement): bool {
         try {
+            error_log("ParticipationController::verifierInscription() START");
+            error_log("Checking email: '$email' for event ID: $id_evenement");
+            
             $sql = "SELECT COUNT(*) FROM participation 
                     WHERE email_participant = :email AND id_evenement = :id_evenement";
             $stmt = $this->db->prepare($sql);
@@ -54,9 +81,12 @@ class ParticipationController {
                 ':id_evenement' => $id_evenement
             ]);
             
-            return $stmt->fetchColumn() > 0;
+            $count = $stmt->fetchColumn();
+            error_log("Found $count existing registrations");
+            
+            return $count > 0;
         } catch (PDOException $e) {
-            error_log("Erreur vérification: " . $e->getMessage());
+            error_log("PDOException in verifierInscription: " . $e->getMessage());
             return false;
         }
     }

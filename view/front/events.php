@@ -14,6 +14,10 @@ $currentUserEmail = isset($_GET['email']) ? htmlspecialchars($_GET['email']) : '
 
 // Handle create event form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    // Log all POST data
+    error_log("=== POST REQUEST RECEIVED ===");
+    error_log("POST data: " . print_r($_POST, true));
+    
     if ($_POST['action'] === 'create_event') {
         $evenement = new Evenement(
             null,
@@ -28,24 +32,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         if ($eventController->creer($evenement)) {
             $message = '<div class="alert success"><i class="fas fa-check-circle"></i> Event created successfully!</div>';
-            header("Location: events.php?view=my&email=" . urlencode($_POST['createur_email']));
+            header("Location: events.php?view=my&email=" . urlencode($_POST['createur_email']) . "&created=1");
             exit;
         } else {
-            $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> Error creating event.</div>';
+            $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> Event already exists or error creating event.</div>';
         }
     } elseif ($_POST['action'] === 'participate') {
-        $participation = new Participation(
-            null,
-            (int)$_POST['id_evenement'],
-            htmlspecialchars($_POST['nom_participant']),
-            htmlspecialchars($_POST['email_participant']),
-            new DateTime()
-        );
+        // Debug logging
+        error_log("=== PARTICIPATION DEBUG ===");
+        error_log("Event ID: " . $_POST['id_evenement']);
+        error_log("Nom: " . $_POST['nom_participant']);
+        error_log("Email: " . $_POST['email_participant']);
         
-        if ($participationController->inscrire($participation)) {
-            $message = '<div class="alert success"><i class="fas fa-check-circle"></i> Registration confirmed! Welcome aboard!</div>';
+        // Check if already registered BEFORE creating object
+        $isAlreadyRegistered = $participationController->verifierInscription(
+            htmlspecialchars($_POST['email_participant']), 
+            (int)$_POST['id_evenement']
+        );
+        error_log("Already registered? " . ($isAlreadyRegistered ? "YES" : "NO"));
+        
+        if ($isAlreadyRegistered) {
+            $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> You are already registered for this event!</div>';
         } else {
-            $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> Already registered or error occurred.</div>';
+            $participation = new Participation(
+                null,
+                (int)$_POST['id_evenement'],
+                htmlspecialchars($_POST['nom_participant']),
+                htmlspecialchars($_POST['email_participant']),
+                new DateTime()
+            );
+            
+            $result = $participationController->inscrire($participation);
+            error_log("Inscrire result: " . ($result ? "TRUE" : "FALSE"));
+            
+            if ($result) {
+                $message = '<div class="alert success"><i class="fas fa-check-circle"></i> Registration confirmed! Welcome aboard!</div>';
+                // Redirect to prevent form resubmission
+                header("Location: events.php?success=1");
+                exit;
+            } else {
+                $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> Error occurred during registration.</div>';
+            }
         }
     }
 }
@@ -1040,6 +1067,8 @@ if ($showMyEvents && !empty($currentUserEmail)) {
         if (participationForm) {
             participationForm.addEventListener('submit', function(e) {
                 e.preventDefault();
+                e.stopPropagation();
+                
                 Validator.clearAllErrors('participationForm');
                 
                 let isValid = true;
@@ -1071,8 +1100,10 @@ if ($showMyEvents && !empty($currentUserEmail)) {
                     Validator.clearError('email_participant');
                 }
                 
+                // If validation passes, submit the form using native DOM method
                 if (isValid) {
-                    this.submit();
+                    // Use HTMLFormElement.prototype.submit to bypass event listeners
+                    HTMLFormElement.prototype.submit.call(participationForm);
                 }
             });
             

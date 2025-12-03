@@ -1,4 +1,9 @@
 <?php
+// Suppress deprecation warnings from phpqrcode library
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_NOTICE);
+ini_set('display_errors', '0');
+set_time_limit(60);
+
 require_once __DIR__ . '/../../controller/EvenementController.php';
 require_once __DIR__ . '/../../controller/ParticipationController.php';
 require_once __DIR__ . '/../../controller/CommentController.php';
