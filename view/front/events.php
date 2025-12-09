@@ -94,6 +94,29 @@ if ($showMyEvents && !empty($currentUserEmail)) {
 } else {
     $evenements = $eventController->lireTous();
 }
+
+// Update event statuses based on current date/time
+$currentDateTime = new DateTime();
+foreach ($evenements as &$eventItem) {
+    $event = $eventItem['evenement'];
+    $dateDebut = $event->getDateDebut();
+    $dateFin = $event->getDateFin();
+    
+    // Determine real-time status
+    if ($currentDateTime > $dateFin) {
+        // Event has ended
+        $event->setStatut('completed');
+    } elseif ($currentDateTime >= $dateDebut && $currentDateTime <= $dateFin) {
+        // Event is ongoing
+        $event->setStatut('ongoing');
+    } else {
+        // Event is upcoming
+        if ($event->getStatut() !== 'cancelled') {
+            $event->setStatut('upcoming');
+        }
+    }
+}
+unset($eventItem); // Break reference
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -758,6 +781,14 @@ if ($showMyEvents && !empty($currentUserEmail)) {
                             <a href="?join=<?= $event->getIdEvenement() ?>" class="btn-join" onclick="event.stopPropagation();" data-lang-en="Join Event" data-lang-fr="Rejoindre">
                                 <i class="fas fa-user-plus"></i> <span>Join Event</span>
                             </a>
+                        <?php elseif ($event->getStatut() === 'completed'): ?>
+                            <button class="btn-join" disabled style="opacity:0.5;cursor:not-allowed;background:#6b7280" onclick="event.stopPropagation();">
+                                <i class="fas fa-check"></i> <span data-lang-en="Event Ended" data-lang-fr="Événement terminé">Event Ended</span>
+                            </button>
+                        <?php elseif ($event->getStatut() === 'ongoing'): ?>
+                            <button class="btn-join" disabled style="opacity:0.5;cursor:not-allowed;background:#10b981" onclick="event.stopPropagation();">
+                                <i class="fas fa-clock"></i> <span data-lang-en="In Progress" data-lang-fr="En cours">In Progress</span>
+                            </button>
                         <?php else: ?>
                             <button class="btn-join" disabled style="opacity:0.5;cursor:not-allowed" onclick="event.stopPropagation();" data-lang-en="Unavailable" data-lang-fr="Indisponible">
                                 <i class="fas fa-ban"></i> <span>Unavailable</span>

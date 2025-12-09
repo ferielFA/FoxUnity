@@ -446,6 +446,109 @@ if ($userEmail) {
             border-color: #f5c242;
             transform: translateX(-3px);
         }
+        
+        /* Scan Button */
+        .btn-scan {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #f5c242, #f39c12);
+            color: #000;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(245, 194, 66, 0.4);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            text-decoration: none;
+        }
+        
+        .btn-scan:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 30px rgba(245, 194, 66, 0.6);
+        }
+        
+        /* QR Scanner Modal */
+        .scanner-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .scanner-modal.active {
+            display: flex;
+        }
+        
+        .scanner-content {
+            background: linear-gradient(135deg, rgba(22, 22, 26, 0.98), rgba(27, 27, 32, 0.98));
+            border: 2px solid #f5c242;
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            position: relative;
+        }
+        
+        .scanner-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .scanner-header h2 {
+            color: #f5c242;
+            margin: 0;
+            font-family: 'Orbitron', sans-serif;
+        }
+        
+        .btn-close-scanner {
+            background: none;
+            border: none;
+            color: #ff6b6b;
+            font-size: 2rem;
+            cursor: pointer;
+            padding: 0;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-close-scanner:hover {
+            transform: rotate(90deg);
+            color: #ff4757;
+        }
+        
+        #qr-reader {
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .scanner-status {
+            text-align: center;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 8px;
+            background: rgba(245, 194, 66, 0.1);
+            color: #f5c242;
+            font-weight: 600;
+        }
 
         @media (max-width: 768px) {
             .ticket-body {
@@ -474,11 +577,30 @@ if ($userEmail) {
         <span data-lang-en="Back to Events" data-lang-fr="Retour aux Événements">Back to Events</span>
     </a>
 
-    <!-- Language Toggle -->
+    <!-- Language Toggle Button -->
     <button id="langToggle" class="lang-toggle" onclick="toggleLanguage()">
         <i class="fas fa-language"></i>
         <span id="currentLang">FR</span>
     </button>
+
+    <!-- Scan QR Code Button -->
+    <button class="btn-scan" onclick="openScanner()" title="Scan QR Code">
+        <i class="fas fa-qrcode"></i>
+    </button>
+
+    <!-- QR Scanner Modal -->
+    <div id="scannerModal" class="scanner-modal">
+        <div class="scanner-content">
+            <div class="scanner-header">
+                <h2><i class="fas fa-qrcode"></i> Scan Ticket QR Code</h2>
+                <button class="btn-close-scanner" onclick="closeScanner()">×</button>
+            </div>
+            <div id="qr-reader"></div>
+            <div id="scannerStatus" class="scanner-status">
+                <i class="fas fa-camera"></i> Point camera at QR code
+            </div>
+        </div>
+    </div>
 
     <div class="tickets-container">
         <div class="page-header">
@@ -604,11 +726,79 @@ if ($userEmail) {
         © 2025 <span>Nine Tailed Fox</span>. All Rights Reserved.
     </footer>
 
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="lang-toggle.js"></script>
     <script>
         // Initialize language
         window.addEventListener('DOMContentLoaded', () => {
             updateLanguage();
+        });
+        
+        // QR Scanner functionality
+        let html5QrCode;
+        let isScanning = false;
+        
+        function openScanner() {
+            const modal = document.getElementById('scannerModal');
+            modal.classList.add('active');
+            startScanning();
+        }
+        
+        function closeScanner() {
+            const modal = document.getElementById('scannerModal');
+            modal.classList.remove('active');
+            stopScanning();
+        }
+        
+        function startScanning() {
+            if (isScanning) return;
+            
+            const statusDiv = document.getElementById('scannerStatus');
+            statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting camera...';
+            
+            html5QrCode = new Html5Qrcode("qr-reader");
+            
+            html5QrCode.start(
+                { facingMode: "environment" },
+                {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 }
+                },
+                (decodedText, decodedResult) => {
+                    // QR code successfully scanned
+                    statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Ticket found! Loading...';
+                    stopScanning();
+                    // Redirect to scan_ticket.php with token
+                    window.location.href = 'scan_ticket.php?token=' + encodeURIComponent(decodedText);
+                },
+                (errorMessage) => {
+                    // Scanning errors (can be ignored)
+                }
+            ).then(() => {
+                isScanning = true;
+                statusDiv.innerHTML = '<i class="fas fa-camera"></i> Point camera at QR code';
+            }).catch((err) => {
+                statusDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Unable to access camera. Please check permissions.';
+                console.error('Error starting scanner:', err);
+                setTimeout(() => closeScanner(), 3000);
+            });
+        }
+        
+        function stopScanning() {
+            if (html5QrCode && isScanning) {
+                html5QrCode.stop().then(() => {
+                    isScanning = false;
+                }).catch(err => {
+                    console.error('Error stopping scanner:', err);
+                });
+            }
+        }
+        
+        // Close modal when clicking outside
+        document.getElementById('scannerModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeScanner();
+            }
         });
     </script>
 </body>

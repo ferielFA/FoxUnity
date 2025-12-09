@@ -192,6 +192,35 @@ class TicketController {
             return null;
         }
     }
+    
+    /**
+     * Get ticket by ID with full details
+     * @param int $idTicket
+     * @return array|null
+     */
+    public function getTicketById(int $idTicket): ?array {
+        try {
+            $sql = "SELECT t.*, 
+                           p.nom_participant as participant_name, 
+                           p.email_participant as participant_email, 
+                           e.titre as event_title, 
+                           e.date_debut as event_start, 
+                           e.date_fin as event_end, 
+                           e.lieu as event_location
+                    FROM tickets t
+                    INNER JOIN participation p ON t.id_participation = p.id_participation
+                    INNER JOIN evenement e ON t.id_evenement = e.id_evenement
+                    WHERE t.id_ticket = :id_ticket";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':id_ticket' => $idTicket]);
+            
+            return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        } catch (PDOException $e) {
+            error_log("Error fetching ticket by ID: " . $e->getMessage());
+            return null;
+        }
+    }
 
     /**
      * Mark ticket as used
