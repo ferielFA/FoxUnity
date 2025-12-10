@@ -130,7 +130,6 @@ if ($currentUser->getImage()) {
   
   <style>
     /* Admin Dropdown Styles - COHERENT */
-    /* Admin Dropdown Styles - COHERENT */
     .admin-dropdown {
       position: relative;
       display: inline-block;
@@ -169,28 +168,7 @@ if ($currentUser->getImage()) {
       font-size: 16px;
     }
 
-    .admin-user img {
-      width: 35px;
-      height: 35px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid #ff7a00;
-    }
-
-    .admin-user i.fa-user-circle {
-      font-size: 35px;
-      color: #ff7a00;
-    }
-
-    .admin-user span {
-      color: #fff;
-      font-weight: 600;
-      font-size: 16px;
-    }
-
     .admin-user i.fa-chevron-down {
-      font-size: 12px;
-      color: #ff7a00;
       font-size: 12px;
       color: #ff7a00;
       transition: transform 0.3s ease;
@@ -299,9 +277,6 @@ if ($currentUser->getImage()) {
       display: flex;
       flex-direction: column;
       align-items: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
     }
 
     .current-avatar {
@@ -312,22 +287,6 @@ if ($currentUser->getImage()) {
       border: 4px solid #ff7a00;
       box-shadow: 0 10px 30px rgba(255, 122, 0, 0.4);
       margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(255, 122, 0, 0.1);
-    }
-
-    .current-avatar i {
-      font-size: 80px;
-      color: #ff7a00;
-    }
-
-    .current-avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -650,7 +609,6 @@ if ($currentUser->getImage()) {
     <a href="users.php">Users</a>
     <a href="#">Shop</a>
     <a href="dashboard.php?section=trades">Trade History</a>
-    <a href="dashboard.php?section=trades">Trade History</a>
     <a href="#">Events</a>
     <a href="#">News</a>
     <a href="#">Support</a>
@@ -667,10 +625,8 @@ if ($currentUser->getImage()) {
           <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
           <?php else: ?>
           <i class="fas fa-user-circle"></i>
-          <i class="fas fa-user-circle"></i>
           <?php endif; ?>
           <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
-          <i class="fas fa-chevron-down"></i>
           <i class="fas fa-chevron-down"></i>
         </div>
         
@@ -995,13 +951,17 @@ if ($currentUser->getImage()) {
 
     // ========== PAGE TRANSITIONS ==========
     window.addEventListener("load", () => {
-      document.querySelector(".transition-screen").classList.add("hidden");
+      const transition = document.querySelector(".transition-screen");
+      if (transition) {
+        transition.classList.add("hidden");
+      }
     });
 
     document.querySelectorAll("a").forEach(link => {
       link.addEventListener("click", e => {
         const href = link.getAttribute("href");
-        if (href && !href.startsWith("#") && href !== "") {
+        // NE PAS appliquer la transition si on est en train de rediriger après un update
+        if (href && !href.startsWith("#") && href !== "" && !formSubmitPending) {
           e.preventDefault();
           const transition = document.querySelector(".transition-screen");
           transition.classList.remove("hidden");
@@ -1021,12 +981,12 @@ if ($currentUser->getImage()) {
       }
     }, 5000);
 
-    // Auto-redirect after successful update
+    // Auto-redirect after successful update - FIX DU BUG
     <?php if (isset($shouldRedirect) && $shouldRedirect): ?>
     setTimeout(function() {
+      // Pas besoin de transition ici, juste rediriger directement
       window.location.href = 'admin-profile.php';
-    }, 3000);
-    }, 3000);
+    }, 2000); // Réduit à 2 secondes
     <?php endif; ?>
   </script>
   
