@@ -1,339 +1,19 @@
 <?php
-// Simple admin CRUD for news stored in MySQL (article / categorie tables)
-// Usage: open in browser via the dashboard link
-
+// News admin page - uses NewsAdminController for MVC pattern
 require __DIR__ . '/db.php';
+require_once __DIR__ . '/../../controller/NewsAdminController.php';
+require_once __DIR__ . '/../../model/CommentRepository.php';
+require_once __DIR__ . '/../../model/helpers.php';
 
-// messages to show to admin user
-$messages = [];
-$errors = [];
-
-$action = $_GET['action'] ?? '';
-$id = $_GET['id'] ?? '';
-
-// use existing model functions for categories and articles
-require_once __DIR__ . '/../../model/article_model.php';
-require_once __DIR__ . '/../../model/category_model.php';
-require_once __DIR__ . '/../../model/comment_model.php';
-
-$categories = getCategories();
-
-// load all articles via model (handles hot column and joins)
-$data = getAllArticles();
-
-function findCategoryName($id, $categories){
-  foreach($categories as $c) if (($c['idCategorie'] ?? 0) == $id) return $c['nom'];
-  return null;
-}
-
-// Helper to save uploads and manage history (delegated to model)
+// Create directories for uploads if they don't exist
 $uploadsDir = __DIR__ . '/uploads/images';
 $historyDir = __DIR__ . '/uploads/history';
-// comments stored as JSON per-article
 $commentsDir = __DIR__ . '/uploads/comments';
 @mkdir($uploadsDir, 0755, true);
 @mkdir($historyDir, 0755, true);
 @mkdir($commentsDir, 0755, true);
-// mutes file (store muted commenter names -> expiry timestamp)
-$mutesFile = $commentsDir . '/mutes.json';
-if (!file_exists($mutesFile)) file_put_contents($mutesFile, json_encode(new stdClass()));
 
-// POST actions: add/save/delete/toggle_hot
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $act = $_POST['action'] ?? '';
-    if ($act === 'add') {
-      $postedId = preg_replace('/[^a-z0-9_-]/i', '', $_POST['id'] ?? '');
-      if (empty($postedId)) {
-        $errors[] = 'ID is required for new articles.';
-      } elseif (!preg_match('/^[a-z0-9_-]+$/i', $postedId)) {
-        $errors[] = 'ID may contain only letters, numbers, underscore and hyphen.';
-      } else {
-        // check duplicate slug
-        $dupStmt = $pdo->prepare("SELECT slug FROM article WHERE slug = ? LIMIT 1");
-        $dupStmt->execute([$postedId]);
-        if ($dupStmt->fetch()) {
-          $errors[] = 'An article with this ID already exists.';
-        }
-      }
-      if (empty($_POST['title'])) $errors[] = 'Title is required.';
-      if (empty($_POST['content'])) $errors[] = 'Content is required.';
-      if (empty($errors)) {
-        // handle image upload
-        $imagePath = '';
-        if (isset($_FILES['image_upload']['tmp_name']) && is_uploaded_file($_FILES['image_upload']['tmp_name'])) {
-          $ext = strtolower(pathinfo($_FILES['image_upload']['name'], PATHINFO_EXTENSION));
-          if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
-            $filename = uniqid('img_') . '.' . $ext;
-            $dest = $uploadsDir . '/' . $filename;
-            if (move_uploaded_file($_FILES['image_upload']['tmp_name'], $dest)) {
-              $imagePath = 'uploads/images/' . $filename;
-            }
-          }
-        }
-        // validate and resolve category
-        $postedIdCategorie = intval($_POST['idCategorie'] ?? 0);
-        $postedCategoryName = trim($_POST['category'] ?? '');
-        $validIdCategorie = null;
-        if ($postedIdCategorie > 0) {
-          foreach ($categories as $c) {
-            if (intval($c['idCategorie']) === $postedIdCategorie) { $validIdCategorie = $postedIdCategorie; break; }
-          }
-          if ($validIdCategorie === null) $validIdCategorie = 1;
-        }
-        if ($postedCategoryName) {
-          $catStmt = $pdo->prepare("SELECT idCategorie FROM categorie WHERE nom = ? LIMIT 1");
-          $catStmt->execute([$postedCategoryName]);
-          $catRow = $catStmt->fetch();
-          if ($catRow) $validIdCategorie = $catRow['idCategorie'];
-        }
-        // Build article data with hot status
-        $item = [
-          'slug' => $postedId,
-          'id_pub' => 4, // default author/admin id; adjust if needed
-          'title' => $_POST['title'],
-          'content' => $_POST['content'],
-          'excerpt' => $_POST['excerpt'] ?? '',
-          'image' => $imagePath,
-          'datePublication' => $_POST['datePublication'] ?? date('Y-m-d'),
-          'idCategorie' => $validIdCategorie,
-          'category' => $postedCategoryName,
-          'hot' => isset($_POST['hot']) && $_POST['hot'] === '1' ? 1 : 0,
-          'comments' => []
-        ];
-
-      // insert into DB
-      $stmt = $pdo->prepare("INSERT INTO article
-        (slug, id_pub, titre, contenu, excerpt, image, datePublication, idCategorie, hot)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-      $id_pub = 4; // default author/admin id; adjust if needed
-      $isHot = isset($_POST['hot']) && $_POST['hot'] === '1' ? 1 : 0;
-      $ok = $stmt->execute([
-        $postedId,
-        $id_pub,
-        $item['title'],
-        $item['content'],
-        $item['excerpt'],
-        $item['image'],
-        $item['datePublication'],
-        $validIdCategorie ?: 0,
-        $isHot
-      ]);
-
-      if ($ok) {
-        $item['idArticle'] = (int)$pdo->lastInsertId();
-        saveArticleVersion($postedId, $item, 'created');
-        $messages[] = 'Article added successfully. View it on the news page.';
-        // After 1.5 seconds, redirect to public news page (moved to front)
-        header('Refresh: 1.5; url=../front/news.php');
-      } else {
-        $errors[] = 'Failed to save article — database error.';
-      }
-    }
-    }
-    if ($act === 'save' && $id !== '') {
-      // Save existing article
-      $newTitle = $_POST['title'] ?? '';
-      $newContent = $_POST['content'] ?? '';
-      $newExcerpt = $_POST['excerpt'] ?? '';
-      $newDate = $_POST['date'] ?? '';
-      $newDatePub = $_POST['datePublication'] ?? '';
-      $newIdCategorie = intval($_POST['idCategorie'] ?? 0);
-      $newCategoryName = trim($_POST['category'] ?? '');
-      if (empty($newTitle)) $errors[] = 'Title is required.';
-      if (empty($newContent)) $errors[] = 'Content is required.';
-      if (empty($errors)) {
-        // handle image upload
-        $imagePath = $_POST['image_existing'] ?? '';
-        if (isset($_FILES['image_upload']['tmp_name']) && is_uploaded_file($_FILES['image_upload']['tmp_name'])) {
-          $ext = strtolower(pathinfo($_FILES['image_upload']['name'], PATHINFO_EXTENSION));
-          if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
-            $filename = uniqid('img_') . '.' . $ext;
-            $dest = $uploadsDir . '/' . $filename;
-            if (move_uploaded_file($_FILES['image_upload']['tmp_name'], $dest)) {
-              $imagePath = 'uploads/images/' . $filename;
-            }
-          }
-        }
-        // resolve category
-        $validNewIdCategorie = null;
-        if ($newIdCategorie > 0) {
-          foreach ($categories as $c) {
-            if (intval($c['idCategorie']) === $newIdCategorie) { $validNewIdCategorie = $newIdCategorie; break; }
-          }
-          if ($validNewIdCategorie === null) $validNewIdCategorie = 1;
-        }
-        if ($newCategoryName) {
-          $catStmt = $pdo->prepare("SELECT idCategorie FROM categorie WHERE nom = ? LIMIT 1");
-          $catStmt->execute([$newCategoryName]);
-          $catRow = $catStmt->fetch();
-          if ($catRow) $validNewIdCategorie = $catRow['idCategorie'];
-        }
-
-        $upd = $pdo->prepare("UPDATE article SET
-          titre = ?,
-          contenu = ?,
-          excerpt = ?,
-          image = ?,
-          datePublication = ?,
-          idCategorie = ?,
-          hot = ?
-        WHERE slug = ? LIMIT 1");
-        $isHot = isset($_POST['hot']) && $_POST['hot'] === '1' ? 1 : 0;
-        $ok = $upd->execute([
-          $newTitle,
-          $newContent,
-          $newExcerpt,
-          $imagePath,
-          $newDatePub,
-          $validNewIdCategorie ?: 0,
-          $isHot,
-          $id
-        ]);
-
-        if ($ok) {
-          // Ensure we have the previous article data for history (avoid undefined $current)
-          $curStmt = $pdo->prepare("SELECT
-            slug AS id,
-            titre AS title,
-            datePublication AS datePublication,
-            datePublication,
-            idCategorie,
-            excerpt,
-            contenu AS content,
-            image,
-            hot
-          FROM article WHERE slug = ? LIMIT 1");
-          $curStmt->execute([$id]);
-          $current = $curStmt->fetch() ?: [];
-          $after = $current ?: [];
-          $after['title'] = $newTitle;
-          $after['date'] = $newDate;
-          $after['datePublication'] = $newDatePub;
-          $after['idCategorie'] = $newIdCategorie;
-          $after['category'] = $newCategoryName;
-          $after['excerpt'] = $newExcerpt;
-          $after['content'] = $newContent;
-          $after['image'] = $imagePath;
-          $after['hot'] = $isHot;
-          saveArticleVersion($id, $after, 'edited');
-          $messages[] = 'Article updated successfully.';
-        } else {
-          $errors[] = 'Failed to save changes — database error.';
-        }
-      }
-    }
-    if ($act === 'delete' && $id !== '') {
-      $delStmt = $pdo->prepare("DELETE FROM article WHERE slug = ? LIMIT 1");
-      $ok = $delStmt->execute([$id]);
-      if ($ok) {
-        $messages[] = 'Article deleted.';
-      } else {
-        $errors[] = 'Failed to delete article — database error.';
-      }
-    }
-    if ($act === 'toggle_hot' && $id !== '') {
-        $toggle = $pdo->prepare("UPDATE article SET hot = NOT hot WHERE slug = ? LIMIT 1");
-        if ($toggle->execute([$id])) {
-          $check = $pdo->prepare("SELECT hot FROM article WHERE slug = ? LIMIT 1");
-          $check->execute([$id]);
-          $isHot = $check->fetchColumn();
-          $messages[] = 'Article ' . ($isHot ? 'marked as hot' : 'removed from hot news') . '.';
-        } else {
-          $errors[] = 'Failed to update hot status — database error.';
-        }
-    }
-    // Comment moderation actions: delete single comment or clear all comments for an article
-    if ($act === 'delete_comment' && !empty($_POST['slug'])) {
-      $slug = $_POST['slug'];
-      $index = isset($_POST['index']) ? intval($_POST['index']) : -1;
-      $ok = deleteEmbeddedCommentBySlug($slug, $index);
-      if ($ok) {
-        $messages[] = 'Comment deleted.';
-      } else {
-        $errors[] = 'Failed to delete comment (invalid index or storage error).';
-      }
-    }
-    if ($act === 'clear_comments' && !empty($_POST['slug'])) {
-      $slug = $_POST['slug'];
-      $ok = clearEmbeddedCommentsBySlug($slug);
-      if ($ok) {
-        $messages[] = 'All comments cleared for that article.';
-      } else {
-        $errors[] = 'Failed to clear comments for that article.';
-      }
-    }
-
-    // Mute / unmute commenter (global by name)
-    if ($act === 'mute_user' && !empty($_POST['slug'])) {
-      $slug = $_POST['slug'];
-      $name = trim($_POST['name'] ?? '');
-      $minutes = max(0, intval($_POST['minutes'] ?? 0));
-      if ($name === '' || $minutes <= 0) {
-        $errors[] = 'Name and positive minutes are required to mute.';
-      } else {
-        $mutes = json_decode(file_get_contents($mutesFile), true) ?: [];
-        $mutes[strtolower($name)] = time() + ($minutes * 60);
-        file_put_contents($mutesFile, json_encode($mutes, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-        $messages[] = 'User ' . htmlspecialchars($name) . ' muted for ' . intval($minutes) . ' minutes.';
-      }
-    }
-    if ($act === 'unmute_user' && !empty($_POST['slug'])) {
-      $slug = $_POST['slug'];
-      $name = trim($_POST['name'] ?? '');
-      if ($name === '') {
-        $errors[] = 'Name is required to unmute.';
-      } else {
-        $mutes = json_decode(file_get_contents($mutesFile), true) ?: [];
-        $key = strtolower($name);
-        if (isset($mutes[$key])) {
-          unset($mutes[$key]);
-          file_put_contents($mutesFile, json_encode($mutes, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-          $messages[] = 'User ' . htmlspecialchars($name) . ' unmuted.';
-        } else {
-          $errors[] = 'User not muted.';
-        }
-      }
-    }
-
-    // Update/edit a single comment
-    if ($act === 'update_comment' && !empty($_POST['slug'])) {
-      $slug = $_POST['slug'];
-      $index = isset($_POST['index']) ? intval($_POST['index']) : -1;
-      $name = trim($_POST['name'] ?? '');
-      $text = trim($_POST['text'] ?? '');
-      $ok = updateEmbeddedCommentBySlug($slug, $index, $name, $text);
-      if ($ok) {
-        $messages[] = 'Comment updated.';
-      } else {
-        $errors[] = 'Failed to update comment (invalid index or storage error).';
-      }
-    }
-}
-
-
-// For edit form
-$editing = null;
-if ($action === 'edit' && $id !== '') {
-    foreach ($data as $it) { if (($it['id'] ?? '') === $id) { $editing = $it; break; } }
-    // If not found in data, try direct DB query
-    if (!$editing) {
-        $editStmt = $pdo->prepare("SELECT
-          idArticle,
-          slug       AS id,
-          titre      AS title,
-          datePublication AS date,
-          datePublication,
-          image,
-          idCategorie,
-          excerpt,
-          contenu    AS content,
-          hot
-        FROM article WHERE slug = ? LIMIT 1");
-        $editStmt->execute([$id]);
-        $editing = $editStmt->fetch();
-    }
-}
-
+// Comment moderation is now handled through the database
 ?>
 <!doctype html>
 <html lang="en">
@@ -397,7 +77,7 @@ if ($action === 'edit' && $id !== '') {
               <?php endif; ?>
 
           <?php if ($action === 'new' || $editing !== null): ?>
-            <?php $it = $editing ?? ['id'=>'','title'=>'','date'=>date('d-m-Y'),'datePublication'=>date('Y-m-d'),'image'=>'','idCategorie'=>0,'category'=>'','excerpt'=>'','content'=>'','hot'=>0]; ?>
+            <?php $it = $editing ?? ['id'=>'','title'=>'','date'=>date('Y-m-d'),'datePublication'=>date('Y-m-d'),'image'=>'','idCategorie'=>0,'category'=>'','excerpt'=>'','content'=>'','hot'=>0]; ?>
             <section style="margin-top:16px">
               <h3><?php echo $editing ? 'Edit' : 'New'; ?> Article</h3>
               <form id="article-form" class="admin-form" method="post" action="news_admin.php<?php echo $editing ? '?id='.urlencode($editing['id']) : '' ;?>" enctype="multipart/form-data">
@@ -438,6 +118,65 @@ if ($action === 'edit' && $id !== '') {
                 </div>
                 <label for="fld-excerpt">Excerpt / Summary</label><textarea id="fld-excerpt" name="excerpt" rows="3"><?php echo htmlspecialchars($it['excerpt'] ?? ''); ?></textarea>
                 <label for="fld-content">Full Content</label><textarea id="fld-content" name="content" rows="8"><?php echo htmlspecialchars($it['content'] ?? ''); ?></textarea>
+
+                <?php if ($editing): ?>
+                <div style="margin-top:24px;background:#0b0b0b;padding:12px;border-radius:8px;border-left:3px solid #ff7a00">
+                  <h3 style="margin-top:0;color:#ff7a00">Comments for: <?php echo htmlspecialchars($editing['id']); ?></h3>
+                  <?php
+                  $slug = $editing['id'];
+                  $commentRepository = new CommentRepository($pdo);
+                  $comments = $commentRepository->findCommentsByArticleId($editing['idArticle']);
+
+                  if (empty($comments)) {
+                    echo '<p style="color:#bbb">No comments for this article.</p>';
+                  } else {
+                    foreach ($comments as $i => $comment) {
+                      $name = htmlspecialchars($comment->getName());
+                      $date = htmlspecialchars($comment->getCreatedAt()->format('Y-m-d H:i:s'));
+                      $text = htmlspecialchars($comment->getText());
+
+                      echo '<form method="post" action="news_admin.php" style="background:#111;padding:10px;border-radius:6px;margin-bottom:10px">';
+                      echo '<input type="hidden" name="action" value="update_comment">';
+                      echo '<input type="hidden" name="slug" value="' . htmlspecialchars($slug) . '">';
+                      echo '<input type="hidden" name="index" value="' . intval($i) . '">';
+                      echo '<div style="display:flex;gap:8px;align-items:flex-start">';
+                      echo '<div style="flex:1">';
+                      echo '<label style="color:#ccc;display:block;margin-bottom:6px">Name</label>';
+                      echo '<input name="name" value="' . $name . '" style="width:100%;padding:8px;margin-bottom:8px;background:#0b0b0b;border:1px solid #333;color:#fff;border-radius:6px">';
+                      echo '<label style="color:#ccc;display:block;margin-bottom:6px">Comment</label>';
+                      echo '<textarea name="text" rows="4" style="width:100%;padding:8px;background:#0b0b0b;border:1px solid #333;color:#fff;border-radius:6px">' . $text . '</textarea>';
+                      echo '<div style="margin-top:8px">';
+                      echo '<button class="btn" type="submit">Save</button> ';
+                      echo '</div>';
+                      echo '</div>';
+                      echo '<div style="width:140px;text-align:right;">';
+                      echo '<div style="color:#999;font-size:0.85rem;margin-bottom:12px">' . $date . '</div>';
+                      echo '</div>';
+                      echo '</div>';
+                      echo '</form>';
+                    }
+                    // Comment deletion functionality removed - only editing allowed
+                  }
+                  ?>
+ 
+                  <h3>Edit History</h3>
+                  <?php
+                  $history = $editing['history'] ?? [];
+                  if (empty($history)) {
+                    echo '<p style="color:#bbb">No edit history for this article.</p>';
+                  } else {
+                    foreach ($history as $h) {
+                      echo '<div style="background:#111;padding:10px;border-radius:6px;margin-bottom:10px">';
+                      echo '<div style="color:#999;font-size:0.85rem;margin-bottom:8px">Edited by ' . htmlspecialchars($h['edited_by_name'] ?? 'Unknown') . ' on ' . htmlspecialchars($h['edited_at']) . '</div>';
+                      echo '<strong>' . htmlspecialchars($h['titre']) . '</strong><br>';
+                      echo '<small style="color:#bbb">Excerpt: ' . htmlspecialchars(substr($h['excerpt'] ?? '', 0, 100)) . '...</small>';
+                      echo '</div>';
+                    }
+                  }
+                  ?>
+                </div>
+                <?php endif; ?>
+
                 <p>
                   <button id="btn-save" class="btn" type="submit">Save</button>
                   <a class="btn" href="news_admin.php">Cancel</a>
@@ -462,10 +201,8 @@ if ($action === 'edit' && $id !== '') {
                     <td><?php echo htmlspecialchars((findCategoryName($row['idCategorie'] ?? 0, $categories) ?? '') . (empty($row['idCategorie']) ? '' : ' (ID:'. ($row['idCategorie']) .')')); ?></td>
                     <td><?php echo $row['hot'] ? '🔥 Yes' : 'No'; ?></td>
                     <td class="admin-actions">
-                      <a href="../front/news_article.php?id=<?php echo urlencode($row['id']); ?>" target="_blank">View</a> |
                       <a href="news_admin.php?action=edit&id=<?php echo urlencode($row['id']); ?>">Edit</a> |
                       <a href="news_admin.php?action=delete&id=<?php echo urlencode($row['id']); ?>" onclick="return confirm('Delete this article?');">Delete</a>
-                      | <a href="news_admin.php?comments=<?php echo urlencode($row['id']); ?>">Comments</a>
                       <?php if ($row['hot']): ?>
                         | <a href="news_admin.php" onclick="toggleHot('<?php echo urlencode($row['id']); ?>'); return false;" style="color:#ff7a00">🔥 Hot</a>
                       <?php else: ?>
@@ -490,82 +227,6 @@ if ($action === 'edit' && $id !== '') {
               </section>
             <?php endif; ?>
 
-            <?php
-            // If comments for a specific article were requested, render them here
-            $showCommentsFor = $_GET['comments'] ?? '';
-            if ($showCommentsFor) {
-              $slug = $showCommentsFor;
-                echo '<div style="margin-top:18px;background:#0b0b0b;padding:12px;border-radius:8px;border-left:3px solid #ff7a00">';
-                echo '<h3 style="margin-top:0;color:#ff7a00">Comments for: ' . htmlspecialchars($slug) . '</h3>';
-                $list = getEmbeddedCommentsBySlug($slug);
-                if (empty($list)) {
-                  echo '<p style="color:#bbb">No comments for this article.</p>';
-                } else {
-                  foreach ($list as $i => $c) {
-                    $name = htmlspecialchars($c['name'] ?? '');
-                    $date = htmlspecialchars($c['date'] ?? '');
-                    $text = htmlspecialchars($c['text'] ?? '');
-                    // check mute status for this commenter
-                    $mutes = json_decode(file_get_contents($mutesFile), true) ?: [];
-                    $isMuted = false; $mutedUntil = 0;
-                    $lower = strtolower($c['name'] ?? '');
-                    if ($lower && isset($mutes[$lower]) && intval($mutes[$lower]) > time()) { $isMuted = true; $mutedUntil = intval($mutes[$lower]); }
-
-                    echo '<form method="post" action="news_admin.php" style="background:#111;padding:10px;border-radius:6px;margin-bottom:10px">';
-                    echo '<input type="hidden" name="action" value="update_comment">';
-                    echo '<input type="hidden" name="slug" value="' . htmlspecialchars($slug) . '">';
-                    echo '<input type="hidden" name="index" value="' . intval($i) . '">';
-                    echo '<div style="display:flex;gap:8px;align-items:flex-start">';
-                    echo '<div style="flex:1">';
-                    echo '<label style="color:#ccc;display:block;margin-bottom:6px">Name</label>';
-                    echo '<input name="name" value="' . $name . '" style="width:100%;padding:8px;margin-bottom:8px;background:#0b0b0b;border:1px solid #333;color:#fff;border-radius:6px">';
-                    echo '<label style="color:#ccc;display:block;margin-bottom:6px">Comment</label>';
-                    echo '<textarea name="text" rows="4" style="width:100%;padding:8px;background:#0b0b0b;border:1px solid #333;color:#fff;border-radius:6px">' . $text . '</textarea>';
-                    echo '<div style="margin-top:8px">';
-                    echo '<button class="btn" type="submit">Save</button> ';
-                    echo '</div>';
-                    echo '</div>';
-                    echo '<div style="width:140px;text-align:right;">';
-                    echo '<div style="color:#999;font-size:0.85rem;margin-bottom:12px">' . $date . '</div>';
-                    if ($isMuted) {
-                      echo '<div style="color:#ffb67a;font-size:0.85rem;margin-bottom:8px">Muted until: ' . date('Y-m-d H:i:s', $mutedUntil) . '</div>';
-                      echo '<form method="post" action="news_admin.php" style="margin:0">';
-                      echo '<input type="hidden" name="action" value="unmute_user">';
-                      echo '<input type="hidden" name="slug" value="' . htmlspecialchars($slug) . '">';
-                      echo '<input type="hidden" name="name" value="' . $name . '">';
-                      echo '<button class="btn" type="submit" style="background:#666;color:#fff;border-color:#666;margin-top:6px">Unmute</button>';
-                      echo '</form>';
-                    } else {
-                      echo '<div style="margin-bottom:8px">';
-                      echo '<form method="post" action="news_admin.php" style="display:flex;gap:6px;justify-content:flex-end;align-items:center;margin:0">';
-                      echo '<input type="hidden" name="action" value="mute_user">';
-                      echo '<input type="hidden" name="slug" value="' . htmlspecialchars($slug) . '">';
-                      echo '<input type="hidden" name="name" value="' . $name . '">';
-                      echo '<input type="number" name="minutes" value="60" min="1" style="width:72px;padding:6px;border-radius:6px;border:1px solid #333;background:#0b0b0b;color:#fff">';
-                      echo '<button class="btn" type="submit" style="background:#444;color:#fff;border-color:#444">Mute (min)</button>';
-                      echo '</form>';
-                      echo '</div>';
-                    }
-                    echo '<form method="post" action="news_admin.php" onsubmit="return confirm(\'Delete this comment?\')">';
-                    echo '<input type="hidden" name="action" value="delete_comment">';
-                    echo '<input type="hidden" name="slug" value="' . htmlspecialchars($slug) . '">';
-                    echo '<input type="hidden" name="index" value="' . intval($i) . '">';
-                    echo '<button class="btn" type="submit" style="background:#c33;color:#fff;border-color:#c33;margin-top:6px">Delete</button>';
-                    echo '</form>';
-                    echo '</div>';
-                    echo '</div>';
-                    echo '</form>';
-                  }
-                  echo '<form method="post" action="news_admin.php">';
-                  echo '<input type="hidden" name="action" value="clear_comments">';
-                  echo '<input type="hidden" name="slug" value="' . htmlspecialchars($slug) . '">';
-                  echo '<button class="btn" type="submit" style="background:#444;color:#fff">Clear all comments for this article</button>';
-                  echo ' <a class="btn" href="news_admin.php">Back</a>';
-                  echo '</form>';
-                }
-                echo '</div>';
-            }
-            ?>
 
           <?php endif; ?>
         </div>
@@ -610,7 +271,7 @@ if ($action === 'edit' && $id !== '') {
     }
   </style>
 
-  <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+  <!-- TinyMCE removed - using plain textarea for content -->
   <script>
     // Tab switching - ensure it works properly
     document.addEventListener('DOMContentLoaded', function(){
@@ -723,8 +384,69 @@ if ($action === 'edit' && $id !== '') {
       var currentId = <?php echo json_encode($editing['id'] ?? 'new'); ?>;
 
       document.addEventListener('DOMContentLoaded', function(){
+        console.log('DOMContentLoaded fired, currentId:', currentId);
+        console.log('Server messages:', serverMessages);
+        console.log('Server errors:', serverErrors);
         serverMessages.forEach(function(m){ if(m) toast(m,''); });
         serverErrors.forEach(function(e){ if(e) toast(e,'error'); });
+
+        // Attach button event listeners after DOM is ready
+        var btnRestore = document.getElementById('btn-restore');
+        var btnClear = document.getElementById('btn-clear-draft');
+        console.log('Buttons found after DOM ready - Restore:', !!btnRestore, 'Clear:', !!btnClear);
+
+        if(btnRestore){
+          console.log('Attaching restore button listener');
+          btnRestore.addEventListener('click', function(){
+            console.log('Restore button clicked');
+            try{
+              var key = 'news_draft_' + currentId;
+              console.log('Looking for draft with key:', key);
+              var raw = localStorage.getItem(key);
+              console.log('Raw draft data:', raw);
+              if(!raw){
+                console.log('No draft found');
+                toast('No draft found','error');
+                return;
+              }
+              var d = JSON.parse(raw);
+              console.log('Parsed draft data:', d);
+              if(document.getElementById('fld-title')) document.getElementById('fld-title').value = d.title || '';
+              if(document.getElementById('fld-date')) document.getElementById('fld-date').value = d.date || '';
+              if(document.getElementById('fld-datePublication')) document.getElementById('fld-datePublication').value = d.datePublication || '';
+              if(document.getElementById('fld-image-existing')) document.getElementById('fld-image-existing').value = d.image || '';
+              if(document.getElementById('fld-idCategorie')) document.getElementById('fld-idCategorie').value = d.idCategorie || '';
+              if(document.getElementById('fld-category')) document.getElementById('fld-category').value = d.category || '';
+              if(document.getElementById('fld-hot')) document.getElementById('fld-hot').checked = (d.hot === '1');
+              if(document.getElementById('fld-excerpt')) document.getElementById('fld-excerpt').value = d.excerpt || '';
+              if(document.getElementById('fld-content')) document.getElementById('fld-content').value = d.content || '';
+              toast('Draft restored');
+            }catch(e){
+              console.error('Restore failed:', e);
+              toast('Failed to restore draft','error');
+            }
+          });
+        } else {
+          console.error('Restore button not found!');
+        }
+
+        if(btnClear){
+          console.log('Attaching clear button listener');
+          btnClear.addEventListener('click', function(){
+            console.log('Clear button clicked');
+            try{
+              var key = 'news_draft_' + currentId;
+              console.log('Clearing draft with key:', key);
+              localStorage.removeItem(key);
+              toast('Draft cleared');
+            }catch(e){
+              console.error('Clear failed:', e);
+              toast('Failed to clear draft','error');
+            }
+          });
+        } else {
+          console.error('Clear button not found!');
+        }
       });
 
       // Autosave
@@ -735,53 +457,94 @@ if ($action === 'edit' && $id !== '') {
         var key = 'news_draft_' + currentId;
         var payload = {
           title: (document.getElementById('fld-title')||{}).value || '',
+          date: (document.getElementById('fld-date')||{}).value || '',
+          datePublication: (document.getElementById('fld-datePublication')||{}).value || '',
           image: (document.getElementById('fld-image-existing')||{}).value || '',
+          idCategorie: (document.getElementById('fld-idCategorie')||{}).value || '',
+          category: (document.getElementById('fld-category')||{}).value || '',
+          hot: (document.getElementById('fld-hot')||{}).checked ? '1' : '0',
           excerpt: (document.getElementById('fld-excerpt')||{}).value || '',
           content: (document.getElementById('fld-content')||{}).value || '',
           timestamp: Date.now()
         };
         localStorage.setItem(key, JSON.stringify(payload));
-      }catch(e){}
+        console.log('Draft saved:', key, payload);
+      }catch(e){ console.error('Autosave failed:', e); }
 
-      // Schedule autosave on input
-      ['fld-title','fld-excerpt','fld-content','fld-date','fld-datePublication'].forEach(function(id){
+      // Schedule autosave on input/change
+      ['fld-title','fld-date','fld-datePublication','fld-excerpt','fld-content','fld-category'].forEach(function(id){
         var el = document.getElementById(id);
-        if (el) el.addEventListener('input', scheduleAutosave);
+        if (el) {
+          el.addEventListener('input', function(){ console.log('Input event on', id); scheduleAutosave(); });
+        } else {
+          console.warn('Element not found:', id);
+        }
+      });
+      // For select and checkbox
+      ['fld-idCategorie'].forEach(function(id){
+        var el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('change', function(){ console.log('Change event on', id); scheduleAutosave(); });
+        } else {
+          console.warn('Element not found:', id);
+        }
+      });
+      ['fld-hot'].forEach(function(id){
+        var el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('change', function(){ console.log('Change event on', id); scheduleAutosave(); });
+        } else {
+          console.warn('Element not found:', id);
+        }
       });
 
-      // Restore / Clear
-      var btnRestore = document.getElementById('btn-restore');
-      var btnClear = document.getElementById('btn-clear-draft');
-      if(btnRestore){ btnRestore.addEventListener('click', function(){ try{
-        var key = 'news_draft_' + currentId; var raw = localStorage.getItem(key); if(!raw){ toast('No draft found','error'); return; }
-        var d = JSON.parse(raw);
-        if(document.getElementById('fld-title')) document.getElementById('fld-title').value = d.title || '';
-        if(document.getElementById('fld-image-existing')) document.getElementById('fld-image-existing').value = d.image || '';
-        if(document.getElementById('fld-excerpt')) document.getElementById('fld-excerpt').value = d.excerpt || '';
-        if(document.getElementById('fld-content')) document.getElementById('fld-content').value = d.content || '';
-        toast('Draft restored'); }catch(e){ toast('Failed to restore draft','error'); } }); }
-      if(btnClear){ btnClear.addEventListener('click', function(){ try{ localStorage.removeItem('news_draft_' + currentId); toast('Draft cleared'); }catch(e){ toast('Failed to clear draft','error'); } }); }
+      // Restore / Clear buttons are attached in DOMContentLoaded below
 
       // Clear draft if server reports success
       document.addEventListener('DOMContentLoaded', function(){
+        console.log('Clearing draft on success check - serverMessages:', serverMessages);
         if(serverMessages && serverMessages.length){
           var keys = ['added successfully','updated successfully','deleted'];
           var clear = serverMessages.some(function(m){ m = (m||'').toLowerCase(); return keys.some(function(k){ return m.indexOf(k)!==-1; }); });
-          if(clear){ try{ localStorage.removeItem('news_draft_' + currentId); }catch(e){} }
+          console.log('Should clear draft:', clear);
+          if(clear){ try{ localStorage.removeItem('news_draft_' + currentId); console.log('Draft cleared after success'); }catch(e){} }
         }
       });
 
       // Validation on submit
       var form = document.getElementById('article-form');
-      if(form){ form.addEventListener('submit', function(e){
-        var isEdit = <?php echo $editing ? 'true' : 'false'; ?>;
-        var idField = document.getElementById('fld-id');
-        var title = document.getElementById('fld-title');
-        var errors = [];
-        if(!isEdit){ if(!idField || !idField.value.trim()) errors.push('ID is required for new articles.'); else if(!/^[a-z0-9_-]+$/i.test(idField.value.trim())) errors.push('ID may contain only letters, numbers, underscore and hyphen.'); }
-        if(!title || !title.value.trim()) errors.push('Title is required.');
-        if(errors.length){ e.preventDefault(); errors.forEach(function(m){ toast(m,'error'); }); return false; }
-      }); }
+      console.log('Form found:', !!form);
+      if(form){
+        console.log('Attaching form submit listener');
+        form.addEventListener('submit', function(e){
+          console.log('Form submit triggered');
+          var isEdit = <?php echo $editing ? 'true' : 'false'; ?>;
+          console.log('isEdit:', isEdit);
+          var idField = document.getElementById('fld-id');
+          var title = document.getElementById('fld-title');
+          console.log('idField:', !!idField, 'title:', !!title);
+          var errors = [];
+          if(!isEdit){
+            if(!idField || !idField.value.trim()) {
+              errors.push('ID is required for new articles.');
+            } else if(!/^[a-z0-9_-]+$/i.test(idField.value.trim())) {
+              errors.push('ID may contain only letters, numbers, underscore and hyphen.');
+            }
+          }
+          if(!title || !title.value.trim()) {
+            errors.push('Title is required.');
+          }
+          console.log('Validation errors:', errors);
+          if(errors.length){
+            e.preventDefault();
+            errors.forEach(function(m){ toast(m,'error'); });
+            return false;
+          }
+          console.log('Form validation passed, allowing submit');
+        });
+      } else {
+        console.error('Form not found!');
+      }
 
       // Toggle hot status
       window.toggleHot = function(articleId) {

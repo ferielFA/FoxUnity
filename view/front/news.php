@@ -91,7 +91,7 @@ function findCategoryName($id, $categories){
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
-    .news-container{max-width:1280px;margin:120px auto 60px;padding:0 40px}
+    .news-container{max-width:95%;margin:120px auto 60px;padding:0 40px}
     .news-title{
       font-family:Orbitron,system-ui;
       font-size:3.6rem;
@@ -124,7 +124,7 @@ function findCategoryName($id, $categories){
     .hot-card .hot-meta p{margin:4px 0 0;font-size:0.9rem;color:#bbb}
     .news-grid{
       display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(360px,1fr));
+      grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
       gap:32px;
       margin-bottom:40px;
     }
@@ -304,6 +304,11 @@ function findCategoryName($id, $categories){
       .news-card-title{font-size:1.1rem}
       .news-card-excerpt{font-size:0.9rem;line-height:1.5}
     }
+    @media (max-width: 900px) {
+        .news-layout { flex-direction: column; }
+        .news-sidebar { width: 100% !important; margin-top: 40px; }
+        .subscribe-box { position: static !important; }
+    }
   </style>
 </head>
 <body>
@@ -384,33 +389,132 @@ function findCategoryName($id, $categories){
         </div>
       </div>
 
-    <div class="news-grid" id="news-grid">
-      <?php foreach ($articles as $a): ?>
-        <?php 
-          $dispCat = !empty($a['idCategorie']) ? ($a['category'] ?? '') : ($a['category'] ?? '');
-          $imgPath = getImagePath($a['image'] ?? '');
-          // Mark as new if datePublication is today
-          $isNew = (($a['date'] ?? '') === date('Y-m-d')) ? 'new-article' : '';
-          // reading time computed from content words
-          $plain = strip_tags($a['content'] ?? '');
-          $words = str_word_count($plain);
-          $rt = max(1, (int)ceil($words/200));
-        ?>
-        <div id="news-<?php echo htmlspecialchars($a['id']); ?>" class="news-card <?php echo $isNew; ?>">
-          <div class="news-card-image">
-            <img src="<?php echo htmlspecialchars($imgPath); ?>" alt="<?php echo htmlspecialchars($a['title'] ?? ''); ?>" onerror="this.src='../images/nopic.png'">
-          </div>
-          <div class="news-card-content">
-            <div class="news-card-date"><?php echo htmlspecialchars($a['date'] ?? ''); ?> • <?php echo htmlspecialchars($dispCat); ?> <span class="reading-time-badge"><?php echo $rt; ?> min</span></div>
-            <h2 class="news-card-title"><?php echo htmlspecialchars($a['title'] ?? ''); ?></h2>
-            <p class="news-card-excerpt"><?php echo htmlspecialchars($a['excerpt'] ?? ''); ?></p>
-            <div style="display:flex;gap:8px;align-items:center;justify-content:flex-start">
-              <a class="read-more" href="news_article.php?id=<?php echo urlencode($a['id']); ?>">Read More →</a>
-              <button class="read-later-btn" data-slug="<?php echo htmlspecialchars($a['id']); ?>">Save</button>
+    <!-- Layout: Sidebar + Main Grid -->
+    <div class="news-layout" style="display:flex;gap:40px;align-items:flex-start;">
+      
+      <!-- Main Content -->
+      <div class="news-main" style="flex:1;">
+        <div class="news-grid" id="news-grid">
+          <?php foreach ($articles as $a): ?>
+            <?php 
+              $dispCat = !empty($a['idCategorie']) ? ($a['category'] ?? '') : ($a['category'] ?? '');
+              $imgPath = getImagePath($a['image'] ?? '');
+              $isNew = (($a['date'] ?? '') === date('Y-m-d')) ? 'new-article' : '';
+              $plain = strip_tags($a['content'] ?? '');
+              $words = str_word_count($plain);
+              $rt = max(1, (int)ceil($words/200));
+            ?>
+            <div id="news-<?php echo htmlspecialchars($a['id']); ?>" class="news-card <?php echo $isNew; ?>">
+              <div class="news-card-image">
+                <img src="<?php echo htmlspecialchars($imgPath); ?>" alt="<?php echo htmlspecialchars($a['title'] ?? ''); ?>" onerror="this.src='../images/nopic.png'">
+              </div>
+              <div class="news-card-content">
+                <div class="news-card-date"><?php echo htmlspecialchars($a['date'] ?? ''); ?> • <?php echo htmlspecialchars($dispCat); ?> <span class="reading-time-badge"><?php echo $rt; ?> min</span></div>
+                <h2 class="news-card-title"><?php echo htmlspecialchars($a['title'] ?? ''); ?></h2>
+                <p class="news-card-excerpt"><?php echo htmlspecialchars($a['excerpt'] ?? ''); ?></p>
+                <div style="display:flex;gap:8px;align-items:center;justify-content:flex-start">
+                  <a class="read-more" href="news_article.php?id=<?php echo urlencode($a['id']); ?>">Read More →</a>
+                  <button class="read-later-btn" data-slug="<?php echo htmlspecialchars($a['id']); ?>">Save</button>
+                </div>
+              </div>
             </div>
-          </div>
+          <?php endforeach; ?>
         </div>
-      <?php endforeach; ?>
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="news-sidebar" style="width:280px;flex-shrink:0;">
+        <style>
+          .cat-dropdown-btn {
+            width: 100%;
+            padding: 10px;
+            background: #222;
+            border: 1px solid #444;
+            color: #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+          .cat-dropdown-content {
+            display: none;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-top: none;
+            max-height: 200px;
+            overflow-y: auto;
+            border-radius: 0 0 4px 4px;
+            padding: 8px;
+          }
+          .cat-dropdown-content.show {
+            display: block;
+          }
+          .cat-dropdown-content label {
+            display: flex;
+            align-items: center;
+            padding: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+            color: #ddd;
+            font-size: 0.9rem;
+          }
+          .cat-dropdown-content label:hover {
+            background: #333;
+          }
+          .cat-dropdown-content input {
+            margin-right: 8px;
+            accent-color: #f90;
+          }
+        </style>
+
+        <!-- Subscription Form -->
+        <div class="subscribe-box" style="background:linear-gradient(135deg, rgba(30,30,30,0.9), rgba(20,20,20,0.95)); padding:20px; border-radius:12px; border:1px solid rgba(255,120,0,0.2); position:sticky; top:120px;">
+          <h3 style="font-family: Orbitron; margin-bottom:12px; color:#f90; font-size:1.2rem;">Subscribe to Updates</h3>
+          <p style="margin-bottom:16px; color:#ccc; font-size:0.9rem; line-height:1.4;">Get notified when HOT news land in your favorite categories.</p>
+          
+          <?php if (!empty($_GET['msg'])): ?>
+            <div style="background:#0f03; color:#eff; padding:8px; margin-bottom:12px; border-radius:4px; font-size:0.85rem;">
+              <?php echo htmlspecialchars($_GET['msg']); ?>
+            </div>
+          <?php endif; ?>
+          <?php if (!empty($_GET['err'])): ?>
+            <div style="background:#f003; color:#fee; padding:8px; margin-bottom:12px; border-radius:4px; font-size:0.85rem;">
+              <?php echo htmlspecialchars($_GET['err']); ?>
+            </div>
+          <?php endif; ?>
+
+          <form action="/projet_web/controller/NewsletterController.php" method="POST">
+            <input type="hidden" name="action" value="subscribe">
+            
+            <label for="email" style="display:block; margin-bottom:4px; color:#aaa; font-size:0.85rem;">Email Address</label>
+            <input type="email" name="email" required style="width:100%; padding:8px; margin-bottom:12px; background:#111; border:1px solid #444; color:#fff; border-radius:4px; font-size:0.9rem;">
+            
+            <label style="display:block; margin-bottom:8px; color:#aaa; font-size:0.85rem;">Interests</label>
+            <div style="margin-bottom:16px;">
+              <div class="cat-dropdown-btn" onclick="this.nextElementSibling.classList.toggle('show'); this.querySelector('span').textContent = this.nextElementSibling.classList.contains('show') ? '▲' : '▼';">
+                Select Categories <span>▼</span>
+              </div>
+              <div class="cat-dropdown-content">
+                <?php 
+               if (!isset($allCategories)) {
+                   $allCategories = $pdo->query("SELECT * FROM categorie ORDER BY nom")->fetchAll();
+               }
+               foreach ($allCategories as $c): ?>
+                <label>
+                  <input type="checkbox" name="categories[]" value="<?php echo $c['idCategorie']; ?>">
+                  <?php echo htmlspecialchars($c['nom']); ?>
+                </label>
+              <?php endforeach; ?>
+              </div>
+            </div>
+            
+            <button type="submit" style="background:linear-gradient(90deg, #ff7a00, #ff5500); color:#fff; padding:10px; border:none; border-radius:4px; font-weight:bold; cursor:pointer; width:100%; text-transform:uppercase; letter-spacing:1px; font-size:0.9rem; transition:0.3s; margin-top:5px;">Subscribe Now</button>
+          </form>
+        </div>
+      </aside>
+
     </div>
     <div class="pagination" id="news-pagination" style="justify-content:center"></div>
     

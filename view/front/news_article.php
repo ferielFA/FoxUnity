@@ -3,35 +3,9 @@
 // Shows a single news article with comments
 
 require __DIR__ . '/../back/db.php';
-require_once __DIR__ . '/../../model/comment_model.php';
-
-// Helper to resolve image paths and check if they exist
-function getImagePath($imagePath) {
-  if (empty($imagePath)) return '../images/nopic.png';
-  // If path starts with uploads/, prefer front uploads then back uploads
-  if (strpos($imagePath, 'uploads/') === 0) {
-    $frontFull = __DIR__ . '/' . $imagePath;
-    if (file_exists($frontFull)) return $imagePath;
-    $backFull = __DIR__ . '/../back/' . $imagePath;
-    if (file_exists($backFull)) return '../back/' . $imagePath;
-  }
-  // If path starts with ../, it's already relative to this file
-  if (strpos($imagePath, '../') === 0) {
-    $fullPath = __DIR__ . '/' . $imagePath;
-    if (file_exists($fullPath)) return $imagePath;
-  }
-  // If path looks like images/ (relative to view), check view/images
-  if (strpos($imagePath, 'images/') === 0) {
-    $fullPath = __DIR__ . '/../' . $imagePath;
-    if (file_exists($fullPath)) return '../' . $imagePath;
-  }
-  return '../images/nopic.png';
-}
-
-function findCategoryName($id, $categories){
-  foreach($categories as $c) if (($c['idCategorie'] ?? 0) == $id) return $c['nom'];
-  return null;
-}
+require_once __DIR__ . '/../../model/helpers.php';
+require_once __DIR__ . '/../../model/Comment.php';
+require_once __DIR__ . '/../../model/CommentRepository.php';
 
 // Load categories for display names
 $catStmt = $pdo->query("SELECT idCategorie, nom, description FROM categorie ORDER BY nom");
@@ -70,12 +44,26 @@ if (!$a) {
 // Keep a defined variable to avoid undefined warnings. Set to true only when explicit admin mode is required.
 $isAdmin = false;
 
-// Comments handling: use embedded comments in article.comments when available,
-// otherwise fall back to file-backed comments in view/front/uploads/comments
+// Comments handling: use database-backed comments
+$commentRepository = new CommentRepository($pdo);
+$comments = $commentRepository->findCommentsByArticleId($a['idArticle']);
+
+// Convert Comment objects to array format for template compatibility
+$commentsArray = [];
+foreach ($comments as $comment) {
+    $commentsArray[] = [
+        'name' => $comment->getName(),
+        'email' => $comment->getEmail(),
+        'text' => $comment->getText(),
+        'date' => $comment->getCreatedAt()->format('Y-m-d H:i:s')
+    ];
+}
+$comments = $commentsArray;
+
+// Mutes handling (keeping for compatibility)
 $mutesFile = __DIR__ . '/uploads/comments/mutes.json';
 @mkdir(dirname($mutesFile), 0755, true);
 if (!file_exists($mutesFile)) file_put_contents($mutesFile, json_encode(new stdClass()));
-$comments = getEmbeddedCommentsBySlug($slug);
 
 // Handle public comment POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment_submit'])) {
@@ -94,12 +82,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment_submit'])) {
   }
 
     if (empty($errors)) {
-      // Save via model (embedded or fallback)
-      addEmbeddedCommentBySlug($slug, $name, '', $text);
-      // redirect to avoid repost
-      header('Location: news_article.php?id=' . urlencode($slug) . '#comments');
-      exit;
-    }
+        // Save via database repository
+        $newComment = new Comment(null, $a['idArticle'], $name, '', $text);
+        $commentRepository->save($newComment);
+        // redirect to avoid repost
+        header('Location: news_article.php?id=' . urlencode($slug) . '#comments');
+        exit;
+      }
 }
 ?>
 <!DOCTYPE html>
@@ -411,9 +400,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment_submit'])) {
           <button type="submit" name="comment_submit" style="background:#ff7a00;color:#000;padding:8px 12px;border-radius:6px;border:0;cursor:pointer">Post Comment</button>
         </form>
       </div>
-    </div>
-  </main>
-
   <?php if ($isAdmin): ?>
   <script>
     // AJAX handlers for admin comment edit/delete/clear

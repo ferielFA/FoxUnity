@@ -1,7 +1,7 @@
 <?php
 // Categories management page (admin view)
 require __DIR__ . '/db.php';
-require_once __DIR__ . '/../../controller/categories_admin.php';
+require_once __DIR__ . '/../../controller/CategoryController.php';
 ?>
 <!doctype html>
 <html lang="en">

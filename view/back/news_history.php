@@ -3,18 +3,25 @@
 // Usage: Access via dashboard sidebar "News History" link
 
 require __DIR__ . '/db.php';
+require_once __DIR__ . '/../../model/ArticleRepository.php';
 
-// Helper to manage history
-$historyDir = __DIR__ . '/uploads/history';
-@mkdir($historyDir, 0755, true);
+$articleRepository = new ArticleRepository($pdo);
 
 // Load categories for display names
 $catStmt = $pdo->query("SELECT idCategorie, nom, description FROM categorie ORDER BY nom");
 $categories = $catStmt->fetchAll();
 
-function findCategoryName($id, $categories){
-  foreach($categories as $c) if (($c['idCategorie'] ?? 0) == $id) return $c['nom'];
-  return null;
+// Get all articles with their history
+$articles = $articleRepository->getAll();
+$historyData = [];
+foreach ($articles as $article) {
+  $history = $articleRepository->getHistoryByArticleId($article['idArticle']);
+  if (!empty($history)) {
+    $historyData[$article['idArticle']] = [
+      'article' => $article,
+      'history' => $history
+    ];
+  }
 }
 ?>
 <!doctype html>
@@ -58,27 +65,21 @@ function findCategoryName($id, $categories){
       <div class="card" style="width:100%">
         <h2 style="margin:0 0 16px">Article Edit History</h2>
         <div id="history-list" style="max-height:600px;overflow-y:auto">
-          <?php 
-            $historyFiles = glob($historyDir . '/*.json') ?: [];
-            if (empty($historyFiles)): ?>
+          <?php if (empty($historyData)): ?>
             <p style="color:#bbb">No history available yet.</p>
           <?php else:
-            foreach ($historyFiles as $hf) {
-              $versions = json_decode(file_get_contents($hf), true) ?: [];
-              if (empty($versions)) continue;
-              $articleId = $versions[count($versions)-1]['article']['id'] ?? 'unknown';
+            foreach ($historyData as $articleId => $data) {
+              $article = $data['article'];
+              $history = $data['history'];
               echo '<div style="background:#111;padding:12px;border-radius:8px;margin-bottom:12px;border-left:3px solid #ff7a00">';
-              echo '<strong>' . htmlspecialchars($articleId) . '</strong> (' . count($versions) . ' version' . (count($versions)!==1?'s':'') . ')<br>';
+              echo '<strong>' . htmlspecialchars($article['title']) . '</strong> (' . count($history) . ' edit' . (count($history)!==1?'s':'') . ')<br>';
               echo '<table style="width:100%;margin-top:8px;font-size:0.85rem;border-collapse:collapse">';
-              echo '<thead><tr style="border-bottom:1px solid #333"><th style="text-align:left;padding:6px">Timestamp</th><th style="text-align:left;padding:6px">Action</th></tr></thead><tbody>';
-              foreach ($versions as $idx => $v) {
-                $ts = $v['timestamp'] ?? '';
-                $act = $v['action'] ?? '';
-                $art = $v['article'] ?? [];
-                echo '<tr style="border-bottom:1px solid #222"><td style="padding:6px">' . htmlspecialchars($ts) . '</td><td style="padding:6px">' . htmlspecialchars($act) . '</td>';
-                if ($act !== 'deleted') {
-                  echo '<td style="padding:6px"><form method="post" action="news_admin.php?action=restore" style="display:inline"><input type="hidden" name="restore_data" value="' . htmlspecialchars(json_encode($art)) . '"><button type="submit" class="btn" style="padding:4px 8px;font-size:0.8rem">Restore</button></form></td>';
-                }
+              echo '<thead><tr style="border-bottom:1px solid #333"><th style="text-align:left;padding:6px">Edited At</th><th style="text-align:left;padding:6px">Edited By</th><th style="text-align:left;padding:6px">Title</th></tr></thead><tbody>';
+              foreach ($history as $h) {
+                echo '<tr style="border-bottom:1px solid #222">';
+                echo '<td style="padding:6px">' . htmlspecialchars($h['edited_at']) . '</td>';
+                echo '<td style="padding:6px">' . htmlspecialchars($h['edited_by_name'] ?? 'Unknown') . '</td>';
+                echo '<td style="padding:6px">' . htmlspecialchars($h['titre']) . '</td>';
                 echo '</tr>';
               }
               echo '</tbody></table>';

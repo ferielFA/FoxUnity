@@ -39,6 +39,7 @@ CREATE TABLE `article` (
   `titre` varchar(255) NOT NULL,
   `contenu` text NOT NULL,
   `excerpt` text DEFAULT NULL,
+  `summary` text DEFAULT NULL,
   `image` varchar(255) DEFAULT NULL,
   `displayDate` varchar(50) DEFAULT NULL,
   `datePublication` date DEFAULT curdate(),
@@ -230,6 +231,26 @@ CREATE TABLE `trade` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `article_history`
+--
+
+CREATE TABLE `article_history` (
+  `id_history` int(11) NOT NULL,
+  `idArticle` int(11) NOT NULL,
+  `slug` varchar(150) NOT NULL,
+  `titre` varchar(255) NOT NULL,
+  `contenu` text NOT NULL,
+  `excerpt` text DEFAULT NULL,
+  `summary` text DEFAULT NULL,
+  `image` varchar(255) DEFAULT NULL,
+  `datePublication` date DEFAULT NULL,
+  `idCategorie` int(11) DEFAULT NULL,
+  `hot` tinyint(1) NOT NULL DEFAULT 0,
+  `edited_by` int(11) NOT NULL,
+  `edited_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
 -- Table structure for table `users`
 --
 
@@ -254,6 +275,15 @@ INSERT INTO `users` (`id`, `username`, `email`, `dob`, `password`, `gender`, `ro
 (5, 'Lou', 'lou@gmail.com', '2005-10-15', '$2y$10$tD4qViTauGoJXlaSVlG72egrt.RX74tUCMi.U8tauQZtECPT8H6Ra', 'Male', 'Gamer', 'active', NULL),
 (6, 'SkrrtTn', 'yassinebenmustapha05@gmail.com', '2005-09-17', '$2y$10$TEb29MhesF/CSkw.n/D8u.kmcOD.kGnJqvs/FTXj1rB6fr1LwOI4C', 'Male', 'Admin', 'active', NULL),
 (7, 'Fifi', 'ferielayari19@gmail.com', '2005-07-27', '$2y$10$Bwl8JszmGDaIZudfmvlUTOnlOw/REOqL7pTqsVv2WxyeDdm49/ary', 'Female', 'Gamer', 'active', NULL);
+
+--
+-- Dumping data for table `article`
+--
+
+INSERT INTO `article` (`idArticle`, `slug`, `id_pub`, `titre`, `contenu`, `excerpt`, `summary`, `image`, `displayDate`, `datePublication`, `idCategorie`, `category`, `hot`, `comments`, `comments_count`, `created_at`, `updated_at`) VALUES
+(1, 'cs2-major-update', 4, 'Counter-Strike 2 Major Update Released', 'Valve has released a major update for Counter-Strike 2, introducing new maps, weapons, and gameplay improvements. The update includes the new Dust 2 map rework and several balance changes to make the game more competitive.\n\n## New Features\n- Reworked Dust 2 map\n- New weapon skins\n- Improved matchmaking system\n\nThe community is excited about these changes.', 'Valve releases major CS2 update with new maps and balance changes.', 'Valve has released a major update for Counter-Strike 2 featuring a reworked Dust 2 map, new weapon skins, and improved matchmaking to enhance competitive gameplay.', 'uploads/images/img_69272abf42567.jpg', '2025-11-17', '2025-11-17', 1, 'Gaming News', 1, NULL, 0, '2025-11-17 10:00:00', '2025-11-17 10:00:00'),
+(2, 'dota-2-tournament', 6, 'Dota 2 International Tournament Results', 'The Dota 2 International tournament has concluded with Team Spirit winning the championship. The tournament featured 18 teams competing for a $40 million prize pool.\n\n## Final Standings\n1. Team Spirit\n2. PSG.LGD\n3. Tundra Esports\n\nCongratulations to all participants!', 'Team Spirit wins Dota 2 International with record-breaking prize pool.', 'Team Spirit emerged victorious in the Dota 2 International tournament, securing the championship with a massive $40 million prize pool distributed among 18 competing teams.', 'uploads/images/img_69272c0000426.jpg', '2025-11-16', '2025-11-16', 2, 'eSports', 0, NULL, 0, '2025-11-16 15:30:00', '2025-11-16 15:30:00'),
+(3, 'intel-arc-gaming', 5, 'Intel Arc GPUs Now Optimized for Gaming', 'Intel has announced optimizations for their Arc GPUs, making them more suitable for gaming. The new drivers improve performance in popular titles like Cyberpunk 2077 and Forza Horizon 5.\n\n## Performance Improvements\n- 20% better frame rates\n- Reduced latency\n- Better ray tracing support\n\nGamers can expect a smoother experience with these updates.', 'Intel Arc GPUs receive major gaming optimizations and driver updates.', 'Intel has optimized their Arc GPUs for gaming with new drivers that deliver 20% better frame rates, reduced latency, and improved ray tracing support for titles like Cyberpunk 2077.', 'uploads/images/img_69272c3585e78.jpg', '2025-11-15', '2025-11-15', 3, 'Reviews', 0, NULL, 0, '2025-11-15 12:00:00', '2025-11-15 12:00:00');
 
 --
 -- Indexes for dumped tables
@@ -341,6 +371,15 @@ ALTER TABLE `trade`
   ADD KEY `idx_trade_seller` (`seller_id`);
 
 --
+-- Indexes for table `article_history`
+--
+ALTER TABLE `article_history`
+  ADD PRIMARY KEY (`id_history`),
+  ADD KEY `idx_history_article` (`idArticle`),
+  ADD KEY `idx_history_edited_by` (`edited_by`),
+  ADD KEY `idx_history_edited_at` (`edited_at`);
+
+--
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
@@ -358,6 +397,12 @@ ALTER TABLE `users`
 --
 ALTER TABLE `article`
   MODIFY `idArticle` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `article_history`
+--
+ALTER TABLE `article_history`
+  MODIFY `id_history` int(11) NOT NULL AUTO_INCREMENT;
 
 -- AUTO_INCREMENT for table `comments`
 --
@@ -434,6 +479,13 @@ ALTER TABLE `users`
 ALTER TABLE `article`
   ADD CONSTRAINT `article_ibfk_1` FOREIGN KEY (`id_pub`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `article_ibfk_2` FOREIGN KEY (`idCategorie`) REFERENCES `categorie` (`idCategorie`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `article_history`
+--
+ALTER TABLE `article_history`
+  ADD CONSTRAINT `article_history_ibfk_1` FOREIGN KEY (`idArticle`) REFERENCES `article` (`idArticle`) ON DELETE CASCADE,
+  ADD CONSTRAINT `article_history_ibfk_2` FOREIGN KEY (`edited_by`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `evenement`

@@ -24,6 +24,7 @@
     <a href="#">Trade History</a>
     <a href="#">Events</a>
     <a href="news_admin.php">News</a>
+    <a href="newsletter_admin.php">Newsletter</a>
     <a href="#">Support</a>
     <a href="../front/indexf.php">← Return Homepage</a>
   </div>
