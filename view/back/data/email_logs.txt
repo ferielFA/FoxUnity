@@ -1,0 +1,2 @@
+[2025-12-10 17:34:02] FAILED (Check PHP mail setup) TO: rayenkabar780@gmail.com | SUB: Welcome to FoxUnity News! (Welcome)
+[2025-12-10 18:38:24] FAILED (Check PHP mail setup) TO: rayenkabar780@gmail.com | SUB: Welcome to FoxUnity News! (Welcome)

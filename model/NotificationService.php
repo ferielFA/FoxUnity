@@ -37,6 +37,38 @@ class NotificationService {
         return $count;
     }
 
+    public function sendWelcomeEmail($email) {
+        $subject = "Welcome to FoxUnity News!";
+        $message = "
+        <html>
+        <head><title>$subject</title></head>
+        <body style='background:#111;color:#ddd;font-family:sans-serif;padding:20px;'>
+          <h2 style='color:#ff9900;'>Subscription Successful!</h2>
+          <p>Thank you for subscribing to FoxUnity News. You will now receive updates on the hottest gaming news.</p>
+          <hr style='border:1px solid #333;'>
+          <p style='font-size:0.8rem;color:#888;'>FoxUnity Team</p>
+        </body>
+        </html>
+        ";
+        
+        $headers = "MIME-Version: 1.0" . "\r\n";
+        $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
+        $headers .= "From: FoxUnity <no-reply@foxunity.com>" . "\r\n";
+
+        $status = "FAILED";
+        if (mail($email, $subject, $message, $headers)) {
+            $status = "SENT";
+        } else {
+            $status = "FAILED (Check PHP mail setup)";
+        }
+        
+        $date = date('Y-m-d H:i:s');
+        $logEntry = "[$date] $status TO: $email | SUB: $subject (Welcome)\n";
+        file_put_contents($this->logFile, $logEntry, FILE_APPEND);
+        
+        return $status === "SENT";
+    }
+
     private function simulateEmail($to, $article) {
         $date = date('Y-m-d H:i:s');
         $subject = "🔥 Hot News: " . $article['title'];

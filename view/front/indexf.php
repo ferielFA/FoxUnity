@@ -7,40 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        /* Cart icon styling */
-        .cart-icon {
-            color: #ff7a00 !important;
-            position: relative;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        
-        .cart-icon:hover {
-            color: #ff9933 !important;
-            transform: translateY(-2px);
-        }
-        
-        .cart-icon i {
-            color: #ff7a00;
-            font-size: 18px;
-        }
-        
-        .cart-count {
-            background: linear-gradient(135deg, #ff7a00, #ff4f00);
-            color: white;
-            border-radius: 50%;
-            padding: 2px 6px;
-            font-size: 11px;
-            font-weight: 700;
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            min-width: 18px;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(255, 122, 0, 0.4);
-        }
-    </style>
+
 </head>
 <body>
     <!-- Animated red bubbles -->
@@ -558,6 +525,40 @@
             .support-image i {
                 font-size: 150px;
             }
+        }
+    </style>
+    <style>
+        /* Cart icon styling */
+        .cart-icon {
+            color: #ff7a00 !important;
+            position: relative;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .cart-icon:hover {
+            color: #ff9933 !important;
+            transform: translateY(-2px);
+        }
+        
+        .cart-icon i {
+            color: #ff7a00;
+            font-size: 18px;
+        }
+        
+        .cart-count {
+            background: linear-gradient(135deg, #ff7a00, #ff4f00);
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: 700;
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            min-width: 18px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(255, 122, 0, 0.4);
         }
     </style>
 

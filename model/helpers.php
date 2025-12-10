@@ -1,120 +1,83 @@
 <?php
-// Helpers shared by views/controllers
+/**
+ * Helper functions for the model layer.
+ */
 
-function getImagePath($imagePath) {
-    if (empty($imagePath)) return '../images/nopic.png';
-    if (strpos($imagePath, 'uploads/') === 0) {
-        $fullPath = __DIR__ . '/../view/back/' . $imagePath;
-        if (file_exists($fullPath)) return '../back/' . $imagePath;
-    }
-    if (strpos($imagePath, '../') === 0) {
-        $fullPath = __DIR__ . '/../view/back/' . $imagePath;
-        if (file_exists($fullPath)) return '../back/' . $imagePath;
-    }
-    if (strpos($imagePath, 'images/') === 0 || strpos($imagePath, '../images/') === 0) {
-        return $imagePath;
-    }
-    return '../images/nopic.png';
-}
-
-function findCategoryName($id, $categories){
-  foreach($categories as $c) if (($c['idCategorie'] ?? 0) == $id) return $c['nom'];
-  return null;
-}
-
-// Comment management functions (to be moved to proper model/repository later)
-function deleteEmbeddedCommentBySlug($slug, $index) {
-    $commentsDir = __DIR__ . '/../view/back/uploads/comments';
-    $commentFile = $commentsDir . '/' . $slug . '.json';
-    
-    if (!file_exists($commentFile)) {
-        return false;
-    }
-    
-    $comments = json_decode(file_get_contents($commentFile), true);
-    if (!is_array($comments) || !isset($comments[$index])) {
-        return false;
-    }
-    
-    unset($comments[$index]);
-    $comments = array_values($comments); // Re-index array
-    
-    return file_put_contents($commentFile, json_encode($comments)) !== false;
-}
-
-function getEmbeddedCommentsBySlug($slug) {
-    $commentsDir = __DIR__ . '/../view/back/uploads/comments';
-    $commentFile = $commentsDir . '/' . $slug . '.json';
-    
-    if (!file_exists($commentFile)) {
-        return [];
-    }
-    
-    $comments = json_decode(file_get_contents($commentFile), true);
-    return is_array($comments) ? $comments : [];
-}
-
-function clearEmbeddedCommentsBySlug($slug) {
-    $commentsDir = __DIR__ . '/../view/back/uploads/comments';
-    $commentFile = $commentsDir . '/' . $slug . '.json';
-    
-    if (file_exists($commentFile)) {
-        return unlink($commentFile);
-    }
-    
-    return true; // Nothing to clear is considered success
-}
-
-function addEmbeddedCommentBySlug($slug, $name, $email, $text) {
-    $commentsDir = __DIR__ . '/../view/back/uploads/comments';
-    @mkdir($commentsDir, 0755, true);
-    $commentFile = $commentsDir . '/' . $slug . '.json';
-
-    $comments = [];
-    if (file_exists($commentFile)) {
-        $comments = json_decode(file_get_contents($commentFile), true);
-        if (!is_array($comments)) {
-            $comments = [];
+if (!function_exists('generateArticleSummary')) {
+    function generateArticleSummary($content, $title) {
+        // Simple summary generation: take first 150 chars of content
+        $cleanContent = strip_tags($content);
+        if (strlen($cleanContent) > 150) {
+            return substr($cleanContent, 0, 150) . '...';
         }
+        return $cleanContent;
     }
-
-    $newComment = [
-        'name' => $name,
-        'email' => $email,
-        'text' => $text,
-        'date' => date('Y-m-d H:i:s')
-    ];
-
-    $comments[] = $newComment;
-
-    return file_put_contents($commentFile, json_encode($comments)) !== false;
 }
 
-function updateEmbeddedCommentBySlug($slug, $index, $name, $text) {
-    $commentsDir = __DIR__ . '/../view/back/uploads/comments';
-    $commentFile = $commentsDir . '/' . $slug . '.json';
-
-    if (!file_exists($commentFile)) {
-        return false;
+if (!function_exists('findCategoryName')) {
+    function findCategoryName($id, $categories) {
+        foreach ($categories as $c) {
+            if (($c['idCategorie'] ?? 0) == $id) {
+                return $c['nom'];
+            }
+        }
+        return null;
     }
-
-    $comments = json_decode(file_get_contents($commentFile), true);
-    if (!is_array($comments) || !isset($comments[$index])) {
-        return false;
-    }
-
-    $comments[$index]['name'] = $name;
-    $comments[$index]['text'] = $text;
-    $comments[$index]['edited'] = date('Y-m-d H:i:s');
-
-    return file_put_contents($commentFile, json_encode($comments)) !== false;
 }
 
-function generateArticleSummary($content, $title) {
-    // Simple summary generation: take first 200 characters of content
-    $summary = substr(strip_tags($content), 0, 200);
-    if (strlen($content) > 200) {
-        $summary .= '...';
+if (!function_exists('getImagePath')) {
+    function getImagePath($imagePath) {
+        if (empty($imagePath)) return '../images/nopic.png';
+
+        // Paths in DB usually look like "uploads/images/something.jpg"
+        
+        // 1. Check if it's an absolute URL
+        if (strpos($imagePath, 'http') === 0) return $imagePath;
+        
+        // 2. Check if it's already a relative path structure we trust (starts with dots)
+        if (strpos($imagePath, '../') === 0) return $imagePath;
+
+        // 3. Logic for "uploads/..." paths
+        // We assume this function is primarily called from "view/front/" context
+        // so we need to return paths relative to "view/front/"
+        
+        // Define physical paths to check
+        // __DIR__ is .../projet_web/model
+        $root = dirname(__DIR__); // .../projet_web
+        $frontUploads = $root . '/view/front/' . $imagePath;
+        $backUploads  = $root . '/view/back/' . $imagePath;
+        
+        // Check Back (Admin) Uploads first (most likely for news)
+        if (file_exists($backUploads)) {
+            return '../back/' . $imagePath;
+        }
+
+        // Check Front Uploads
+        if (file_exists($frontUploads)) {
+            return $imagePath; // relative to view/front/ is just the path
+        }
+        
+        // Check "view/images" (legacy path?)
+        // e.g. path is "images/foo.jpg" -> physical "view/images/foo.jpg"
+        // relative from front: "../images/foo.jpg"
+        if (strpos($imagePath, 'images/') === 0) {
+            $viewImages = $root . '/view/' . $imagePath;
+            if (file_exists($viewImages)) {
+                return '../' . $imagePath; 
+            }
+        }
+
+        // Check if file exists relative to where it was likely uploaded if blindly stored
+        // Fallback: if we can't find it, return it anyway? 
+        // Or return nopic? 
+        // Let's return nopic if we really can't find it, to be safe.
+        // But if it's just a file in the same folder...
+        
+        if (file_exists($root . '/view/front/' . $imagePath)) return $imagePath;
+
+        return '../images/nopic.png';
     }
-    return $summary;
 }
+
+
+?>

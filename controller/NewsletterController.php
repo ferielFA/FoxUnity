@@ -1,13 +1,16 @@
 <?php
 require_once __DIR__ . '/../model/db.php';
 require_once __DIR__ . '/../model/SubscriberRepository.php';
+require_once __DIR__ . '/../model/NotificationService.php';
 
 class NewsletterController {
     private $subRepo;
+    private $notifService;
 
     public function __construct() {
         global $pdo;
         $this->subRepo = new SubscriberRepository($pdo);
+        $this->notifService = new NotificationService($pdo);
     }
 
     public function handleRequest() {
@@ -23,6 +26,12 @@ class NewsletterController {
             }
 
             [$ok, $msg] = $this->subRepo->add($email, $cats);
+            
+            if ($ok) {
+                // Send welcome email
+                $this->notifService->sendWelcomeEmail($email);
+            }
+
             $type = $ok ? 'success' : 'error';
             $this->redirectWithMsg($msg, $type);
         }

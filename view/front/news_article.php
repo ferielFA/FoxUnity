@@ -1,95 +1,19 @@
 <?php
 // news_article.php
 // Shows a single news article with comments
+// Uses NewsArticleController (MVC)
 
-require __DIR__ . '/../back/db.php';
-require_once __DIR__ . '/../../model/helpers.php';
-require_once __DIR__ . '/../../model/Comment.php';
-require_once __DIR__ . '/../../model/CommentRepository.php';
+require_once __DIR__ . '/../../controller/NewsArticleController.php';
 
-// Load categories for display names
-$catStmt = $pdo->query("SELECT idCategorie, nom, description FROM categorie ORDER BY nom");
-$categories = $catStmt->fetchAll();
-
-// Get article by slug
-$slug = $_GET['id'] ?? '';
-if (empty($slug)) {
-  header('HTTP/1.0 404 Not Found');
-  echo '<h1>Article not found</h1>';
-  exit;
-}
-
-$stmt = $pdo->prepare("SELECT
-  idArticle,
-  slug       AS id,
-  titre      AS title,
-  datePublication AS date,
-  datePublication,
-  image,
-  idCategorie,
-  excerpt,
-  contenu    AS content,
-  hot
-FROM article WHERE slug = ? LIMIT 1");
-$stmt->execute([$slug]);
-$a = $stmt->fetch();
-
-if (!$a) {
-  header('HTTP/1.0 404 Not Found');
-  echo '<h1>Article not found</h1>';
-  exit;
-}
+// NewsArticleController ($__newsArticleController) already handles:
+// - 404 check
+// - Article loading
+// - Comment fetching
+// - Post submission (Comment)
+// - Exposes: $a, $categories, $slug, $comments, $errors
 
 // Admin flag: articles are public-facing; admin editing should be done in admin pages.
-// Keep a defined variable to avoid undefined warnings. Set to true only when explicit admin mode is required.
 $isAdmin = false;
-
-// Comments handling: use database-backed comments
-$commentRepository = new CommentRepository($pdo);
-$comments = $commentRepository->findCommentsByArticleId($a['idArticle']);
-
-// Convert Comment objects to array format for template compatibility
-$commentsArray = [];
-foreach ($comments as $comment) {
-    $commentsArray[] = [
-        'name' => $comment->getName(),
-        'email' => $comment->getEmail(),
-        'text' => $comment->getText(),
-        'date' => $comment->getCreatedAt()->format('Y-m-d H:i:s')
-    ];
-}
-$comments = $commentsArray;
-
-// Mutes handling (keeping for compatibility)
-$mutesFile = __DIR__ . '/uploads/comments/mutes.json';
-@mkdir(dirname($mutesFile), 0755, true);
-if (!file_exists($mutesFile)) file_put_contents($mutesFile, json_encode(new stdClass()));
-
-// Handle public comment POST
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment_submit'])) {
-  $name = trim((string)($_POST['name'] ?? ''));
-  $text = trim((string)($_POST['comment'] ?? ''));
-  $errors = [];
-
-  if ($name === '') $errors[] = 'Name is required.';
-  if ($text === '') $errors[] = 'Comment is required.';
-
-  // check mutes (global by lowercase name)
-  $mutes = json_decode(file_get_contents($mutesFile), true) ?: [];
-  $lower = strtolower($name);
-  if ($lower && isset($mutes[$lower]) && intval($mutes[$lower]) > time()) {
-    $errors[] = 'You are muted until ' . date('Y-m-d H:i:s', intval($mutes[$lower])) . '. You cannot post comments.';
-  }
-
-    if (empty($errors)) {
-        // Save via database repository
-        $newComment = new Comment(null, $a['idArticle'], $name, '', $text);
-        $commentRepository->save($newComment);
-        // redirect to avoid repost
-        header('Location: news_article.php?id=' . urlencode($slug) . '#comments');
-        exit;
-      }
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -100,147 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment_submit'])) {
   <link rel="stylesheet" href="../front/style.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <style>
-    .article-container {
-      max-width: 900px;
-      margin: 120px auto 60px;
-      padding: 0 40px;
-    }
-    .article-header {
-      margin-bottom: 40px;
-    }
-    .article-title {
-      font-family: Orbitron, system-ui;
-      font-size: 3rem;
-      color: var(--accent);
-      margin: 0 0 20px;
-      text-shadow: 0 0 30px rgba(255,120,0,0.3);
-      line-height: 1.2;
-    }
-    .article-meta {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      color: #888;
-      font-size: 0.9rem;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    .article-category {
-      background: linear-gradient(135deg, rgba(255,122,0,0.2), rgba(255,122,0,0.1));
-      color: #ff9900;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-weight: 600;
-    }
-    .article-image {
-      width: 100%;
-      height: 400px;
-      background: linear-gradient(135deg, rgba(255,120,0,0.15), rgba(255,120,0,0.05));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 4rem;
-      color: var(--accent);
-      opacity: 0.8;
-      border-radius: 16px;
-      overflow: hidden;
-      margin-bottom: 40px;
-      position: relative;
-    }
-    .article-image img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-    .article-image::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: radial-gradient(circle at center, rgba(255,120,0,0.1), transparent);
-      pointer-events: none;
-    }
-    .article-content {
-      font-size: 1.1rem;
-      line-height: 1.8;
-      color: #ddd;
-      margin-bottom: 40px;
-    }
-    .article-content h2 {
-      font-family: Orbitron, system-ui;
-      color: var(--accent);
-      margin: 30px 0 15px;
-      font-size: 1.8rem;
-    }
-    .article-content h3 {
-      font-family: Orbitron, system-ui;
-      color: var(--accent);
-      margin: 25px 0 12px;
-      font-size: 1.4rem;
-    }
-    .article-content p {
-      margin-bottom: 20px;
-    }
-    .article-content ul, .article-content ol {
-      margin: 20px 0;
-      padding-left: 30px;
-    }
-    .article-content li {
-      margin-bottom: 10px;
-    }
-    .article-content blockquote {
-      border-left: 3px solid var(--accent);
-      padding-left: 20px;
-      margin: 20px 0;
-      font-style: italic;
-      color: #bbb;
-    }
-    .article-content code {
-      background: #222;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-family: 'Courier New', monospace;
-    }
-    .article-content pre {
-      background: #1a1a1a;
-      padding: 20px;
-      border-radius: 8px;
-      overflow-x: auto;
-      margin: 20px 0;
-    }
-    .back-to-news {
-      display: inline-block;
-      color: var(--accent);
-      text-decoration: none;
-      font-weight: 700;
-      margin-bottom: 30px;
-      transition: all 0.3s ease;
-    }
-    .back-to-news:hover {
-      color: #ffaa00;
-      text-shadow: 0 0 10px rgba(255,120,0,0.3);
-    }
-    @media (max-width: 768px) {
-      .article-container {
-        margin: 100px auto 40px;
-        padding: 0 20px;
-      }
-      .article-title {
-        font-size: 2.2rem;
-      }
-      .article-image {
-        height: 250px;
-      }
-      .article-content {
-        font-size: 1rem;
-      }
-    }
-  </style>
-  </style>
+
 </head>
 <body>
   <!-- Bulles animées rouges -->
@@ -569,5 +353,145 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment_submit'])) {
       <p>&copy; 2025 FoxUnity. All rights reserved. Gaming for Good.</p>
     </div>
   </footer>
+  <style>
+    .article-container {
+      max-width: 900px;
+      margin: 120px auto 60px;
+      padding: 0 40px;
+    }
+    .article-header {
+      margin-bottom: 40px;
+    }
+    .article-title {
+      font-family: Orbitron, system-ui;
+      font-size: 3rem;
+      color: var(--accent);
+      margin: 0 0 20px;
+      text-shadow: 0 0 30px rgba(255,120,0,0.3);
+      line-height: 1.2;
+    }
+    .article-meta {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      color: #888;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .article-category {
+      background: linear-gradient(135deg, rgba(255,122,0,0.2), rgba(255,122,0,0.1));
+      color: #ff9900;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    .article-image {
+      width: 100%;
+      height: 400px;
+      background: linear-gradient(135deg, rgba(255,120,0,0.15), rgba(255,120,0,0.05));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 4rem;
+      color: var(--accent);
+      opacity: 0.8;
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 40px;
+      position: relative;
+    }
+    .article-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .article-image::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at center, rgba(255,120,0,0.1), transparent);
+      pointer-events: none;
+    }
+    .article-content {
+      font-size: 1.1rem;
+      line-height: 1.8;
+      color: #ddd;
+      margin-bottom: 40px;
+    }
+    .article-content h2 {
+      font-family: Orbitron, system-ui;
+      color: var(--accent);
+      margin: 30px 0 15px;
+      font-size: 1.8rem;
+    }
+    .article-content h3 {
+      font-family: Orbitron, system-ui;
+      color: var(--accent);
+      margin: 25px 0 12px;
+      font-size: 1.4rem;
+    }
+    .article-content p {
+      margin-bottom: 20px;
+    }
+    .article-content ul, .article-content ol {
+      margin: 20px 0;
+      padding-left: 30px;
+    }
+    .article-content li {
+      margin-bottom: 10px;
+    }
+    .article-content blockquote {
+      border-left: 3px solid var(--accent);
+      padding-left: 20px;
+      margin: 20px 0;
+      font-style: italic;
+      color: #bbb;
+    }
+    .article-content code {
+      background: #222;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+    }
+    .article-content pre {
+      background: #1a1a1a;
+      padding: 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 20px 0;
+    }
+    .back-to-news {
+      display: inline-block;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 700;
+      margin-bottom: 30px;
+      transition: all 0.3s ease;
+    }
+    .back-to-news:hover {
+      color: #ffaa00;
+      text-shadow: 0 0 10px rgba(255,120,0,0.3);
+    }
+    @media (max-width: 768px) {
+      .article-container {
+        margin: 100px auto 40px;
+        padding: 0 20px;
+      }
+      .article-title {
+        font-size: 2.2rem;
+      }
+      .article-image {
+        height: 250px;
+      }
+      .article-content {
+        font-size: 1rem;
+      }
+    }
+  </style>
 </body>
 </html>

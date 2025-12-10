@@ -1,85 +1,12 @@
 <?php
 // news.php
-// Loads all news from MySQL (article / categorie tables) and shows them
+// Loads all news using NewsPublicController (MVC)
 
-require __DIR__ . '/../back/db.php';
+require_once __DIR__ . '/../../controller/NewsPublicController.php';
 
-// Helper to resolve image paths and check if they exist
-function getImagePath($imagePath) {
-  if (empty($imagePath)) return '../images/nopic.png';
-  // If path starts with uploads/, try the front uploads first, then back uploads
-  if (strpos($imagePath, 'uploads/') === 0) {
-    // front uploads (unlikely)
-    $frontFull = __DIR__ . '/' . $imagePath;
-    if (file_exists($frontFull)) return $imagePath;
-    // back uploads (admin upload location)
-    $backFull = __DIR__ . '/../back/' . $imagePath;
-    if (file_exists($backFull)) return '../back/' . $imagePath;
-  }
-  // If path starts with ../, it's already relative to this file
-  if (strpos($imagePath, '../') === 0) {
-    $fullPath = __DIR__ . '/' . $imagePath;
-    if (file_exists($fullPath)) return $imagePath;
-  }
-  // If path starts with images/ (relative to view/), check view/images
-  if (strpos($imagePath, 'images/') === 0) {
-    $fullPath = __DIR__ . '/../' . $imagePath;
-    if (file_exists($fullPath)) return '../' . $imagePath;
-  }
-  // Otherwise, fall back to default placeholder
-  return '../images/nopic.png';
-}
-
-// Load articles from DB with hot column handling
-try {
-  $stmt = $pdo->query("SELECT
-    a.idArticle,
-    a.slug        AS id,
-    a.titre       AS title,
-    a.datePublication AS date,
-    a.datePublication,
-    a.idCategorie,
-    c.nom         AS category,
-    a.excerpt,
-    a.contenu     AS content,
-    a.image,
-    a.hot
-  FROM article a
-  LEFT JOIN categorie c ON c.idCategorie = a.idCategorie
-  ORDER BY a.hot DESC, a.datePublication DESC, a.idArticle DESC");
-} catch (PDOException $e) {
-  // If hot column doesn't exist, add it and retry
-  if (strpos($e->getMessage(), 'Unknown column') !== false) {
-    $pdo->exec("ALTER TABLE article ADD COLUMN hot TINYINT(1) NOT NULL DEFAULT 0");
-    $stmt = $pdo->query("SELECT
-      a.idArticle,
-      a.slug        AS id,
-      a.titre       AS title,
-      a.datePublication AS date,
-      a.datePublication,
-      a.idCategorie,
-      c.nom         AS category,
-      a.excerpt,
-      a.contenu     AS content,
-      a.image,
-      a.hot
-    FROM article a
-    LEFT JOIN categorie c ON c.idCategorie = a.idCategorie
-    ORDER BY a.hot DESC, a.datePublication DESC, a.idArticle DESC");
-  } else {
-    throw $e;
-  }
-}
-$articles = $stmt->fetchAll();
-
-// Separate hot news and regular news
-$hotNews = array_filter($articles, function($a) { return $a['hot'] == 1; });
-$articles = array_filter($articles, function($a) { return $a['hot'] == 0 || $a['hot'] == null; });
-
-function findCategoryName($id, $categories){
-  foreach($categories as $c) if (($c['idCategorie'] ?? 0) == $id) return $c['nom'];
-  return null;
-}
+// Image path helper is now in model/helpers.php
+// Variables provided by NewsPublicController:
+// $categories, $articles (non-hot), $hotNews
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -90,246 +17,19 @@ function findCategoryName($id, $categories){
   <link rel="stylesheet" href="../front/style.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <style>
-    .news-container{max-width:95%;margin:120px auto 60px;padding:0 40px}
-    .news-title{
-      font-family:Orbitron,system-ui;
-      font-size:3.6rem;
-      color:var(--accent);
-      margin:0 0 50px;
-      text-shadow:0 0 30px rgba(255,120,0,0.3), 0 0 60px rgba(255,120,0,0.15);
-      letter-spacing:2px;
-      font-weight:700;
-      position:relative;
-      padding-bottom:20px;
-    }
-    .news-title::after{
-      content:'';
-      position:absolute;
-      bottom:0;
-      left:0;
-      width:60px;
-      height:3px;
-      background:linear-gradient(90deg, #ff7a00, rgba(255,122,0,0));
-      border-radius:2px;
-    }
-    /* Hot news strip */
-    .hot-news{display:flex;flex-direction:column;gap:16px;margin-bottom:28px}
-    .hot-news h3{margin:0;color:#ffb86b;font-family:Orbitron,system-ui;font-size:1.2rem}
-    .hot-list{display:flex;gap:16px;flex-wrap:wrap}
-    .hot-card{flex:1 1 320px;background:linear-gradient(135deg, rgba(40,40,40,0.9), rgba(20,20,20,0.9));border-radius:12px;display:flex;gap:12px;align-items:center;padding:10px;border:1px solid rgba(255,120,0,0.08);text-decoration:none}
-    .hot-card img{width:140px;height:80px;object-fit:cover;border-radius:8px}
-    .hot-card .hot-meta{color:#ddd}
-    .hot-card .hot-meta h4{margin:0;font-size:1rem;color:var(--accent);font-weight:700}
-    .hot-card .hot-meta p{margin:4px 0 0;font-size:0.9rem;color:#bbb}
-    .news-grid{
-      display:grid;
-      grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
-      gap:32px;
-      margin-bottom:40px;
-    }
-    .news-card{
-      background:linear-gradient(135deg, rgba(30,30,30,0.9), rgba(20,20,20,0.95));
-      border:1px solid rgba(255,120,0,0.1);
-      border-radius:16px;
-      overflow:hidden;
-      transition:0.35s cubic-bezier(0.34,1.56,0.64,1);
-      cursor:pointer;
-      position:relative;
-      display:flex;
-      flex-direction:column;
-      height:100%;
-      backdrop-filter:blur(10px);
-    }
-    .news-card::before{
-      content:'';
-      position:absolute;
-      top:0;
-      left:0;
-      right:0;
-      height:3px;
-      background:linear-gradient(90deg, #ff7a00, #ff9900, transparent);
-      opacity:0;
-      transition:opacity 0.35s ease;
-    }
-    .news-card.new-article::after {
-      content: 'NEW';
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      background: linear-gradient(135deg, #ff7a00, #ff4f00);
-      color: #fff;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 0.7rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      z-index: 10;
-      box-shadow: 0 4px 12px rgba(255, 122, 0, 0.5);
-    }
-    .news-card:hover{
-      border-color:rgba(255,120,0,0.5);
-      box-shadow:0 0 30px rgba(255,120,0,0.2), inset 0 0 40px rgba(255,120,0,0.05);
-      transform:translateY(-8px);
-      background:linear-gradient(135deg, rgba(35,35,35,0.95), rgba(25,25,25,0.98));
-    }
-    .news-card:hover::before{opacity:1}
-    .news-card-category{
-      display:inline-block;
-      background:linear-gradient(135deg, rgba(255,122,0,0.2), rgba(255,122,0,0.1));
-      color:#ff9900;
-      font-size:0.75rem;
-      font-weight:700;
-      padding:5px 12px;
-      border-radius:20px;
-      text-transform:uppercase;
-      letter-spacing:0.5px;
-      border:1px solid rgba(255,122,0,0.3);
-      margin-bottom:12px;
-      width:fit-content;
-    }
-    .news-card-image{
-      width:100%;
-      height:220px;
-      background:linear-gradient(135deg, rgba(255,120,0,0.15), rgba(255,120,0,0.05));
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:3.2rem;
-      color:var(--accent);
-      opacity:0.8;
-      transition:0.4s ease;
-      border-bottom:1px solid rgba(255,120,0,0.1);
-      position:relative;
-      overflow:hidden;
-    }
-    .news-card-image img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
-      transition:0.4s ease;
-    }
-    .news-card-image::after{
-      content:'';
-      position:absolute;
-      top:0;
-      left:0;
-      right:0;
-      bottom:0;
-      background:radial-gradient(circle at center, rgba(255,120,0,0.1), transparent);
-      pointer-events:none;
-    }
-    .news-card:hover .news-card-image{
-      opacity:1;
-    }
-    .news-card:hover .news-card-image img{
-      transform:scale(1.05);
-    }
-    .news-card-content{
-      padding:28px;
-      flex:1;
-      display:flex;
-      flex-direction:column;
-    }
-    /* read-later and reading-time styles moved to global front/style.css */
-    .news-card-date{
-      font-size:0.82rem;
-      color:#888;
-      margin-bottom:12px;
-      text-transform:uppercase;
-      letter-spacing:0.5px;
-      font-weight:600;
-    }
-    .news-card-title{
-      font-family:Orbitron,system-ui;
-      font-size:1.3rem;
-      color:var(--accent);
-      margin:0 0 16px;
-      line-height:1.4;
-      transition:0.3s ease;
-      font-weight:700;
-    }
-    .news-card:hover .news-card-title{
-      text-shadow:0 0 15px rgba(255,120,0,0.4);
-    }
-    .news-card-excerpt{
-      color:#bbb;
-      font-size:0.96rem;
-      line-height:1.6;
-      margin:0 0 20px;
-      flex:1;
-      font-weight:400;
-    }
-    .read-more{
-      display:inline-block;
-      color:var(--accent);
-      text-decoration:none;
-      font-weight:700;
-      font-size:0.88rem;
-      letter-spacing:0.5px;
-      transition:0.3s ease;
-      position:relative;
-      width:fit-content;
-      text-transform:uppercase;
-    }
-    .read-more::after{
-      content:'';
-      position:absolute;
-      bottom:-2px;
-      left:0;
-      width:0;
-      height:2px;
-      background:linear-gradient(90deg, #ff7a00, transparent);
-      transition:width 0.35s ease;
-    }
-    .news-card:hover .read-more::after{width:100%}
-    .news-card:hover .read-more{
-      color:#ffaa00;
-      text-shadow:0 0 10px rgba(255,120,0,0.3);
-    }
-    @media (max-width:820px){
-      .news-container{margin:100px auto 40px;padding:0 24px}
-      .news-title{font-size:2.6rem;margin-bottom:36px}
-      .news-grid{grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px}
-      .news-card-image{height:180px;font-size:2.6rem}
-      .news-card-content{padding:20px}
-    }
-    @media (max-width:480px){
-      .news-title{font-size:1.8rem;margin-bottom:28px;letter-spacing:1px}
-      .news-grid{grid-template-columns:1fr;gap:16px}
-      .news-card-image{height:160px;font-size:2.2rem}
-      .news-card-content{padding:16px}
-      .news-card-title{font-size:1.1rem}
-      .news-card-excerpt{font-size:0.9rem;line-height:1.5}
-    }
-    @media (max-width: 900px) {
-        .news-layout { flex-direction: column; }
-        .news-sidebar { width: 100% !important; margin-top: 40px; }
-        .subscribe-box { position: static !important; }
-    }
-  </style>
+
 </head>
 <body>
   <!-- Bulles animées rouges -->
   <div class="bubbles">
-    <div class="bubble"></div>
-    <div class="bubble"></div>
-    <div class="bubble"></div>
-    <div class="bubble"></div>
-    <div class="bubble"></div>
-    <div class="bubble"></div>
-    <div class="bubble"></div>
-    <div class="bubble"></div>
+    <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
   </div>
 
   <header class="site-header">
     <div class="logo-section">
-  <img src="../images/Nine__1_-removebg-preview.png" alt="FoxUnity Logo" class="site-logo">
+      <img src="../images/Nine__1_-removebg-preview.png" alt="FoxUnity Logo" class="site-logo">
       <span class="site-name">FoxUnity</span>
     </div>
-    
     <nav class="site-nav">
       <a href="http://localhost/projet_web/view/front/indexf.php">Home</a>
       <a href="../front/events.html">Events</a>
@@ -339,36 +39,65 @@ function findCategoryName($id, $categories){
       <a href="../front/reclamation.html">Support</a>
       <a href="../front/about.html">About Us</a>
     </nav>
-    
     <div class="header-right">
-      <a href="../front/login.html" class="login-register-link">
-        <i class="fas fa-user"></i> Login / Register
-      </a>
-      <a href="../front/profile.html" class="profile-icon">
-        <i class="fas fa-user-circle"></i>
-      </a>
+      <a href="../front/login.html" class="login-register-link"><i class="fas fa-user"></i> Login / Register</a>
+      <a href="../front/profile.html" class="profile-icon"><i class="fas fa-user-circle"></i></a>
     </div>
   </header>
 
   <main class="main-section">
     <div class="news-container">
-        <h1 class="news-title">Gaming News <span id="saved-count" class="saved-count" style="display:none">0</span>
-          <span class="saved-controls" id="saved-controls" style="display:none">
+        
+        <div class="news-header-area">
+            <div>
+                <h1 class="news-title">Gaming News <span id="saved-count" class="saved-count" style="display:none">0</span></h1>
+                <div class="news-controls">
+                  <input id="news-search" class="news-search" placeholder="Search news by title..." style="padding:10px; border-radius:6px; border:1px solid #444; background:#222; color:#fff; width:300px;">
+                  <select id="news-perpage" class="news-perpage" style="padding:10px; border-radius:6px; border:1px solid #444; background:#222; color:#fff;">
+                    <option value="6">6 per page</option>
+                    <option value="9" selected>9 per page</option>
+                    <option value="12">12 per page</option>
+                  </select>
+                </div>
+            </div>
+
+            <!-- Moved Subscribe Box -->
+            <div class="subscribe-hero" id="newsletter">
+               <h3><i class="fas fa-bell"></i> Get Updates</h3>
+               <?php if (!empty($_GET['msg'])): ?>
+                   <div style="background:#0f03; color:#eff; padding:6px; border-radius:4px; font-size:0.8rem;"><?php echo htmlspecialchars($_GET['msg']); ?></div>
+               <?php endif; ?>
+               <?php if (!empty($_GET['err'])): ?>
+                   <div style="background:#f003; color:#fee; padding:6px; border-radius:4px; font-size:0.8rem;"><?php echo htmlspecialchars($_GET['err']); ?></div>
+               <?php endif; ?>
+               <form action="/projet_web/controller/NewsletterController.php" method="POST">
+                   <input type="hidden" name="action" value="subscribe">
+                   <input type="email" name="email" class="hero-input" placeholder="Your Email Address" required>
+                   
+                   <div style="position:relative">
+                       <div class="hero-cat-btn" onclick="this.nextElementSibling.classList.toggle('show');">
+                           Select Categories <i class="fas fa-chevron-down"></i>
+                       </div>
+                       <div class="cat-dropdown-content">
+                           <?php 
+                           if (!isset($allCategories)) {
+                               $allCategories = $pdo->query("SELECT * FROM categorie ORDER BY nom")->fetchAll();
+                           }
+                           foreach ($allCategories as $c): ?>
+                               <label><input type="checkbox" name="categories[]" value="<?php echo $c['idCategorie']; ?>"> <?php echo htmlspecialchars($c['nom']); ?></label>
+                           <?php endforeach; ?>
+                       </div>
+                   </div>
+                   <button type="submit" class="hero-submit">Subscribe</button>
+               </form>
+            </div>
+        </div>
+        
+        <div class="saved-controls" id="saved-controls" style="display:none; margin-bottom:20px;">
             <button id="view-saved">View Saved</button>
             <button id="copy-saved">Copy Saved Links</button>
             <button id="clear-saved">Clear Saved</button>
-          </span>
-        </h1>
-        <div class="news-controls">
-          <input id="news-search" class="news-search" placeholder="Search news by title or excerpt...">
-          <select id="news-perpage" class="news-perpage">
-            <option value="6">6 per page</option>
-            <option value="9">9 per page</option>
-            <option value="12">12 per page</option>
-          </select>
         </div>
-
-        <!-- Saved articles placeholder (moved below the news grid) -->
 
       <div class="hot-news">
         <h3>🔥 Hot News</h3>
@@ -389,11 +118,7 @@ function findCategoryName($id, $categories){
         </div>
       </div>
 
-    <!-- Layout: Sidebar + Main Grid -->
-    <div class="news-layout" style="display:flex;gap:40px;align-items:flex-start;">
-      
-      <!-- Main Content -->
-      <div class="news-main" style="flex:1;">
+        <!-- Main News Grid (Full Width) -->
         <div class="news-grid" id="news-grid">
           <?php foreach ($articles as $a): ?>
             <?php 
@@ -420,109 +145,15 @@ function findCategoryName($id, $categories){
             </div>
           <?php endforeach; ?>
         </div>
-      </div>
 
-      <!-- Sidebar -->
-      <aside class="news-sidebar" style="width:280px;flex-shrink:0;">
-        <style>
-          .cat-dropdown-btn {
-            width: 100%;
-            padding: 10px;
-            background: #222;
-            border: 1px solid #444;
-            color: #ccc;
-            border-radius: 4px;
-            cursor: pointer;
-            text-align: left;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-          }
-          .cat-dropdown-content {
-            display: none;
-            background: #1a1a1a;
-            border: 1px solid #444;
-            border-top: none;
-            max-height: 200px;
-            overflow-y: auto;
-            border-radius: 0 0 4px 4px;
-            padding: 8px;
-          }
-          .cat-dropdown-content.show {
-            display: block;
-          }
-          .cat-dropdown-content label {
-            display: flex;
-            align-items: center;
-            padding: 5px;
-            cursor: pointer;
-            transition: background 0.2s;
-            color: #ddd;
-            font-size: 0.9rem;
-          }
-          .cat-dropdown-content label:hover {
-            background: #333;
-          }
-          .cat-dropdown-content input {
-            margin-right: 8px;
-            accent-color: #f90;
-          }
-        </style>
-
-        <!-- Subscription Form -->
-        <div class="subscribe-box" style="background:linear-gradient(135deg, rgba(30,30,30,0.9), rgba(20,20,20,0.95)); padding:20px; border-radius:12px; border:1px solid rgba(255,120,0,0.2); position:sticky; top:120px;">
-          <h3 style="font-family: Orbitron; margin-bottom:12px; color:#f90; font-size:1.2rem;">Subscribe to Updates</h3>
-          <p style="margin-bottom:16px; color:#ccc; font-size:0.9rem; line-height:1.4;">Get notified when HOT news land in your favorite categories.</p>
-          
-          <?php if (!empty($_GET['msg'])): ?>
-            <div style="background:#0f03; color:#eff; padding:8px; margin-bottom:12px; border-radius:4px; font-size:0.85rem;">
-              <?php echo htmlspecialchars($_GET['msg']); ?>
-            </div>
-          <?php endif; ?>
-          <?php if (!empty($_GET['err'])): ?>
-            <div style="background:#f003; color:#fee; padding:8px; margin-bottom:12px; border-radius:4px; font-size:0.85rem;">
-              <?php echo htmlspecialchars($_GET['err']); ?>
-            </div>
-          <?php endif; ?>
-
-          <form action="/projet_web/controller/NewsletterController.php" method="POST">
-            <input type="hidden" name="action" value="subscribe">
-            
-            <label for="email" style="display:block; margin-bottom:4px; color:#aaa; font-size:0.85rem;">Email Address</label>
-            <input type="email" name="email" required style="width:100%; padding:8px; margin-bottom:12px; background:#111; border:1px solid #444; color:#fff; border-radius:4px; font-size:0.9rem;">
-            
-            <label style="display:block; margin-bottom:8px; color:#aaa; font-size:0.85rem;">Interests</label>
-            <div style="margin-bottom:16px;">
-              <div class="cat-dropdown-btn" onclick="this.nextElementSibling.classList.toggle('show'); this.querySelector('span').textContent = this.nextElementSibling.classList.contains('show') ? '▲' : '▼';">
-                Select Categories <span>▼</span>
-              </div>
-              <div class="cat-dropdown-content">
-                <?php 
-               if (!isset($allCategories)) {
-                   $allCategories = $pdo->query("SELECT * FROM categorie ORDER BY nom")->fetchAll();
-               }
-               foreach ($allCategories as $c): ?>
-                <label>
-                  <input type="checkbox" name="categories[]" value="<?php echo $c['idCategorie']; ?>">
-                  <?php echo htmlspecialchars($c['nom']); ?>
-                </label>
-              <?php endforeach; ?>
-              </div>
-            </div>
-            
-            <button type="submit" style="background:linear-gradient(90deg, #ff7a00, #ff5500); color:#fff; padding:10px; border:none; border-radius:4px; font-weight:bold; cursor:pointer; width:100%; text-transform:uppercase; letter-spacing:1px; font-size:0.9rem; transition:0.3s; margin-top:5px;">Subscribe Now</button>
-          </form>
-        </div>
-      </aside>
-
-    </div>
     <div class="pagination" id="news-pagination" style="justify-content:center"></div>
     
-    <!-- Saved articles (client-side localStorage) - separate section below news -->
+    <!-- Saved articles -->
     <section id="saved-articles" class="saved-articles" style="display:none;margin-top:28px">
       <h3>Saved Articles</h3>
       <div class="news-grid" id="saved-grid"></div>
     </section>
+    
     <script>
       // Client-side search + pagination for news cards
       (function(){
@@ -532,7 +163,7 @@ function findCategoryName($id, $categories){
         var perSelect = document.getElementById('news-perpage');
         var search = document.getElementById('news-search');
         var pager = document.getElementById('news-pagination');
-        var per = parseInt(perSelect.value,10) || 6;
+        var per = parseInt(perSelect.value,10) || 9; // Default 9 for 3-grid match
         var filtered = cards.slice();
         function renderPage(page){
           var start = (page-1)*per; var end = start+per;
@@ -707,4 +338,188 @@ function findCategoryName($id, $categories){
     </div>
   </footer>
 </body>
+<style>
+    .news-container{max-width:95%;margin:120px auto 60px;padding:0 40px; position: relative;}
+    .news-header-area {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 50px;
+        position: relative;
+    }
+    .news-title{
+      font-family:Orbitron,system-ui;
+      font-size:3.6rem;
+      color:var(--accent);
+      margin:0;
+      text-shadow:0 0 30px rgba(255,120,0,0.3), 0 0 60px rgba(255,120,0,0.15);
+      letter-spacing:2px;
+      font-weight:700;
+      position:relative;
+      padding-bottom:20px;
+    }
+    .news-title::after{
+      content:'';
+      position:absolute;
+      bottom:0;
+      left:0;
+      width:60px;
+      height:3px;
+      background:linear-gradient(90deg, #ff7a00, rgba(255,122,0,0));
+      border-radius:2px;
+    }
+    
+    /* Premium Subscribe Box - Top Right */
+    .subscribe-hero {
+        background: linear-gradient(135deg, rgba(30,30,30,0.8), rgba(20,20,20,0.9));
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,120,0,0.2);
+        border-radius: 12px;
+        padding: 20px;
+        max-width: 400px;
+        width: 100%;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        z-index: 10;
+        transition: transform 0.3s ease;
+    }
+    .subscribe-hero:hover {
+        transform: translateY(-2px);
+        border-color: rgba(255,120,0,0.4);
+    }
+    .subscribe-hero h3 {
+        margin: 0 0 8px 0;
+        color: #f90;
+        font-family: Orbitron, sans-serif;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .subscribe-hero h3 i { font-size: 0.9em; }
+    .subscribe-hero form { display: flex; flex-direction: column; gap: 10px; }
+    .hero-input {
+        background: rgba(0,0,0,0.4);
+        border: 1px solid #444;
+        color: #fff;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        outline: none;
+        transition: border-color 0.3s;
+    }
+    .hero-input:focus { border-color: #f90; }
+    .hero-cat-btn {
+        background: #2a2a2a; border: 1px solid #444; color: #ccc;
+        padding: 8px; border-radius: 6px; cursor: pointer; text-align: left;
+        font-size: 0.85rem; display: flex; justify-content: space-between;
+    }
+    .cat-dropdown-content {
+        display: none; background: #222; border: 1px solid #444;
+        max-height: 150px; overflow-y: auto; padding: 5px;
+        margin-top: 5px; border-radius: 6px;
+    }
+    .cat-dropdown-content.show { display: block; }
+    .cat-dropdown-content label { display: block; padding: 4px; color: #ddd; font-size: 0.85rem; cursor: pointer; }
+    .cat-dropdown-content label:hover { background: #333; }
+    
+    .hero-submit {
+        background: linear-gradient(90deg, #ff7a00, #ff5500);
+        color: white; border: none; padding: 10px; border-radius: 6px;
+        font-weight: bold; cursor: pointer; text-transform: uppercase;
+        font-size: 0.85rem; letter-spacing: 1px; transition: 0.3s;
+    }
+    .hero-submit:hover {
+        box-shadow: 0 0 15px rgba(255,122,0,0.4);
+    }
+
+    /* Hot news strip */
+    .hot-news{display:flex;flex-direction:column;gap:16px;margin-bottom:40px}
+    .hot-news h3{margin:0;color:#ffb86b;font-family:Orbitron,system-ui;font-size:1.2rem}
+    .hot-list{display:flex;gap:16px;flex-wrap:wrap}
+    .hot-card{flex:1 1 320px;background:linear-gradient(135deg, rgba(40,40,40,0.9), rgba(20,20,20,0.9));border-radius:12px;display:flex;gap:12px;align-items:center;padding:10px;border:1px solid rgba(255,120,0,0.08);text-decoration:none}
+    .hot-card img{width:140px;height:80px;object-fit:cover;border-radius:8px}
+    .hot-card .hot-meta{color:#ddd}
+    .hot-card .hot-meta h4{margin:0;font-size:1rem;color:var(--accent);font-weight:700}
+    .hot-card .hot-meta p{margin:4px 0 0;font-size:0.9rem;color:#bbb}
+    
+    /* 3-Column Grid */
+    .news-grid{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:32px;
+      margin-bottom:40px;
+    }
+    
+    .news-card{
+      background:linear-gradient(135deg, rgba(30,30,30,0.9), rgba(20,20,20,0.95));
+      border:1px solid rgba(255,120,0,0.1);
+      border-radius:16px;
+      overflow:hidden;
+      transition:0.35s cubic-bezier(0.34,1.56,0.64,1);
+      cursor:pointer;
+      position:relative;
+      display:flex;
+      flex-direction:column;
+      height:100%;
+      backdrop-filter:blur(10px);
+    }
+    .news-card::before{
+      content:'';
+      position:absolute;
+      top:0;
+      left:0;
+      right:0;
+      height:3px;
+      background:linear-gradient(90deg, #ff7a00, #ff9900, transparent);
+      opacity:0;
+      transition:opacity 0.35s ease;
+    }
+    .news-card.new-article::after {
+      content: 'NEW';
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: linear-gradient(135deg, #ff7a00, #ff4f00);
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      z-index: 10;
+      box-shadow: 0 4px 12px rgba(255, 122, 0, 0.5);
+    }
+    .news-card:hover{
+      border-color:rgba(255,120,0,0.5);
+      box-shadow:0 0 30px rgba(255,120,0,0.2), inset 0 0 40px rgba(255,120,0,0.05);
+      transform:translateY(-8px);
+      background:linear-gradient(135deg, rgba(35,35,35,0.95), rgba(25,25,25,0.98));
+    }
+    .news-card:hover::before{opacity:1}
+    /* Rest of card styles */
+    .news-card-image{width:100%;height:220px;background:linear-gradient(135deg, rgba(255,120,0,0.15), rgba(255,120,0,0.05));position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:3rem;}
+    .news-card-image img{width:100%;height:100%;object-fit:cover;transition:0.4s ease;}
+    .news-card:hover .news-card-image img{transform:scale(1.05);}
+    .news-card-content{padding:28px;flex:1;display:flex;flex-direction:column;}
+    .news-card-date{font-size:0.82rem;color:#888;margin-bottom:12px;text-transform:uppercase;font-weight:600;}
+    .news-card-title{font-family:Orbitron,system-ui;font-size:1.3rem;color:var(--accent);margin:0 0 16px;line-height:1.4;transition:0.3s ease;font-weight:700;}
+    .news-card:hover .news-card-title{text-shadow:0 0 15px rgba(255,120,0,0.4);}
+    .news-card-excerpt{color:#bbb;font-size:0.96rem;line-height:1.6;margin:0 0 20px;flex:1;font-weight:400;}
+    .read-more{display:inline-block;color:var(--accent);text-decoration:none;font-weight:700;font-size:0.88rem;letter-spacing:0.5px;position:relative;width:fit-content;text-transform:uppercase;}
+    .read-more::after{content:'';position:absolute;bottom:-2px;left:0;width:0;height:2px;background:linear-gradient(90deg,#ff7a00,transparent);transition:width 0.35s ease;}
+    .news-card:hover .read-more::after{width:100%}
+
+    @media (max-width:1100px){
+      .news-grid{grid-template-columns:repeat(2,1fr);}
+      .news-header-area{flex-direction:column; gap:30px;}
+    }
+    @media (max-width:820px){
+      .news-container{margin:100px auto 40px;padding:0 24px}
+      .news-title{font-size:2.6rem;margin-bottom:0}
+    }
+    @media (max-width:700px){
+        .news-grid{grid-template-columns:1fr;}
+    }
+  </style>
 </html>

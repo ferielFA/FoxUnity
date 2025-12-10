@@ -1,5 +1,6 @@
 <?php
 // Controller for public news listing (class-based, MVC-friendly)
+require_once __DIR__ . '/../model/db.php';
 require_once __DIR__ . '/../model/ArticleRepository.php';
 require_once __DIR__ . '/../model/CategoryRepository.php';
 require_once __DIR__ . '/../model/helpers.php';
