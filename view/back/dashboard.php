@@ -384,7 +384,7 @@ $showTradeHistory = isset($_GET['section']) && $_GET['section'] === 'trades';
     <a href="dashboard.php" class="<?= !$showTradeHistory ? 'active' : '' ?>">Overview</a>
     <a href="users.php">Users</a>
     <a href="#">Shop</a>
-    <a href="dashboard.php?section=trades" class="<?= $showTradeHistory ? 'active' : '' ?>">Trade History</a>
+    <a href="tradingb.php" class="<?= $showTradeHistory ? 'active' : '' ?>">Trade History</a>
     <a href="#">Events</a>
     <a href="#">News</a>
     <a href="#">Support</a>
@@ -434,7 +434,7 @@ $showTradeHistory = isset($_GET['section']) && $_GET['section'] === 'trades';
         <p>View current stock, promotions, and trade offers. Adjust pricing and featured items instantly.</p>
       </div>
 
-      <div class="card" onclick="window.location.href='dashboard.php?section=trades'">
+      <div class="card" onclick="window.location.href='tradingb.php'">
         <h3>Trade History</h3>
         <p>Review completed trades, pending exchanges, and item transactions between players.</p>
       </div>

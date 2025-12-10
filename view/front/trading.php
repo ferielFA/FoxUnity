@@ -24,9 +24,9 @@ if (empty($currentUsername) || empty($currentUserId)) {
 }
 
 // Verify user is linked to database
-require_once __DIR__ . '/../../model/UserModel.php';
-$userModel = new UserModel();
-if (!$userModel->verifySessionUserLinked()) {
+require_once __DIR__ . '/../../model/User.php';
+$userFromDb = User::getByUsername($currentUsername);
+if (!$userFromDb || $userFromDb->getStatus() !== 'active' || $userFromDb->getId() != $currentUserId) {
     // Session user doesn't match database - clear session and redirect
     session_unset();
     session_destroy();
@@ -99,13 +99,6 @@ $currentUser = $viewData['currentUser'];
         font-size: 12px; 
         margin-top: 4px; 
         display: block; 
-    }
-    .my-trades-section {
-        margin: 40px 0;
-        padding: 20px;
-        background: rgba(255,122,0,0.1);
-        border-radius: 12px;
-        border: 1px solid #ff7a00;
     }
     .skin-actions {
         display: flex;
@@ -182,6 +175,7 @@ $currentUser = $viewData['currentUser'];
         border-top: 1px solid #333;
         display: flex;
         gap: 10px;
+        align-items: center;
     }
     .discussion-input input {
         flex: 1;
@@ -191,6 +185,11 @@ $currentUser = $viewData['currentUser'];
         background: #1a1a1a;
         color: #fff;
     }
+    .discussion-input input:disabled {
+        background: #0d0d0d;
+        color: #666;
+        cursor: not-allowed;
+    }
     .discussion-input button {
         background: #ff7a00;
         color: #000;
@@ -199,6 +198,21 @@ $currentUser = $viewData['currentUser'];
         border-radius: 8px;
         cursor: pointer;
         font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+    }
+    .discussion-input button:hover {
+        background: #ff9000;
+    }
+    #attachImageBtn {
+        background: #333;
+        color: #ff7a00;
+        padding: 12px 16px;
+    }
+    #attachImageBtn:hover {
+        background: #444;
     }
     .message {
         padding: 12px 16px;
@@ -237,109 +251,6 @@ $currentUser = $viewData['currentUser'];
         border-radius: 8px;
         margin: 10px 0;
         text-align: center;
-    }
-    /* Trade History Styles */
-    .trade-history-section {
-        margin: 40px 0;
-        padding: 20px;
-        background: rgba(255,122,0,0.1);
-        border-radius: 12px;
-        border: 1px solid #ff7a00;
-    }
-    .history-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
-        background: rgba(0, 0, 0, 0.3);
-        border-radius: 8px;
-        overflow: hidden;
-    }
-    .history-table th, .history-table td {
-        padding: 12px 15px;
-        text-align: left;
-        border-bottom: 1px solid #333;
-    }
-    .history-table th {
-        background: rgba(255,122,0,0.2);
-        color: #fff;
-        font-weight: 600;
-    }
-    .history-table tr:last-child td {
-        border-bottom: none;
-    }
-    .history-table tr:hover {
-        background: rgba(255, 255, 255, 0.05);
-    }
-    .action-badge {
-        padding: 4px 8px;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-    }
-    .action-created {
-        background: rgba(46, 213, 115, 0.2);
-        color: #2ed573;
-    }
-    .action-updated {
-        background: rgba(255, 165, 0, 0.2);
-        color: #ffa500;
-    }
-    .action-deleted {
-        background: rgba(255, 71, 87, 0.2);
-        color: #ff4757;
-    }
-    .action-bought {
-        background: rgba(155, 89, 182, 0.1);
-        color: #9b59b6;
-        border: 1px solid rgba(155, 89, 182, 0.2);
-    }
-    .badge-bought {
-        background: rgba(155, 89, 182, 0.1);
-        color: #9b59b6;
-        border: 1px solid rgba(155, 89, 182, 0.2);
-    }
-    .no-history {
-        text-align: center;
-        padding: 40px;
-        color: #888;
-    }
-    .history-filter {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 15px;
-        flex-wrap: wrap;
-        align-items: center;
-    }
-    .history-filter button {
-        background: #333;
-        color: #fff;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: background 0.3s;
-    }
-    .history-filter button.active {
-        background: #ff7a00;
-        color: #000;
-        font-weight: 600;
-    }
-    .history-filter button:hover:not(.active) {
-        background: #555;
-    }
-    .clear-history-btn {
-        background: #ff4757 !important;
-        color: white !important;
-        border: none !important;
-        padding: 8px 16px !important;
-        border-radius: 6px !important;
-        cursor: pointer !important;
-        margin-left: auto !important;
-        transition: background 0.3s !important;
-    }
-    .clear-history-btn:hover {
-        background: #ff3742 !important;
     }
     /* User Dropdown Menu Styles - SAME AS INDEX.PHP */
     .user-dropdown {
@@ -506,6 +417,11 @@ $currentUser = $viewData['currentUser'];
             <span>My Profile</span>
           </a>
           
+          <a href="tradehis.php" class="dropdown-item">
+            <i class="fas fa-history"></i>
+            <span>History</span>
+          </a>
+          
           <?php 
           $userRole = strtolower($currentUserObj->getRole());
           if ($userRole === 'admin' || $userRole === 'superadmin'): 
@@ -571,112 +487,15 @@ $currentUser = $viewData['currentUser'];
       </div>
     <?php endif; ?>
 
-    <!-- MY TRADES SECTION -->
-    <section class="my-trades-section">
-      <h2 class="section-title"><span>My Trades</span> (<?php echo htmlspecialchars($currentUser); ?>)</h2>
-      <p style="color:#ccc; margin-bottom: 20px;">Manage your active trade listings</p>
-
-      <div class="add-trade-container">
-        <button class="add-trade-btn" id="openModalBtn"><i class="fas fa-plus-circle"></i> Add a Trade Deal</button>
-      </div>
-
-      <div class="skins-grid">
-        <?php if (count($mySkins) === 0): ?>
-          <div style="color:#ccc; text-align:center; width:100%; padding: 40px;">
-            <p>You don't have any active trades. Add your first one!</p>
-            <p><small>Click "Add a Trade Deal" above to get started.</small></p>
-          </div>
-        <?php else: ?>
-          <?php foreach ($mySkins as $row): 
-            $img = !empty($row['image']) ? '../' . ltrim($row['image'], '/\\') : '../images/skin1.png';
-            $username = !empty($row['username']) ? $row['username'] : 'Unknown user';
-            $category = $row['category'] ?? 'custom';
-            $description = $row['description'] ?? 'No description provided';
-          ?>
-          <div class="skin-card" data-game="<?= htmlspecialchars($category) ?>" data-id="<?= $row['skin_id'] ?>">
-            <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($row['name']) ?>" class="skin-img" onerror="this.src='../images/skin1.png'">
-            <h3 class="skin-name"><?= htmlspecialchars($row['name']) ?></h3>
-            <p class="skin-price">$<?= number_format((float)$row['price'], 2) ?></p>
-            <p class="skin-seller">Seller: <strong>@<?= htmlspecialchars($username) ?></strong> <span class="owner-badge">YOU</span></p>
-            <p class="skin-game">Game: <strong><?= htmlspecialchars(ucfirst($category)) ?></strong></p>
-
-            <div class="skin-actions">
-              <button class="edit-btn" onclick="openEditModal(<?= $row['skin_id'] ?>, '<?= htmlspecialchars(addslashes($row['name'])) ?>', <?= $row['price'] ?>, '<?= htmlspecialchars(addslashes($category)) ?>', '<?= htmlspecialchars(addslashes($description)) ?>')">
-                <i class="fas fa-edit"></i> Edit
-              </button>
-              <form method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this trade?')">
-                <input type="hidden" name="skinId" value="<?= $row['skin_id'] ?>">
-                <input type="hidden" name="delete_trade" value="1">
-                <button type="submit" class="delete-btn"><i class="fas fa-trash"></i> Delete</button>
-              </form>
-            </div>
-
-            <a href="description.php?id=<?= $row['skin_id'] ?>" class="desc-btn" style="text-decoration: none; display: inline-block; text-align: center;"><i class="fas fa-info-circle"></i> Description</a>
-          </div>
-          <?php endforeach; ?>
-        <?php endif; ?>
-      </div>
-    </section>
-
-    <!-- TRADE HISTORY SECTION -->
-    <section class="trade-history-section">
-      <h2 class="section-title"><span>Trade History</span> (<?php echo htmlspecialchars($currentUser); ?>)</h2>
-      <p style="color:#ccc; margin-bottom: 20px;">Track all your trade activities</p>
-
-      <div class="history-filter">
-        <button class="filter-btn active" data-filter="all">All Activities</button>
-        <button class="filter-btn" data-filter="created">Created</button>
-        <button class="filter-btn" data-filter="updated">Updated</button>
-        <button class="filter-btn" data-filter="deleted">Deleted</button>
-        <button class="clear-history-btn" id="clearHistoryBtn">
-          <i class="fas fa-trash"></i> Clear History
-        </button>
-      </div>
-
-      <?php if (count($tradeHistory) === 0): ?>
-        <div class="no-history">
-          <p>No trade history found. Your trade activities will appear here.</p>
-          <p><small>Add, edit, or delete trades to see your history.</small></p>
-        </div>
-      <?php else: ?>
-        <div class="table-container">
-          <table class="history-table">
-            <thead>
-              <tr>
-                <th>Date & Time</th>
-                <th>Action</th>
-                <th>Skin Name</th>
-                <th>Price</th>
-                <th>Game</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($tradeHistory as $history): 
-                $actionClass = '';
-                switch ($history['action']) {
-                  case 'created': $actionClass = 'action-created'; break;
-                  case 'updated': $actionClass = 'action-updated'; break;
-                  case 'deleted': $actionClass = 'action-deleted'; break;
-                  case 'bought':  $actionClass = 'action-bought'; break;
-                }
-              ?>
-              <tr class="history-row" data-action="<?= $history['action'] ?>">
-                <td><?= date('M j, Y g:i A', strtotime($history['created_at'])) ?></td>
-                <td><span class="action-badge <?= $actionClass ?>"><?= ucfirst($history['action']) ?></span></td>
-                <td><?= htmlspecialchars($history['skin_name']) ?></td>
-                <td>$<?= number_format((float)$history['skin_price'], 2) ?></td>
-                <td><?= htmlspecialchars(ucfirst($history['skin_category'])) ?></td>
-              </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        </div>
-      <?php endif; ?>
-    </section>
 
     <!-- ALL TRADES SECTION -->
     <section class="trading-section">
-      <h2 class="section-title"><span>Available</span> Skins</h2>
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h2 class="section-title"><span>Available</span> Skins</h2>
+        <button id="openModalBtn" style="background: linear-gradient(135deg, #ff7a00, #ff4f00); color: #fff; padding: 12px 30px; border: none; border-radius: 25px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; font-size: 14px; margin-top: 15px;">
+          <i class="fas fa-plus-circle"></i> Add Trade
+        </button>
+      </div>
 
       <div class="filter-bar">
         <input type="text" id="searchInput" placeholder="Search for a skin..." />
@@ -712,11 +531,28 @@ $currentUser = $viewData['currentUser'];
             </p>
             <p class="skin-game">Game: <strong><?= htmlspecialchars(ucfirst($category)) ?></strong></p>
 
+            <?php
+            // Logic for Exclusive Trade Offers
+            $activeBuyerId = !empty($row['active_buyer_id']) ? $row['active_buyer_id'] : null;
+            $isLocked = false;
+            
+            // Check if locked: A conversation exists (activeBuyerId set) and I am neither the buyer nor the seller
+            if ($activeBuyerId && ($currentUserObj && $activeBuyerId != $currentUserObj->getId()) && !$isOwner) {
+                $isLocked = true;
+            }
+            ?>
             <div class="skin-buttons">
-              <button class="buy-btn"><i class="fas fa-shopping-cart"></i> Buy</button>
-              <button class="chat-btn" onclick="openDiscussionModal('<?= htmlspecialchars(addslashes($row['name'])) ?>', '<?= htmlspecialchars(addslashes($username)) ?>', <?= $row['skin_id'] ?>, <?= $isOwner ? 'true' : 'false' ?>)">
-                <i class="fas fa-comments"></i> Offer a Trade
-              </button>
+              <?php if ($isLocked): ?>
+                  <button class="buy-btn disabled" disabled style="background:#555; cursor:not-allowed; opacity:0.8;" title="This trade is being negotiated"><i class="fas fa-shopping-cart"></i> Buy</button>
+                  <button class="chat-btn disabled" style="background:#555; cursor:not-allowed; opacity:0.8; width: 100%;" disabled title="This trade is being negotiated by another user">
+                    <i class="fas fa-user-lock"></i> Someone is offering
+                  </button>
+              <?php else: ?>
+                  <button class="buy-btn"><i class="fas fa-shopping-cart"></i> Buy</button>
+                  <button class="chat-btn" onclick="openDiscussionModal('<?= htmlspecialchars(addslashes($row['name'])) ?>', '<?= htmlspecialchars(addslashes($username)) ?>', <?= $row['skin_id'] ?>, <?= $isOwner ? 'true' : 'false' ?>)">
+                    <i class="fas fa-comments"></i> Offer a Trade
+                  </button>
+              <?php endif; ?>
             </div>
 
             <a href="description.php?id=<?= $row['skin_id'] ?>" class="desc-btn" style="text-decoration: none; display: inline-block; text-align: center;"><i class="fas fa-info-circle"></i> Description</a>
@@ -767,7 +603,7 @@ $currentUser = $viewData['currentUser'];
       <span class="close-modal" id="closeEditModalBtn">&times;</span>
       <h2>Edit Trade Deal</h2>
 
-      <form id="editForm" method="POST" action="trading.php">
+      <form id="editForm">
         <input type="hidden" name="skinId" id="editSkinId">
         <input type="text" name="skinName" id="editSkinName" placeholder="Skin Name" required maxlength="100">
         <input type="number" name="skinPrice" id="editSkinPrice" placeholder="Price $" step="0.01" min="0.01" required>
@@ -798,7 +634,12 @@ $currentUser = $viewData['currentUser'];
           <h3 id="discussionTitle">Trade Discussion</h3>
           <p style="color: #888; font-size: 14px; margin: 0;">With: <span id="sellerName"></span></p>
         </div>
-        <span class="close-modal" id="closeDiscussionBtn">&times;</span>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button id="refuseOfferBtn" style="display:none; background: #ff4757; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold;">
+            <i class="fas fa-times-circle"></i> Refuse Offer
+          </button>
+          <span class="close-modal" id="closeDiscussionBtn">&times;</span>
+        </div>
       </div>
       
       <div class="discussion-messages" id="discussionMessages">
@@ -807,6 +648,8 @@ $currentUser = $viewData['currentUser'];
       
       <div class="discussion-input">
         <input type="text" id="discussionInput" placeholder="Type your message or make an offer...">
+        <input type="file" id="discussionImageInput" accept="image/*" style="display: none;">
+        <button id="attachImageBtn" title="Attach image"><i class="fas fa-image"></i></button>
         <button id="sendDiscussionBtn">Send</button>
       </div>
     </div>
@@ -945,9 +788,38 @@ $currentUser = $viewData['currentUser'];
       }
     }
 
+    // Handle edit form submission with AJAX
+    document.getElementById('editForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(this);
+      
+      fetch('trading.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Close modal without page redirect
+          document.getElementById('editModal').classList.remove('active');
+          
+          // Refresh the page data (or update the specific skin card)
+          location.reload();
+        } else {
+          alert('Error updating trade: ' + (data.error || 'Unknown error'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to update trade');
+      });
+    });
+
 
     let currentSkinId = null;
     let messageRefreshInterval = null;
+    const currentLoggedInUser = '<?php echo htmlspecialchars($currentUser); ?>';
     
     function openDiscussionModal(skinName, sellerName, skinId, isOwner) {
 
@@ -994,6 +866,9 @@ $currentUser = $viewData['currentUser'];
       const formData = new FormData();
       formData.append('get_messages', '1');
       formData.append('skin_id', currentSkinId);
+      formData.append('active_user_check', currentLoggedInUser);
+      
+      console.log('Loading messages for skin ID:', currentSkinId);
       
       fetch('trading.php', {
         method: 'POST',
@@ -1013,8 +888,23 @@ $currentUser = $viewData['currentUser'];
           console.log('Messages array:', data.messages);
           console.log('Messages count:', data.messages ? data.messages.length : 0);
           
+          if (data.messages && data.messages.length > 0) {
+            console.log('First message object:', data.messages[0]);
+          }
+          
           if (data.success) {
             displayMessages(data.messages || []);
+            console.log('isSeller:', data.isSeller, 'canMessage:', data.canMessage);
+            updateDiscussionInputState(data.canMessage);
+
+            // Show Refuse button if there are messages and user is seller
+            const refuseBtn = document.getElementById('refuseOfferBtn');
+            if (data.messages && data.messages.length > 0 && data.isSeller) {
+                refuseBtn.style.display = 'block';
+            } else {
+                refuseBtn.style.display = 'none';
+            }
+
           } else {
             showChatError(data.error || 'Failed to load messages');
           }
@@ -1030,10 +920,77 @@ $currentUser = $viewData['currentUser'];
       });
     }
 
+    // Handle Refuse Offer Logic
+    function handleRefuseOffer() {
+        if (!currentSkinId) return;
+        if (!confirm('Are you sure you want to refuse/cancel this negotiation? This will reset the conversation and unlock the skin for others.')) {
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('refuse_offer', '1');
+        formData.append('skin_id', currentSkinId);
+        formData.append('active_user_check', currentLoggedInUser);
+
+        fetch('trading.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Negotiation refused/cancelled. Skin is now unlocked.');
+                document.getElementById('discussionModal').classList.remove('active');
+                location.reload();
+            } else {
+                alert('Error: ' + (data.error || 'Failed to refuse offer'));
+            }
+        })
+        .catch(error => {
+            console.error('Error reusing offer:', error);
+            alert('Failed to refuse offer');
+        });
+    }
+
+    document.getElementById('refuseOfferBtn').addEventListener('click', handleRefuseOffer);
+    
+    function updateDiscussionInputState(canMessage) {
+      const discussionInput = document.getElementById('discussionInput');
+      const sendBtn = document.getElementById('sendDiscussionBtn');
+      
+      if (!discussionInput || !sendBtn) return;
+      
+      // Convert to boolean to handle both true/false and 1/0 and truthy/falsy
+      const canMessageBool = Boolean(canMessage);
+      
+      console.log('updateDiscussionInputState - canMessage:', canMessageBool);
+      
+      if (!canMessageBool) {
+        // Cannot message - disable input
+        console.log('Disabling input: seller waiting for buyer to message first');
+        discussionInput.disabled = true;
+        discussionInput.placeholder = 'Wait for buyers to message you first...';
+        sendBtn.disabled = true;
+        sendBtn.style.opacity = '0.5';
+        sendBtn.style.cursor = 'not-allowed';
+      } else {
+        // Can message - enable input
+        console.log('Enabling input: ready to message');
+        discussionInput.disabled = false;
+        discussionInput.placeholder = 'Type your message or make an offer...';
+        sendBtn.disabled = false;
+        sendBtn.style.opacity = '1';
+        sendBtn.style.cursor = 'pointer';
+      }
+    }
+
 
     function displayMessages(messages) {
       const messagesContainer = document.getElementById('discussionMessages');
-      if (!messagesContainer) return;
+      if (!messagesContainer) {
+        console.error('Messages container not found');
+        return;
+      }
       
       const wasAtBottom = messagesContainer.scrollHeight - messagesContainer.scrollTop <= messagesContainer.clientHeight + 50;
       
@@ -1041,11 +998,14 @@ $currentUser = $viewData['currentUser'];
       
       // Ensure messages is an array
       if (!Array.isArray(messages)) {
-        console.error('Messages is not an array:', messages);
+        console.error('Messages is not an array:', messages, 'typeof:', typeof messages);
         messages = [];
       }
       
+      console.log('displayMessages called with', messages.length, 'messages');
+      
       if (messages.length === 0) {
+        console.log('No messages to display, showing welcome message');
         const welcomeDiv = document.createElement('div');
         welcomeDiv.className = 'offer-section';
         welcomeDiv.innerHTML = `
@@ -1056,15 +1016,20 @@ $currentUser = $viewData['currentUser'];
         return;
       }
       
-      messages.forEach(message => {
-        if (!message || !message.message) {
-          console.error('Invalid message object:', message);
+      console.log('Displaying', messages.length, 'messages');
+      messages.forEach((message, index) => {
+        console.log('Processing message', index, ':', message);
+        // Allow either message text or image (or both)
+        if (!message || (!message.message && !message.image_path)) {
+          console.error('Invalid message object at index', index, ':', message);
+          console.log('Message keys:', message ? Object.keys(message) : 'null');
           return;
         }
         
         const messageDiv = document.createElement('div');
-        const isSent = message.sender_username === '<?php echo $currentUser; ?>';
+        const isSent = message.sender_username === currentLoggedInUser;
         messageDiv.className = `message ${isSent ? 'sent' : 'received'}`;
+        console.log('Message from', message.sender_username, '- isSent:', isSent, '- currentUser:', currentLoggedInUser);
         
         let timeString = '';
         if (message.created_at) {
@@ -1079,11 +1044,16 @@ $currentUser = $viewData['currentUser'];
         }
         
         messageDiv.innerHTML = `
-          <div>${escapeHtml(message.message)}</div>
-          <div class="message-time">${timeString ? timeString + ' - ' : ''}${escapeHtml(message.sender_username || 'Unknown')}</div>
+          <div style="font-size: 12px; color: ${isSent ? '#fff' : '#ff7a00'}; font-weight: 600; margin-bottom: 5px;">
+            ${isSent ? 'You (' + currentLoggedInUser + ')' : escapeHtml(message.sender_username || 'Unknown')}
+          </div>
+          ${message.message ? '<div>' + escapeHtml(message.message) + '</div>' : ''}
+          ${message.image_path ? '<div style="margin: 8px 0;"><img src="../' + escapeHtml(message.image_path) + '" style="max-width: 100%; max-height: 250px; border-radius: 8px; cursor: pointer;" onclick="window.open(this.src, \'_blank\');"></div>' : ''}
+          <div class="message-time">${timeString || 'Just now'}</div>
         `;
         
         messagesContainer.appendChild(messageDiv);
+        console.log('Message appended to container');
       });
       
 
@@ -1118,12 +1088,47 @@ $currentUser = $viewData['currentUser'];
       }
     });
 
+    // Image attachment
+    document.getElementById('attachImageBtn').addEventListener('click', () => {
+      document.getElementById('discussionImageInput').click();
+    });
+
+    document.getElementById('discussionImageInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          // Show preview
+          let preview = document.getElementById('discussionImagePreview');
+          if (!preview) {
+            preview = document.createElement('div');
+            preview.id = 'discussionImagePreview';
+            preview.style.cssText = 'margin-top: 10px; position: relative;';
+            document.querySelector('.discussion-input').parentElement.insertBefore(preview, document.querySelector('.discussion-input'));
+          }
+          preview.innerHTML = `
+            <img src="${event.target.result}" style="max-width: 150px; max-height: 150px; border-radius: 8px;">
+            <button type="button" onclick="document.getElementById('discussionImageInput').value = ''; document.getElementById('discussionImagePreview').style.display = 'none';" style="position: absolute; top: 0; right: 0; background: #ff4757; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 12px;">✕</button>
+          `;
+          preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
     function sendDiscussionMessage() {
       const input = document.getElementById('discussionInput');
+      const imageInput = document.getElementById('discussionImageInput');
       const message = input.value.trim();
+      const hasImage = imageInput.files && imageInput.files.length > 0;
       
+      // Allow either message or image
+      if (!message && !hasImage) {
+        return;
+      }
 
-      if (!validateDiscussionMessage(input)) {
+      // Only validate message if there is one
+      if (message && !validateDiscussionMessage(input)) {
         return;
       }
       
@@ -1135,6 +1140,12 @@ $currentUser = $viewData['currentUser'];
       formData.append('send_message', '1');
       formData.append('skin_id', currentSkinId);
       formData.append('message', message);
+      formData.append('active_user_check', currentLoggedInUser);
+      
+      // Add image if present
+      if (hasImage) {
+        formData.append('image', imageInput.files[0]);
+      }
       
       fetch('trading.php', {
         method: 'POST',
@@ -1145,6 +1156,13 @@ $currentUser = $viewData['currentUser'];
         console.log('Send message response:', data); 
         if (data.success) {
           input.value = '';
+          imageInput.value = '';
+          
+          // Update image preview if any
+          const imagePreview = document.getElementById('discussionImagePreview');
+          if (imagePreview) {
+            imagePreview.style.display = 'none';
+          }
 
           if (typeof removeError === 'function') {
             removeError(input);
@@ -1181,51 +1199,9 @@ $currentUser = $viewData['currentUser'];
     searchInput.addEventListener('input', filterSkins);
     gameFilter.addEventListener('change', filterSkins);
 
-
-    const filterBtns = document.querySelectorAll('.filter-btn');
     
-    filterBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
 
-        filterBtns.forEach(b => b.classList.remove('active'));
-
-        btn.classList.add('active');
-        
-        const filter = btn.getAttribute('data-filter');
-        filterHistory(filter);
-      });
-    });
     
-    function filterHistory(filter) {
-      const rows = document.querySelectorAll('.history-row');
-      
-      rows.forEach(row => {
-        if (filter === 'all' || row.getAttribute('data-action') === filter) {
-          row.style.display = '';
-        } else {
-          row.style.display = 'none';
-        }
-      });
-    }
-
-
-    document.getElementById('clearHistoryBtn').addEventListener('click', function() {
-      if (confirm('Are you sure you want to clear your entire trade history? This action cannot be undone.')) {
-
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = 'trading.php';
-        
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'clear_history';
-        input.value = '1';
-        
-        form.appendChild(input);
-        document.body.appendChild(form);
-        form.submit();
-      }
-    });
 
 
     
@@ -1258,6 +1234,8 @@ $currentUser = $viewData['currentUser'];
         btn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
+            
+            if (this.disabled || this.classList.contains('disabled')) return;
             
             const card = this.closest('.skin-card');
             const name = card.querySelector('.skin-name').textContent;

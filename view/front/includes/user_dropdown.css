@@ -1,0 +1,114 @@
+/* User Dropdown Menu Styles */
+.user-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.username-display {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    padding: 5px 10px;
+    border-radius: 8px;
+}
+
+.username-display:hover {
+    background: rgba(255, 122, 0, 0.1);
+}
+
+/* LARGE PROFILE IMAGE - 45px x 45px */
+.username-display img {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #ff7a00;
+}
+
+.username-display span {
+    color: #ff7a00;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.username-display i.fa-chevron-down {
+    font-size: 12px;
+    color: #ff7a00;
+    transition: transform 0.3s ease;
+}
+
+.username-display i.fa-user-circle {
+    font-size: 24px;
+    color: #ff7a00;
+}
+
+.user-dropdown.active .username-display i.fa-chevron-down {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 10px;
+    background: rgba(20, 20, 20, 0.98);
+    border: 2px solid rgba(255, 122, 0, 0.3);
+    border-radius: 12px;
+    min-width: 200px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.user-dropdown.active .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dropdown-item {
+    padding: 12px 15px;
+    color: #fff;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+}
+
+.dropdown-item:hover {
+    background: rgba(255, 122, 0, 0.1);
+    border-left-color: #ff7a00;
+}
+
+.dropdown-item i {
+    font-size: 16px;
+    color: #ff7a00;
+    width: 20px;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: rgba(255, 122, 0, 0.2);
+    margin: 5px 0;
+}
+
+.dropdown-item.logout {
+    color: #ff4444;
+}
+
+.dropdown-item.logout i {
+    color: #ff4444;
+}
+
+.dropdown-item.logout:hover {
+    background: rgba(255, 68, 68, 0.1);
+    border-left-color: #ff4444;
+}

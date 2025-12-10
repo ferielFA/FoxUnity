@@ -29,6 +29,96 @@ $viewData = $controller->getViewData();
 $tradeHistory = $viewData['tradeHistory'];
 $stats = $viewData['stats'];
 $error = $viewData['error'];
+$filters = $viewData['filters']; // Default filters
+
+// Handler for AJAX Pagination requests
+if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
+    // Return only the table rows and pagination
+    ob_start();
+    ?>
+    <table class="history-table">
+        <thead>
+            <tr>
+                <th>Date & Time</th>
+                <th>User</th>
+                <th>Action</th>
+                <th>Skin Name</th>
+                <th>Price</th>
+                <th>Game</th>
+                <th>Skin ID</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php if (count($tradeHistory) === 0): ?>
+                <tr>
+                    <td colspan="7" class="no-data">
+                        No trade history found matching your filters.
+                    </td>
+                </tr>
+            <?php else: ?>
+                <?php foreach ($tradeHistory as $history): 
+                    $actionClass = '';
+                    switch ($history['action']) {
+                        case 'created': $actionClass = 'action-created'; break;
+                        case 'updated': $actionClass = 'action-updated'; break;
+                        case 'deleted': $actionClass = 'action-deleted'; break;
+                        case 'bought':  $actionClass = 'action-bought'; break;
+                        case 'finished': $actionClass = 'action-finished'; break;
+                    }
+                ?>
+                <tr class="history-row">
+                    <td><?= date('M j, Y g:i A', strtotime($history['created_at'])) ?></td>
+                    <td class="username">@<?= htmlspecialchars($history['username']) ?></td>
+                    <td><span class="action-badge <?= $actionClass ?>"><?= ucfirst($history['action']) ?></span></td>
+                    <td><?= htmlspecialchars($history['skin_name']) ?></td>
+                    <td class="price">$<?= number_format((float)$history['skin_price'], 2) ?></td>
+                    <td class="skin-game <?= $history['skin_category'] ?>"><?= htmlspecialchars(ucfirst($history['skin_category'])) ?></td>
+                    <td>#<?= $history['skin_id'] ?></td>
+                </tr>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </tbody>
+    </table>
+
+    <!-- Pagination Controls -->
+    <?php if (isset($viewData['pagination']) && $viewData['pagination']['total_pages'] > 1): ?>
+        <div class="pagination-container" style="display: flex; justify-content: center; align-items: center; gap: 20px; margin-top: 20px;">
+            <?php 
+            $pg = $viewData['pagination'];
+            $current = $pg['current_page'];
+            $total = $pg['total_pages'];
+            
+            // Previous Arrow
+            if ($current > 1): ?>
+                <a href="#" class="pagination-arrow" title="Previous Page" data-page="<?= $current - 1 ?>">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+            <?php else: ?>
+                <span class="pagination-arrow disabled"><i class="fas fa-arrow-left"></i></span>
+            <?php endif; ?>
+
+            <!-- Current Page Number -->
+            <div class="pagination-number">
+                <span class="current"><?= $current ?></span>
+                <span class="separator">/</span>
+                <span class="total"><?= $total ?></span>
+            </div>
+
+            <?php 
+            // Next Arrow
+            if ($current < $total): ?>
+                <a href="#" class="pagination-arrow" title="Next Page" data-page="<?= $current + 1 ?>">
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+            <?php else: ?>
+                <span class="pagination-arrow disabled"><i class="fas fa-arrow-right"></i></span>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
+    <?php
+    echo ob_get_clean();
+    exit();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -255,6 +345,7 @@ $error = $viewData['error'];
         max-height: 600px;
         overflow-y: auto;
         border-radius: 12px;
+        position: relative;
     }
     .no-data {
         text-align: center;
@@ -351,14 +442,93 @@ $error = $viewData['error'];
     .content {
         display: block !important;
         padding: 30px 50px;
-        overflow-y: auto;
     }
     .content .stats-grid {
         margin-bottom: 30px;
     }
     .content .trade-history-section {
         width: 100%;
+        position: relative;
     }
+    /* Loading overlay for AJAX */
+    .table-loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10;
+        border-radius: 12px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+    .table-loading-overlay.active {
+        opacity: 1;
+        pointer-events: all;
+    }
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(255, 122, 0, 0.3);
+        border-radius: 50%;
+        border-top-color: #ff7a00;
+        animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    /* Pagination Styles */
+            .pagination-arrow {
+                background: rgba(255, 122, 0, 0.1);
+                color: #ff7a00;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                text-decoration: none;
+                transition: all 0.3s ease;
+                border: 1px solid #ff7a00;
+            }
+            .pagination-arrow:hover:not(.disabled) {
+                background: #ff7a00;
+                color: #000;
+                transform: scale(1.1);
+            }
+            .pagination-arrow.disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+                border-color: #555;
+                color: #555;
+                background: rgba(255, 255, 255, 0.05);
+            }
+            .pagination-number {
+                font-family: 'Orbitron', sans-serif;
+                font-size: 1.2em;
+                font-weight: bold;
+                color: #fff;
+                display: flex;
+                gap: 5px;
+                align-items: baseline;
+            }
+            .pagination-number .current {
+                color: #ff7a00;
+                font-size: 1.4em;
+            }
+            .pagination-number .separator {
+                color: #555;
+            }
+            .pagination-number .total {
+                color: #888;
+                font-size: 0.9em;
+            }
   </style>
 </head>
 
@@ -443,6 +613,11 @@ $error = $viewData['error'];
       <section class="trade-history-section">
         <h2 class="section-title"><span>Trade</span> History</h2>
         <p style="color:#ccc; margin-bottom: 20px; text-align: center;">Complete overview of all trading activities</p>
+        
+        <!-- Loading Overlay -->
+        <div class="table-loading-overlay" id="tableLoading">
+            <div class="spinner"></div>
+        </div>
 
         <div class="search-filter">
             <input type="text" id="searchInput" placeholder="Search by skin name or username...">
@@ -451,7 +626,6 @@ $error = $viewData['error'];
                 <option value="created">Created</option>
                 <option value="updated">Updated</option>
                 <option value="deleted">Deleted</option>
-
                 <option value="finished">Finished</option>
             </select>
             <select id="gameFilter">
@@ -469,7 +643,6 @@ $error = $viewData['error'];
             <button class="filter-btn" data-filter="created">Created</button>
             <button class="filter-btn" data-filter="updated">Updated</button>
             <button class="filter-btn" data-filter="deleted">Deleted</button>
-
             <button class="filter-btn" data-filter="finished">Finished</button>
         </div>
 
@@ -479,7 +652,7 @@ $error = $viewData['error'];
             </div>
         <?php endif; ?>
 
-        <div class="table-container">
+        <div class="table-container" id="historyTableContainer">
             <table class="history-table">
                 <thead>
                     <tr>
@@ -510,7 +683,7 @@ $error = $viewData['error'];
                                 case 'finished': $actionClass = 'action-finished'; break;
                             }
                         ?>
-                        <tr class="history-row" data-action="<?= $history['action'] ?>" data-game="<?= $history['skin_category'] ?>">
+                        <tr class="history-row">
                             <td><?= date('M j, Y g:i A', strtotime($history['created_at'])) ?></td>
                             <td class="username">@<?= htmlspecialchars($history['username']) ?></td>
                             <td><span class="action-badge <?= $actionClass ?>"><?= ucfirst($history['action']) ?></span></td>
@@ -523,6 +696,42 @@ $error = $viewData['error'];
                     <?php endif; ?>
                 </tbody>
             </table>
+
+            <!-- Pagination Controls -->
+            <?php if (isset($viewData['pagination']) && $viewData['pagination']['total_pages'] > 1): ?>
+                <div class="pagination-container" style="display: flex; justify-content: center; align-items: center; gap: 20px; margin-top: 20px;">
+                    <?php 
+                    $pg = $viewData['pagination'];
+                    $current = $pg['current_page'];
+                    $total = $pg['total_pages'];
+                    
+                    // Previous Arrow
+                    if ($current > 1): ?>
+                        <a href="?page=<?= $current - 1 ?>" class="pagination-arrow" title="Previous Page" data-page="<?= $current - 1 ?>">
+                            <i class="fas fa-arrow-left"></i>
+                        </a>
+                    <?php else: ?>
+                        <span class="pagination-arrow disabled"><i class="fas fa-arrow-left"></i></span>
+                    <?php endif; ?>
+
+                    <!-- Current Page Number -->
+                    <div class="pagination-number">
+                        <span class="current"><?= $current ?></span>
+                        <span class="separator">/</span>
+                        <span class="total"><?= $total ?></span>
+                    </div>
+
+                    <?php 
+                    // Next Arrow
+                    if ($current < $total): ?>
+                        <a href="?page=<?= $current + 1 ?>" class="pagination-arrow" title="Next Page" data-page="<?= $current + 1 ?>">
+                            <i class="fas fa-arrow-right"></i>
+                        </a>
+                    <?php else: ?>
+                        <span class="pagination-arrow disabled"><i class="fas fa-arrow-right"></i></span>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
         </div>
       </section>
     </div>
@@ -566,45 +775,29 @@ $error = $viewData['error'];
       document.querySelector(".transition-screen").classList.add("hidden");
     });
 
-    document.querySelectorAll("a").forEach(link => {
-      link.addEventListener("click", e => {
-        const href = link.getAttribute("href");
-        if (href && !href.startsWith("#") && href !== "") {
-          e.preventDefault();
-          const transition = document.querySelector(".transition-screen");
-          transition.classList.remove("hidden");
-          setTimeout(() => {
-            window.location.href = href;
-          }, 700);
+    // Prevent full reload on pagination
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.pagination-arrow')) return; // let pagination handler handle it
+        
+        const link = e.target.closest('a');
+        if (link) {
+            const href = link.getAttribute("href");
+            if (href && !href.startsWith("#") && href !== "" && !href.includes('tradingb.php')) {
+                // allow transition
+            }
         }
-      });
     });
 
-    // Filter History
+    // --- Server-Side Filtering & AJAX Pagination ---
+    
     const searchInput = document.getElementById('searchInput');
     const actionFilter = document.getElementById('actionFilter');
     const gameFilter = document.getElementById('gameFilter');
     const filterBtns = document.querySelectorAll('.filter-btn');
 
-    function filterHistory() {
-        const searchValue = searchInput.value.toLowerCase();
-        const selectedAction = actionFilter.value;
-        const selectedGame = gameFilter.value;
+    let searchTimeout;
 
-        document.querySelectorAll('.history-row').forEach(row => {
-            const skinName = row.cells[3].textContent.toLowerCase();
-            const username = row.cells[1].textContent.toLowerCase();
-            const action = row.getAttribute('data-action');
-            const game = row.getAttribute('data-game');
-
-            const matchesSearch = skinName.includes(searchValue) || username.includes(searchValue);
-            const matchesAction = selectedAction === 'all' || action === selectedAction || (selectedAction === 'finished' && (action === 'bought' || action === 'buy' || action === 'finished'));
-            const matchesGame = selectedGame === 'all' || game === selectedGame;
-
-            row.style.display = (matchesSearch && matchesAction && matchesGame) ? '' : 'none';
-        });
-    }
-
+    // Filter Button Clicks
     filterBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             filterBtns.forEach(b => b.classList.remove('active'));
@@ -612,15 +805,83 @@ $error = $viewData['error'];
             
             const filter = btn.getAttribute('data-filter');
             actionFilter.value = filter === 'all' ? 'all' : filter;
-            filterHistory();
+            
+            // Reload page 1 with new filter
+            loadPage(1);
         });
     });
 
-    searchInput.addEventListener('input', filterHistory);
-    actionFilter.addEventListener('change', filterHistory);
-    gameFilter.addEventListener('change', filterHistory);
+    // Input Event Listeners
+    searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            loadPage(1);
+        }, 500); // Debounce search
+    });
 
-    filterHistory();
+    actionFilter.addEventListener('change', () => {
+        // Sync buttons with dropdown
+        const val = actionFilter.value;
+        filterBtns.forEach(btn => {
+            if (btn.getAttribute('data-filter') === val || (val === 'all' && btn.getAttribute('data-filter') === 'all')) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        loadPage(1);
+    });
+
+    gameFilter.addEventListener('change', () => {
+        loadPage(1);
+    });
+
+    // Pagination Listeners (delegated to document usually, or re-attached)
+    // Re-attaching is safer for simple implementations
+    function attachPaginationListeners() {
+        const paginationLinks = document.querySelectorAll('.pagination-arrow:not(.disabled)');
+        paginationLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const page = this.getAttribute('data-page');
+                if (page) loadPage(page);
+            });
+        });
+    }
+
+    // Main Load Function
+    function loadPage(page) {
+        const loadingOverlay = document.getElementById('tableLoading');
+        loadingOverlay.classList.add('active');
+        
+        // Gather filter values
+        const search = encodeURIComponent(searchInput.value);
+        const action = encodeURIComponent(actionFilter.value);
+        const game = encodeURIComponent(gameFilter.value);
+
+        const url = `tradingb.php?page=${page}&ajax=1&search=${search}&action=${action}&game=${game}`;
+
+        fetch(url)
+            .then(response => response.text())
+            .then(html => {
+                // Update table container with new HTML
+                document.getElementById('historyTableContainer').innerHTML = html;
+                
+                // Re-attach pagination listeners to new DOM elements
+                attachPaginationListeners();
+                
+                loadingOverlay.classList.remove('active');
+            })
+            .catch(err => {
+                console.error('Error loading page:', err);
+                loadingOverlay.classList.remove('active');
+                // alert('Error loading page. Please try again.');
+            });
+    }
+
+    // Initialize listeners
+    attachPaginationListeners();
+
   </script>
 </body>
 </html>
