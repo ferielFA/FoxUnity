@@ -15,6 +15,7 @@ class Comment {
     // Propriétés privées (Encapsulation POO)
     private ?int $idComment;
     private int $idEvenement;
+    private ?int $userId;
     private string $userName;
     private string $userEmail;
     private string $content;
@@ -45,6 +46,7 @@ class Comment {
     public function __construct(
         ?int $idComment = null,
         int $idEvenement = 0,
+        ?int $userId = null,
         string $userName = '',
         string $userEmail = '',
         string $content = '',
@@ -58,6 +60,7 @@ class Comment {
     ) {
         $this->idComment = $idComment;
         $this->idEvenement = $idEvenement;
+        $this->userId = $userId;
         $this->userName = $userName;
         $this->userEmail = $userEmail;
         $this->content = $content;
@@ -80,6 +83,10 @@ class Comment {
 
     public function getIdEvenement(): int {
         return $this->idEvenement;
+    }
+
+    public function getUserId(): ?int {
+        return $this->userId;
     }
 
     public function getUserName(): string {
@@ -132,6 +139,10 @@ class Comment {
 
     public function setIdEvenement(int $idEvenement): void {
         $this->idEvenement = $idEvenement;
+    }
+
+    public function setUserId(?int $userId): void {
+        $this->userId = $userId;
     }
 
     public function setUserName(string $userName): void {

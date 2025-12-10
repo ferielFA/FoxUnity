@@ -666,9 +666,9 @@ if ($currentUser->getImage()) {
         
         <nav class="site-nav">
             <a href="index.php">Home</a>
-            <a href="events.html">Events</a>
+            <a href="events.php">Events</a>
             <a href="shop.html">Shop</a>
-            <a href="trading.html">Trading</a>
+            <a href="trading.php">Trading</a>
             <a href="news.html">News</a>
             <a href="reclamation.html">Complaints</a>
             <a href="about.html">About Us</a>
@@ -711,7 +711,7 @@ if ($currentUser->getImage()) {
                 </div>
             </div>
             
-            <a href="panier.html" class="cart-icon">
+            <a href="panier.php" class="cart-icon">
                 <i class="fas fa-shopping-cart"></i> Cart
                 <span class="cart-count">0</span>
             </a>

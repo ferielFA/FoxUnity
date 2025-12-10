@@ -17,6 +17,7 @@ class ParticipationController {
         try {
             error_log("ParticipationController::inscrire() START");
             error_log("Email: " . $participation->getEmailParticipant());
+            error_log("User ID: " . ($participation->getUserId() ?? 'NULL'));
             error_log("Event ID: " . $participation->getIdEvenement());
             
             // Check if already registered
@@ -29,12 +30,13 @@ class ParticipationController {
             }
 
             error_log("Preparing INSERT query...");
-            $sql = "INSERT INTO participation (id_evenement, nom_participant, email_participant, date_participation) 
-                    VALUES (:id_evenement, :nom_participant, :email_participant, :date_participation)";
+            $sql = "INSERT INTO participation (id_evenement, user_id, nom_participant, email_participant, date_participation) 
+                    VALUES (:id_evenement, :user_id, :nom_participant, :email_participant, :date_participation)";
             
             $stmt = $this->db->prepare($sql);
             $params = [
                 ':id_evenement' => $participation->getIdEvenement(),
+                ':user_id' => $participation->getUserId(),
                 ':nom_participant' => $participation->getNomParticipant(),
                 ':email_participant' => $participation->getEmailParticipant(),
                 ':date_participation' => $participation->getDateParticipation()->format('Y-m-d H:i:s')
@@ -103,6 +105,7 @@ class ParticipationController {
                 $results[] = new Participation(
                     $row['id_participation'],
                     $row['id_evenement'],
+                    $row['user_id'] ?? null,
                     $row['nom_participant'],
                     $row['email_participant'],
                     new DateTime($row['date_participation'])
@@ -142,6 +145,22 @@ class ParticipationController {
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Erreur lecture participations: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function lireParUtilisateur(int $userId): array {
+        try {
+            $sql = "SELECT p.*, e.titre, e.date_debut, e.lieu 
+                    FROM participation p 
+                    INNER JOIN evenement e ON p.id_evenement = e.id_evenement 
+                    WHERE p.user_id = :user_id
+                    ORDER BY p.date_participation DESC";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':user_id' => $userId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Erreur lecture participations par utilisateur: " . $e->getMessage());
             return [];
         }
     }

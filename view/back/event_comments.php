@@ -500,9 +500,9 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
     <img src="../images/Nine__1_-removebg-preview.png" alt="Nine Tailed Fox Logo" class="dashboard-logo">
     <h2>Dashboard</h2>
     <a href="dashboard.php">Overview</a>
-    <a href="#">Users</a>
+    <a href="users.php">Users</a>
     <a href="#">Shop</a>
-    <a href="#">Trade History</a>
+    <a href="tradingb.php">Trade History</a>
     <a href="eventsb.php" class="active">Events</a>
     <a href="#">News</a>
     <a href="#">Support</a>

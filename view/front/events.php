@@ -1,16 +1,21 @@
 <?php
 require_once __DIR__ . '/../../controller/EvenementController.php';
 require_once __DIR__ . '/../../controller/ParticipationController.php';
+require_once __DIR__ . '/../../controller/UserController.php';
 
 $eventController = new EvenementController();
 $participationController = new ParticipationController();
+
+// Get current logged-in user
+$isLoggedIn = UserController::isLoggedIn();
+$currentUser = UserController::getCurrentUser();
 
 $message = '';
 $showParticipationForm = false;
 $showCreateEventForm = false;
 $selectedEvent = null;
 $showMyEvents = isset($_GET['view']) && $_GET['view'] === 'my';
-$currentUserEmail = isset($_GET['email']) ? htmlspecialchars($_GET['email']) : '';
+$currentUserEmail = $isLoggedIn ? $currentUser->getEmail() : (isset($_GET['email']) ? htmlspecialchars($_GET['email']) : '');
 
 // Handle create event form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -19,6 +24,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     error_log("POST data: " . print_r($_POST, true));
     
     if ($_POST['action'] === 'create_event') {
+        $creatorId = $isLoggedIn ? $currentUser->getId() : null;
+        $creatorEmail = $isLoggedIn ? $currentUser->getEmail() : htmlspecialchars($_POST['createur_email']);
+        
         $evenement = new Evenement(
             null,
             htmlspecialchars($_POST['titre']),
@@ -26,13 +34,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             new DateTime($_POST['date_debut']),
             new DateTime($_POST['date_fin']),
             htmlspecialchars($_POST['lieu']),
-            htmlspecialchars($_POST['createur_email']),
+            $creatorId,
+            $creatorEmail,
             'upcoming'
         );
         
         if ($eventController->creer($evenement)) {
             $message = '<div class="alert success"><i class="fas fa-check-circle"></i> Event created successfully!</div>';
-            header("Location: events.php?view=my&email=" . urlencode($_POST['createur_email']) . "&created=1");
+            $redirectEmail = $isLoggedIn ? $currentUser->getEmail() : $_POST['createur_email'];
+            header("Location: events.php?view=my&email=" . urlencode($redirectEmail) . "&created=1");
             exit;
         } else {
             $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> Event already exists or error creating event.</div>';
@@ -54,11 +64,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if ($isAlreadyRegistered) {
             $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> You are already registered for this event!</div>';
         } else {
+            $participantId = $isLoggedIn ? $currentUser->getId() : null;
+            $participantName = $isLoggedIn ? $currentUser->getUsername() : htmlspecialchars($_POST['nom_participant']);
+            $participantEmail = $isLoggedIn ? $currentUser->getEmail() : htmlspecialchars($_POST['email_participant']);
+            
             $participation = new Participation(
                 null,
                 (int)$_POST['id_evenement'],
-                htmlspecialchars($_POST['nom_participant']),
-                htmlspecialchars($_POST['email_participant']),
+                $participantId,
+                $participantName,
+                $participantEmail,
                 new DateTime()
             );
             
@@ -89,8 +104,16 @@ if (isset($_GET['create'])) {
 }
 
 // Get events based on filter
-if ($showMyEvents && !empty($currentUserEmail)) {
-    $evenements = $eventController->lireParCreateur($currentUserEmail);
+if ($showMyEvents) {
+    if ($isLoggedIn) {
+        // Use user ID for logged-in users
+        $evenements = $eventController->lireParCreateurId($currentUser->getId());
+    } elseif (!empty($currentUserEmail)) {
+        // Fallback to email for non-logged-in users
+        $evenements = $eventController->lireParCreateur($currentUserEmail);
+    } else {
+        $evenements = [];
+    }
 } else {
     $evenements = $eventController->lireTous();
 }
@@ -589,7 +612,7 @@ unset($eventItem); // Break reference
             <a href="index.php" data-lang-en="Home" data-lang-fr="Accueil">Home</a>
             <a href="events.php" class="active" data-lang-en="Events" data-lang-fr="Événements">Events</a>
             <a href="shop.html" data-lang-en="Shop" data-lang-fr="Boutique">Shop</a>
-            <a href="trading.html" data-lang-en="Trading" data-lang-fr="Échange">Trading</a>
+            <a href="trading.php" data-lang-en="Trading" data-lang-fr="Échange">Trading</a>
             <a href="news.html" data-lang-en="News" data-lang-fr="Actualités">News</a>
             <a href="reclamation.html" data-lang-en="Support" data-lang-fr="Support">Support</a>
             <a href="about.html" data-lang-en="About Us" data-lang-fr="À Propos">About Us</a>
@@ -600,7 +623,7 @@ unset($eventItem); // Break reference
                 <i class="fas fa-language"></i>
                 <span id="currentLang">FR</span>
             </button>
-            <a href="login.html" class="login-register-link" data-lang-en="Login / Register" data-lang-fr="Connexion / S'inscrire">
+            <a href="Login.php" class="login-register-link" data-lang-en="Login / Register" data-lang-fr="Connexion / S'inscrire">
                 <i class="fas fa-user"></i> <span>Login / Register</span>
             </a>
         </div>

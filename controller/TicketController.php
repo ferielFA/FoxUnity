@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/../config/site_config.php';
 require_once __DIR__ . '/../model/Ticket.php';
 require_once __DIR__ . '/../libs/phpqrcode/qrlib.php';
 
@@ -99,8 +100,8 @@ class TicketController {
         $filename = 'ticket_' . $idParticipation . '_' . $idEvenement . '_' . time() . '.png';
         $filepath = $qrCodeDir . $filename;
         
-        // QR code content (verification URL with ticket number)
-        $qrContent = "TICKET:" . $ticketNumber . "|PARTICIPATION:" . $idParticipation . "|EVENT:" . $idEvenement;
+        // QR code content - URL accessible from phone on local network
+        $qrContent = VERIFY_TICKET_URL . '?token=' . urlencode($ticketNumber);
         
         // Generate QR code (level L = Low error correction, size 4, margin 2)
         QRcode::png($qrContent, $filepath, QR_ECLEVEL_L, 4, 2);
@@ -410,6 +411,40 @@ class TicketController {
         } catch (PDOException $e) {
             error_log("Error fetching all tickets: " . $e->getMessage());
             return [];
+        }
+    }
+
+    /**
+     * Get participant info by participation ID
+     * @param int $idParticipation
+     * @return array|null
+     */
+    public function getParticipantInfo(int $idParticipation): ?array {
+        try {
+            $sql = "SELECT nom_participant, email_participant FROM participation WHERE id_participation = :id_participation";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':id_participation' => $idParticipation]);
+            
+            return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        } catch (PDOException $e) {
+            error_log("Error fetching participant info: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Mark ticket as used
+     * @param int $ticketId
+     * @return bool
+     */
+    public function markTicketAsUsed(int $ticketId): bool {
+        try {
+            $sql = "UPDATE tickets SET status = 'used' WHERE id_ticket = :id_ticket";
+            $stmt = $this->pdo->prepare($sql);
+            return $stmt->execute([':id_ticket' => $ticketId]);
+        } catch (PDOException $e) {
+            error_log("Error marking ticket as used: " . $e->getMessage());
+            return false;
         }
     }
 }

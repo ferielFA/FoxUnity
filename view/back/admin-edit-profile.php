@@ -649,9 +649,8 @@ if ($currentUser->getImage()) {
     <a href="dashboard.php">Overview</a>
     <a href="users.php">Users</a>
     <a href="#">Shop</a>
-    <a href="dashboard.php?section=trades">Trade History</a>
-    <a href="dashboard.php?section=trades">Trade History</a>
-    <a href="#">Events</a>
+    <a href="tradingb.php">Trade History</a>
+    <a href="eventsb.php">Events</a>
     <a href="#">News</a>
     <a href="#">Support</a>
     <a href="../front/index.php">← Return Homepage</a>

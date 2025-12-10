@@ -455,7 +455,7 @@ if ($currentUser->getImage()) {
         
         <nav class="site-nav">
             <a href="index.php">Home</a>
-            <a href="events.html">Events</a>
+            <a href="events.php">Events</a>
             <a href="shop.html">Shop</a>
             <a href="trading.html">Trading</a>
             <a href="news.html">News</a>

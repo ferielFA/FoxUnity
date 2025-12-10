@@ -38,12 +38,13 @@ class CommentController {
                 return false;
             }
 
-            $sql = "INSERT INTO comment (id_evenement, user_name, user_email, content, rating) 
-                    VALUES (:id_evenement, :user_name, :user_email, :content, :rating)";
+            $sql = "INSERT INTO comment (id_evenement, user_id, user_name, user_email, content, rating) 
+                    VALUES (:id_evenement, :user_id, :user_name, :user_email, :content, :rating)";
             
             $stmt = $this->db->prepare($sql);
             $result = $stmt->execute([
                 ':id_evenement' => $comment->getIdEvenement(),
+                ':user_id' => $comment->getUserId(),
                 ':user_name' => $comment->getUserName(),
                 ':user_email' => $comment->getUserEmail(),
                 ':content' => $comment->getContent(),
@@ -202,22 +203,23 @@ class CommentController {
      * 
      * @param int $commentId ID du commentaire
      * @param string $userEmail Email de l'utilisateur (temporaire)
+     * @param int|null $userId ID de l'utilisateur (si connecté)
      * @return bool Succès de l'opération
      */
-    public function likeComment(int $commentId, string $userEmail): bool {
+    public function likeComment(int $commentId, string $userEmail, ?int $userId = null): bool {
         try {
             // Vérifier si l'utilisateur a déjà interagi
-            $existing = $this->getUserInteraction($commentId, $userEmail);
+            $existing = $this->getUserInteraction($commentId, $userEmail, $userId);
 
             if ($existing === 'like') {
                 // Déjà liké → retirer le like
-                return $this->removeInteraction($commentId, $userEmail);
+                return $this->removeInteraction($commentId, $userEmail, $userId);
             } elseif ($existing === 'dislike') {
                 // Changer dislike en like
-                return $this->updateInteraction($commentId, $userEmail, 'like');
+                return $this->updateInteraction($commentId, $userEmail, 'like', $userId);
             } else {
                 // Nouveau like
-                return $this->addInteraction($commentId, $userEmail, 'like');
+                return $this->addInteraction($commentId, $userEmail, 'like', $userId);
             }
         } catch (PDOException $e) {
             error_log("Erreur like commentaire: " . $e->getMessage());
@@ -230,21 +232,22 @@ class CommentController {
      * 
      * @param int $commentId ID du commentaire
      * @param string $userEmail Email de l'utilisateur (temporaire)
+     * @param int|null $userId ID de l'utilisateur (si connecté)
      * @return bool Succès de l'opération
      */
-    public function dislikeComment(int $commentId, string $userEmail): bool {
+    public function dislikeComment(int $commentId, string $userEmail, ?int $userId = null): bool {
         try {
-            $existing = $this->getUserInteraction($commentId, $userEmail);
+            $existing = $this->getUserInteraction($commentId, $userEmail, $userId);
 
             if ($existing === 'dislike') {
                 // Déjà disliké → retirer le dislike
-                return $this->removeInteraction($commentId, $userEmail);
+                return $this->removeInteraction($commentId, $userEmail, $userId);
             } elseif ($existing === 'like') {
                 // Changer like en dislike
-                return $this->updateInteraction($commentId, $userEmail, 'dislike');
+                return $this->updateInteraction($commentId, $userEmail, 'dislike', $userId);
             } else {
                 // Nouveau dislike
-                return $this->addInteraction($commentId, $userEmail, 'dislike');
+                return $this->addInteraction($commentId, $userEmail, 'dislike', $userId);
             }
         } catch (PDOException $e) {
             error_log("Erreur dislike commentaire: " . $e->getMessage());
@@ -257,17 +260,28 @@ class CommentController {
      * 
      * @param int $commentId ID du commentaire
      * @param string $userEmail Email de l'utilisateur
+     * @param int|null $userId ID de l'utilisateur (si connecté)
      * @return string|null 'like', 'dislike' ou null
      */
-    public function getUserInteraction(int $commentId, string $userEmail): ?string {
+    public function getUserInteraction(int $commentId, string $userEmail, ?int $userId = null): ?string {
         try {
-            $sql = "SELECT interaction_type FROM comment_interaction 
-                    WHERE id_comment = :id_comment AND user_email = :user_email";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([
-                ':id_comment' => $commentId,
-                ':user_email' => $userEmail
-            ]);
+            if ($userId !== null) {
+                $sql = "SELECT interaction_type FROM comment_interaction 
+                        WHERE id_comment = :id_comment AND user_id = :user_id";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([
+                    ':id_comment' => $commentId,
+                    ':user_id' => $userId
+                ]);
+            } else {
+                $sql = "SELECT interaction_type FROM comment_interaction 
+                        WHERE id_comment = :id_comment AND user_email = :user_email";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([
+                    ':id_comment' => $commentId,
+                    ':user_email' => $userEmail
+                ]);
+            }
             
             $result = $stmt->fetchColumn();
             return $result ?: null;
@@ -280,16 +294,17 @@ class CommentController {
     /**
      * Ajouter une interaction
      */
-    private function addInteraction(int $commentId, string $userEmail, string $type): bool {
+    private function addInteraction(int $commentId, string $userEmail, string $type, ?int $userId = null): bool {
         try {
             $this->db->beginTransaction();
 
             // Ajouter l'interaction
-            $sql = "INSERT INTO comment_interaction (id_comment, user_email, interaction_type) 
-                    VALUES (:id_comment, :user_email, :type)";
+            $sql = "INSERT INTO comment_interaction (id_comment, user_id, user_email, interaction_type) 
+                    VALUES (:id_comment, :user_id, :user_email, :type)";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':id_comment' => $commentId,
+                ':user_id' => $userId,
                 ':user_email' => $userEmail,
                 ':type' => $type
             ]);
@@ -309,19 +324,31 @@ class CommentController {
     /**
      * Modifier une interaction existante
      */
-    private function updateInteraction(int $commentId, string $userEmail, string $type): bool {
+    private function updateInteraction(int $commentId, string $userEmail, string $type, ?int $userId = null): bool {
         try {
             $this->db->beginTransaction();
 
-            $sql = "UPDATE comment_interaction 
-                    SET interaction_type = :type 
-                    WHERE id_comment = :id_comment AND user_email = :user_email";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([
-                ':type' => $type,
-                ':id_comment' => $commentId,
-                ':user_email' => $userEmail
-            ]);
+            if ($userId !== null) {
+                $sql = "UPDATE comment_interaction 
+                        SET interaction_type = :type 
+                        WHERE id_comment = :id_comment AND user_id = :user_id";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([
+                    ':type' => $type,
+                    ':id_comment' => $commentId,
+                    ':user_id' => $userId
+                ]);
+            } else {
+                $sql = "UPDATE comment_interaction 
+                        SET interaction_type = :type 
+                        WHERE id_comment = :id_comment AND user_email = :user_email";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([
+                    ':type' => $type,
+                    ':id_comment' => $commentId,
+                    ':user_email' => $userEmail
+                ]);
+            }
 
             $this->updateCommentCounters($commentId);
 
@@ -337,17 +364,27 @@ class CommentController {
     /**
      * Supprimer une interaction
      */
-    private function removeInteraction(int $commentId, string $userEmail): bool {
+    private function removeInteraction(int $commentId, string $userEmail, ?int $userId = null): bool {
         try {
             $this->db->beginTransaction();
 
-            $sql = "DELETE FROM comment_interaction 
-                    WHERE id_comment = :id_comment AND user_email = :user_email";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([
-                ':id_comment' => $commentId,
-                ':user_email' => $userEmail
-            ]);
+            if ($userId !== null) {
+                $sql = "DELETE FROM comment_interaction 
+                        WHERE id_comment = :id_comment AND user_id = :user_id";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([
+                    ':id_comment' => $commentId,
+                    ':user_id' => $userId
+                ]);
+            } else {
+                $sql = "DELETE FROM comment_interaction 
+                        WHERE id_comment = :id_comment AND user_email = :user_email";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([
+                    ':id_comment' => $commentId,
+                    ':user_email' => $userEmail
+                ]);
+            }
 
             $this->updateCommentCounters($commentId);
 
@@ -521,6 +558,7 @@ class CommentController {
         return new Comment(
             (int)$row['id_comment'],
             (int)$row['id_evenement'],
+            isset($row['user_id']) ? (int)$row['user_id'] : null,
             $row['user_name'],
             $row['user_email'],
             $row['content'],

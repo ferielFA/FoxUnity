@@ -435,7 +435,7 @@ if ($currentUser && $currentUser->getImage()) {
         
         <nav class="site-nav">
             <a href="index.php" class="active">Home</a>
-            <a href="events.html">Events</a>
+            <a href="events.php">Events</a>
             <a href="shop.html">Shop</a>
             <a href="trading.php">Trading</a>
             <a href="news.html">News</a>
@@ -607,7 +607,7 @@ if ($currentUser && $currentUser->getImage()) {
                         <li><i class="fas fa-check"></i> Special Events</li>
                         <li><i class="fas fa-check"></i> Prize Pools & Rewards</li>
                     </ul>
-                    <a href="events.html" class="feature-btn">
+                    <a href="events.php" class="feature-btn">
                         <i class="fas fa-trophy"></i> View Events
                     </a>
                 </div>

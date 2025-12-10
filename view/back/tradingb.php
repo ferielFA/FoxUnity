@@ -377,7 +377,7 @@ $error = $viewData['error'];
     <a href="users.php">Users</a>
     <a href="#">Shop</a>
     <a href="tradingb.php" class="active">Trade History</a>
-    <a href="#">Events</a>
+    <a href="eventsb.php">Events</a>
     <a href="#">News</a>
     <a href="#">Support</a>
     <a href="../front/index.php">← Return Homepage</a>

@@ -16,13 +16,13 @@ class EvenementController {
             // Check for duplicate event (same title, creator, and date)
             $checkSql = "SELECT COUNT(*) FROM evenement 
                         WHERE titre = :titre 
-                        AND createur_email = :createur_email 
+                        AND createur_id = :createur_id 
                         AND DATE(date_debut) = DATE(:date_debut)";
             
             $checkStmt = $this->db->prepare($checkSql);
             $checkStmt->execute([
                 ':titre' => $evenement->getTitre(),
-                ':createur_email' => $evenement->getCreateurEmail(),
+                ':createur_id' => $evenement->getCreateurId(),
                 ':date_debut' => $evenement->getDateDebut()->format('Y-m-d H:i:s')
             ]);
             
@@ -33,8 +33,8 @@ class EvenementController {
                 return false; // Event already exists
             }
             
-            $sql = "INSERT INTO evenement (titre, description, date_debut, date_fin, lieu, createur_email, statut) 
-                    VALUES (:titre, :description, :date_debut, :date_fin, :lieu, :createur_email, :statut)";
+            $sql = "INSERT INTO evenement (titre, description, date_debut, date_fin, lieu, createur_id, createur_email, statut) 
+                    VALUES (:titre, :description, :date_debut, :date_fin, :lieu, :createur_id, :createur_email, :statut)";
             
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
@@ -43,6 +43,7 @@ class EvenementController {
                 ':date_debut' => $evenement->getDateDebut()->format('Y-m-d H:i:s'),
                 ':date_fin' => $evenement->getDateFin()->format('Y-m-d H:i:s'),
                 ':lieu' => $evenement->getLieu(),
+                ':createur_id' => $evenement->getCreateurId(),
                 ':createur_email' => $evenement->getCreateurEmail(),
                 ':statut' => $evenement->getStatut()
             ]);
@@ -73,6 +74,7 @@ class EvenementController {
                     new DateTime($row['date_debut']),
                     new DateTime($row['date_fin']),
                     $row['lieu'],
+                    $row['createur_id'] ?? null,
                     $row['createur_email'] ?? null,
                     $row['statut']
                 );
@@ -104,6 +106,7 @@ class EvenementController {
                     new DateTime($row['date_debut']),
                     new DateTime($row['date_fin']),
                     $row['lieu'],
+                    $row['createur_id'] ?? null,
                     $row['createur_email'] ?? null,
                     $row['statut']
                 );
@@ -174,6 +177,7 @@ class EvenementController {
                     new DateTime($row['date_debut']),
                     new DateTime($row['date_fin']),
                     $row['lieu'],
+                    $row['createur_id'] ?? null,
                     $row['createur_email'] ?? null,
                     $row['statut']
                 );
@@ -187,6 +191,45 @@ class EvenementController {
             return $results;
         } catch (PDOException $e) {
             error_log("Erreur lecture événements par créateur: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function lireParCreateurId(int $userId): array {
+        try {
+            $sql = "SELECT e.*, COUNT(p.id_participation) as nb_participants 
+                    FROM evenement e 
+                    LEFT JOIN participation p ON e.id_evenement = p.id_evenement 
+                    WHERE e.createur_id = :user_id
+                    GROUP BY e.id_evenement 
+                    ORDER BY e.date_debut ASC";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':user_id' => $userId]);
+            $results = [];
+            
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $evenement = new Evenement(
+                    $row['id_evenement'],
+                    $row['titre'],
+                    $row['description'],
+                    new DateTime($row['date_debut']),
+                    new DateTime($row['date_fin']),
+                    $row['lieu'],
+                    $row['createur_id'] ?? null,
+                    $row['createur_email'] ?? null,
+                    $row['statut']
+                );
+                
+                $results[] = [
+                    'evenement' => $evenement,
+                    'nb_participants' => (int)$row['nb_participants']
+                ];
+            }
+            
+            return $results;
+        } catch (PDOException $e) {
+            error_log("Erreur lecture événements par créateur ID: " . $e->getMessage());
             return [];
         }
     }

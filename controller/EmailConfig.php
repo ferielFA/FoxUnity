@@ -14,7 +14,7 @@ class EmailConfig {
     const SMTP_FROM_NAME = 'foxunity';
     
     // Site URL
-    const SITE_URL = 'http://localhost/projet_web';
+    const SITE_URL = 'http://localhost/pw/projet_web';
     
     /**
      * Get PHPMailer instance configured with Gmail SMTP

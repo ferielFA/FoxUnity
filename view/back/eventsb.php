@@ -2,10 +2,12 @@
 require_once __DIR__ . '/../../controller/EvenementController.php';
 require_once __DIR__ . '/../../controller/ParticipationController.php';
 require_once __DIR__ . '/../../controller/TicketController.php';
+require_once __DIR__ . '/../../controller/CommentController.php';
 
 $eventController = new EvenementController();
 $participationController = new ParticipationController();
 $ticketController = new TicketController();
+$commentController = new CommentController();
 
 // Handle delete event
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
@@ -252,6 +254,30 @@ foreach ($evenements as $item) {
     }
 
     .ticket-badge i {
+      margin-right: 4px;
+    }
+
+    .comment-badge {
+      display: inline-block;
+      padding: 5px 12px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, rgba(94, 196, 255, 0.2), rgba(66, 133, 244, 0.2));
+      color: #5ec4ff;
+      border: 1px solid rgba(94, 196, 255, 0.4);
+      transition: all 0.3s ease;
+      white-space: nowrap;
+    }
+
+    .comment-badge:hover {
+      background: linear-gradient(135deg, rgba(94, 196, 255, 0.3), rgba(66, 133, 244, 0.3));
+      border-color: #5ec4ff;
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(94, 196, 255, 0.3);
+    }
+
+    .comment-badge i {
       margin-right: 4px;
     }
 
@@ -641,9 +667,9 @@ foreach ($evenements as $item) {
     <img src="../images/Nine__1_-removebg-preview.png" alt="Nine Tailed Fox Logo" class="dashboard-logo">
     <h2>Dashboard</h2>
     <a href="dashboard.php">Overview</a>
-    <a href="#">Users</a>
+    <a href="users.php">Users</a>
     <a href="#">Shop</a>
-    <a href="#">Trade History</a>
+    <a href="tradingb.php">Trade History</a>
     <a href="eventsb.php" class="active">Events</a>
     <a href="#">News</a>
     <a href="#">Support</a>
@@ -735,6 +761,7 @@ foreach ($evenements as $item) {
                 <th data-lang-en="End Date" data-lang-fr="Date Fin" style="min-width: 120px;">End Date</th>
                 <th data-lang-en="Participants" data-lang-fr="Participants" style="text-align: center; min-width: 80px;">Participants</th>
                 <th data-lang-en="Tickets" data-lang-fr="Tickets" style="text-align: center; min-width: 80px;">Tickets</th>
+                <th data-lang-en="Comments" data-lang-fr="Commentaires" style="text-align: center; min-width: 80px;">Comments</th>
                 <th data-lang-en="Status" data-lang-fr="Statut" style="text-align: center; min-width: 90px;">Status</th>
                 <th data-lang-en="Actions" data-lang-fr="Actions" style="min-width: 150px;">Actions</th>
               </tr>
@@ -742,7 +769,7 @@ foreach ($evenements as $item) {
             <tbody>
               <?php if (empty($evenements)): ?>
                 <tr>
-                  <td colspan="8">
+                  <td colspan="9">
                     <div class="empty-state">
                       <i class="fas fa-calendar-times"></i>
                       <p data-lang-en="No events found. Create a new event from the frontend." data-lang-fr="Aucun événement trouvé. Créez un nouvel événement depuis le frontend.">No events found. Create a new event from the frontend.</p>
@@ -778,11 +805,23 @@ foreach ($evenements as $item) {
                       <i class="fas fa-ticket-alt"></i> <?= $ticketCount ?>
                     </span>
                   </td>
+                  <td style="text-align: center;">
+                    <?php 
+                      $commentCount = $commentController->countEventComments($event->getIdEvenement());
+                      $ratingStats = $commentController->getEventRatingStats($event->getIdEvenement());
+                    ?>
+                    <a href="event_comments.php?id=<?= $event->getIdEvenement() ?>" class="comment-badge" style="text-decoration: none; cursor: pointer;">
+                      <i class="fas fa-comments"></i> <?= $commentCount ?>
+                      <?php if ($ratingStats['average'] > 0): ?>
+                        <span style="color: #f5c242; font-size: 0.9em;"> (<?= $ratingStats['average'] ?>★)</span>
+                      <?php endif; ?>
+                    </a>
+                  </td>
                   <td style="text-align: center;"><span class="status-badge <?= $statusClass ?>"><?= $statusLabel ?></span></td>
                   <td>
                     <div class="action-buttons">
                       <a href="event_comments.php?id=<?= $event->getIdEvenement() ?>" class="btn-action">
-                        <i class="fas fa-eye"></i> <span data-lang-en="View" data-lang-fr="Voir">View</span>
+                        <i class="fas fa-comments"></i> <span data-lang-en="Comments" data-lang-fr="Commentaires">Comments</span>
                       </a>
                       <form method="POST" style="display:inline;" onsubmit="return confirmDelete();">
                         <input type="hidden" name="action" value="delete">

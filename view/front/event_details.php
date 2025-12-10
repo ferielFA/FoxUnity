@@ -2,10 +2,15 @@
 require_once __DIR__ . '/../../controller/EvenementController.php';
 require_once __DIR__ . '/../../controller/ParticipationController.php';
 require_once __DIR__ . '/../../controller/CommentController.php';
+require_once __DIR__ . '/../../controller/UserController.php';
 
 $eventController = new EvenementController();
 $participationController = new ParticipationController();
 $commentController = new CommentController();
+
+// Get current logged-in user
+$isLoggedIn = UserController::isLoggedIn();
+$currentUser = UserController::getCurrentUser();
 
 $message = '';
 $event = null;
@@ -36,11 +41,16 @@ $ratingStats = $commentController->getEventRatingStats($eventId);
 
 // Handle participation form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'participate') {
+    $participantId = $isLoggedIn ? $currentUser->getId() : null;
+    $participantName = $isLoggedIn ? $currentUser->getUsername() : htmlspecialchars($_POST['nom_participant']);
+    $participantEmail = $isLoggedIn ? $currentUser->getEmail() : htmlspecialchars($_POST['email_participant']);
+    
     $participation = new Participation(
         null,
         $eventId,
-        htmlspecialchars($_POST['nom_participant']),
-        htmlspecialchars($_POST['email_participant']),
+        $participantId,
+        $participantName,
+        $participantEmail,
         new DateTime()
     );
     
@@ -56,11 +66,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
 // Handle comment form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_comment') {
+    $userId = $isLoggedIn ? $currentUser->getId() : null;
+    $userName = $isLoggedIn ? $currentUser->getUsername() : htmlspecialchars($_POST['user_name']);
+    $userEmail = $isLoggedIn ? $currentUser->getEmail() : htmlspecialchars($_POST['user_email']);
+    
     $comment = new Comment(
         null,
         $eventId,
-        htmlspecialchars($_POST['user_name']),
-        htmlspecialchars($_POST['user_email']),
+        $userId,
+        $userName,
+        $userEmail,
         htmlspecialchars($_POST['comment_content']),
         (int)$_POST['rating']
     );
@@ -82,7 +97,8 @@ if (isset($_GET['action']) && isset($_GET['comment_id'])) {
     
     if ($action === 'like' && isset($_GET['user_email'])) {
         $userEmail = $_GET['user_email'];
-        if ($commentController->likeComment($commentId, $userEmail)) {
+        $userId = $isLoggedIn ? $currentUser->getId() : null;
+        if ($commentController->likeComment($commentId, $userEmail, $userId)) {
             $message = '<div class="alert success"><i class="fas fa-thumbs-up"></i> Vote enregistré !</div>';
         }
         // Refresh and redirect to clean URL
@@ -92,7 +108,8 @@ if (isset($_GET['action']) && isset($_GET['comment_id'])) {
     
     if ($action === 'dislike' && isset($_GET['user_email'])) {
         $userEmail = $_GET['user_email'];
-        if ($commentController->dislikeComment($commentId, $userEmail)) {
+        $userId = $isLoggedIn ? $currentUser->getId() : null;
+        if ($commentController->dislikeComment($commentId, $userEmail, $userId)) {
             $message = '<div class="alert success"><i class="fas fa-thumbs-down"></i> Vote enregistré !</div>';
         }
         header("Location: event_details.php?id=$eventId");
@@ -783,7 +800,7 @@ $statuts = [
             <a href="index.php" data-lang-en="Home" data-lang-fr="Accueil">Home</a>
             <a href="events.php" class="active" data-lang-en="Events" data-lang-fr="Événements">Events</a>
             <a href="shop.html" data-lang-en="Shop" data-lang-fr="Boutique">Shop</a>
-            <a href="trading.html" data-lang-en="Trading" data-lang-fr="Échange">Trading</a>
+            <a href="trading.php" data-lang-en="Trading" data-lang-fr="Échange">Trading</a>
             <a href="news.html" data-lang-en="News" data-lang-fr="Actualités">News</a>
             <a href="reclamation.html" data-lang-en="Support" data-lang-fr="Support">Support</a>
             <a href="about.html" data-lang-en="About Us" data-lang-fr="À Propos">About Us</a>

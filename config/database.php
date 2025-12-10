@@ -6,6 +6,7 @@ class Database {
     private static $username = 'root';
     private static $password = '';
     private static $connection = null;
+    private static $instance = null;
 
     public static function getConnection(): PDO {
         if (self::$connection === null) {
@@ -19,5 +20,19 @@ class Database {
             }
         }
         return self::$connection;
+    }
+
+    // Add getInstance() for compatibility with model/config.php
+    public static function getInstance() {
+        if (self::$instance === null) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
+    // Make constructor private for singleton pattern
+    private function __construct() {
+        // Initialize connection
+        self::getConnection();
     }
 }
