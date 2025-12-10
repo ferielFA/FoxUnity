@@ -28,16 +28,28 @@ if (isset($_GET['error'])) {
 
 // Handle Sign Up
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'signup') {
-    // Vérifier le CAPTCHA côté serveur
+    // Vérifier le CAPTCHA côté serveur avec cURL (plus fiable)
     $recaptchaSecret = '6Ld8BxIsAAAAAMZnO7ypbmWefzS7e1Mgs5qRDK4_';
     $recaptchaResponse = $_POST['g-recaptcha-response'] ?? '';
     
     if (empty($recaptchaResponse)) {
         $errors[] = 'Please complete the CAPTCHA verification';
     } else {
-        // Vérifier le CAPTCHA auprès de Google
+        // Vérifier le CAPTCHA auprès de Google avec cURL
         $verifyURL = 'https://www.google.com/recaptcha/api/siteverify';
-        $response = file_get_contents($verifyURL . '?secret=' . $recaptchaSecret . '&response=' . $recaptchaResponse);
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $verifyURL);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
+            'secret' => $recaptchaSecret,
+            'response' => $recaptchaResponse,
+            'remoteip' => $_SERVER['REMOTE_ADDR']
+        ]));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $response = curl_exec($ch);
+        curl_close($ch);
+        
         $responseData = json_decode($response);
         
         if (!$responseData->success) {
@@ -674,6 +686,329 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 font-size: 11px;
             }
         }
+
+        /* Face Modal Styles */
+        .face-modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .face-modal-content {
+            position: relative;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            margin: 3% auto;
+            padding: 30px;
+            border: 2px solid rgba(255, 122, 0, 0.3);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 10px 50px rgba(255, 122, 0, 0.3);
+            animation: slideDownModal 0.3s ease;
+        }
+
+        @keyframes slideDownModal {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .face-modal-close {
+            color: #aaa;
+            float: right;
+            font-size: 32px;
+            font-weight: bold;
+            line-height: 20px;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .face-modal-close:hover {
+            color: #ff7a00;
+        }
+
+        .face-modal-title {
+            font-family: 'Orbitron', sans-serif;
+            color: #fff;
+            text-align: center;
+            margin: 0 0 20px 0;
+            font-size: 24px;
+        }
+
+        .face-modal-title i {
+            color: #ff7a00;
+            margin-right: 10px;
+        }
+
+        .face-camera-container {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #faceVideo {
+            width: 100%;
+            height: auto;
+            border-radius: 15px;
+            transform: scaleX(-1); /* Mirror effect */
+        }
+
+        .face-status {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 122, 0, 0.5);
+        }
+
+        .face-status i {
+            margin-right: 8px;
+            color: #ff7a00;
+        }
+
+        .face-countdown {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+
+        .countdown-number {
+            font-size: 120px;
+            font-weight: bold;
+            color: #ff7a00;
+            text-shadow: 0 0 30px rgba(255, 122, 0, 0.8);
+            animation: pulse 1s ease-in-out;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.7; }
+            50% { transform: scale(1.2); opacity: 1; }
+        }
+
+        .face-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .face-btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .face-btn i {
+            margin-right: 8px;
+        }
+
+        .face-btn-primary {
+            background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%);
+            color: #fff;
+        }
+
+        .face-btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 188, 212, 0.4);
+        }
+
+        .face-btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .face-btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .face-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .face-loader {
+            text-align: center;
+            padding: 20px;
+            color: #fff;
+        }
+
+        .loader-spinner {
+            border: 4px solid rgba(255, 122, 0, 0.1);
+            border-top: 4px solid #ff7a00;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Success/Error Messages in Modal */
+        .face-message {
+            padding: 15px;
+            border-radius: 12px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .face-message.success {
+            background: rgba(76, 175, 80, 0.2);
+            border: 2px solid #4caf50;
+            color: #4caf50;
+        }
+
+        .face-message.error {
+            background: rgba(244, 67, 54, 0.2);
+            border: 2px solid #f44336;
+            color: #f44336;
+        }
+
+        /* Face Result Popup */
+        .face-result-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.7);
+            z-index: 10001;
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .face-result-popup.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .face-result-content {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            padding: 40px 50px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            border: 2px solid;
+            min-width: 350px;
+            max-width: 600px;
+        }
+
+        .face-result-content.success {
+            border-color: #4caf50;
+        }
+
+        .face-result-content.error {
+            border-color: #f44336;
+        }
+
+        .face-result-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .face-result-content.success .face-result-icon {
+            color: #4caf50;
+            animation: successPulse 0.6s ease;
+        }
+
+        .face-result-content.error .face-result-icon {
+            color: #f44336;
+            animation: errorShake 0.6s ease;
+        }
+
+        @keyframes successPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        @keyframes errorShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .face-result-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 28px;
+            margin: 0 0 15px 0;
+            color: #fff;
+        }
+
+        .face-result-message {
+            font-size: 16px;
+            color: #aaa;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        .face-result-content.success .face-result-title {
+            color: #4caf50;
+        }
+
+        .face-result-content.error .face-result-title {
+            color: #f44336;
+        }
+
+        @media (max-width: 768px) {
+            .face-result-content {
+                min-width: 280px;
+                padding: 30px 25px;
+            }
+
+            .face-result-icon {
+                font-size: 60px;
+            }
+
+            .face-result-title {
+                font-size: 22px;
+            }
+
+            .face-result-message {
+                font-size: 14px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -911,347 +1246,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             </div>
         </div>
     </div>
-
-    <style>
-        /* Face Modal Styles */
-        .face-modal {
-            display: none;
-            position: fixed;
-            z-index: 10000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.9);
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .face-modal-content {
-            position: relative;
-            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
-            margin: 3% auto;
-            padding: 30px;
-            border: 2px solid rgba(255, 122, 0, 0.3);
-            border-radius: 20px;
-            width: 90%;
-            max-width: 600px;
-            box-shadow: 0 10px 50px rgba(255, 122, 0, 0.3);
-            animation: slideDown 0.3s ease;
-        }
-
-        @keyframes slideDown {
-            from {
-                transform: translateY(-50px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        .face-modal-close {
-            color: #aaa;
-            float: right;
-            font-size: 32px;
-            font-weight: bold;
-            line-height: 20px;
-            cursor: pointer;
-            transition: color 0.3s;
-        }
-
-        .face-modal-close:hover {
-            color: #ff7a00;
-        }
-
-        .face-modal-title {
-            font-family: 'Orbitron', sans-serif;
-            color: #fff;
-            text-align: center;
-            margin: 0 0 20px 0;
-            font-size: 24px;
-        }
-
-        .face-modal-title i {
-            color: #ff7a00;
-            margin-right: 10px;
-        }
-
-        .face-camera-container {
-            position: relative;
-            width: 100%;
-            background: #000;
-            border-radius: 15px;
-            overflow: hidden;
-            margin: 20px 0;
-            min-height: 400px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        #faceVideo {
-            width: 100%;
-            height: auto;
-            border-radius: 15px;
-            transform: scaleX(-1); /* Mirror effect */
-        }
-
-        .face-status {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: #fff;
-            padding: 12px 25px;
-            border-radius: 25px;
-            font-size: 14px;
-            font-weight: 600;
-            backdrop-filter: blur(10px);
-            border: 2px solid rgba(255, 122, 0, 0.5);
-        }
-
-        .face-status i {
-            margin-right: 8px;
-            color: #ff7a00;
-        }
-
-        .face-countdown {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10;
-        }
-
-        .countdown-number {
-            font-size: 120px;
-            font-weight: bold;
-            color: #ff7a00;
-            text-shadow: 0 0 30px rgba(255, 122, 0, 0.8);
-            animation: pulse 1s ease-in-out;
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 0.7; }
-            50% { transform: scale(1.2); opacity: 1; }
-        }
-
-        .face-actions {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            margin-top: 20px;
-        }
-
-        .face-btn {
-            padding: 12px 30px;
-            border: none;
-            border-radius: 25px;
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Poppins', sans-serif;
-        }
-
-        .face-btn i {
-            margin-right: 8px;
-        }
-
-        .face-btn-primary {
-            background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%);
-            color: #fff;
-        }
-
-        .face-btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(0, 188, 212, 0.4);
-        }
-
-        .face-btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .face-btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .face-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .face-loader {
-            text-align: center;
-            padding: 20px;
-            color: #fff;
-        }
-
-        .loader-spinner {
-            border: 4px solid rgba(255, 122, 0, 0.1);
-            border-top: 4px solid #ff7a00;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* Success/Error Messages in Modal */
-        .face-message {
-            padding: 15px;
-            border-radius: 12px;
-            margin: 15px 0;
-            text-align: center;
-            font-weight: 600;
-        }
-
-        .face-message.success {
-            background: rgba(76, 175, 80, 0.2);
-            border: 2px solid #4caf50;
-            color: #4caf50;
-        }
-
-        .face-message.error {
-            background: rgba(244, 67, 54, 0.2);
-            border: 2px solid #f44336;
-            color: #f44336;
-        }
-
-        @media (max-width: 768px) {
-            .face-modal-content {
-                width: 95%;
-                margin: 10% auto;
-                padding: 20px;
-            }
-
-            .face-camera-container {
-                min-height: 300px;
-            }
-
-            .countdown-number {
-                font-size: 80px;
-            }
-        }
-
-        /* Face Result Popup */
-        .face-result-popup {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0.7);
-            z-index: 10001;
-            opacity: 0;
-            transition: all 0.3s ease;
-            pointer-events: none;
-        }
-
-        .face-result-popup.show {
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
-        }
-
-        .face-result-content {
-            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
-            padding: 40px 50px;
-            border-radius: 20px;
-            text-align: center;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
-            border: 2px solid;
-            min-width: 350px;
-            max-width: 600px;
-        }
-
-        .face-result-content.success {
-            border-color: #4caf50;
-        }
-
-        .face-result-content.error {
-            border-color: #f44336;
-        }
-
-        .face-result-icon {
-            font-size: 80px;
-            margin-bottom: 20px;
-        }
-
-        .face-result-content.success .face-result-icon {
-            color: #4caf50;
-            animation: successPulse 0.6s ease;
-        }
-
-        .face-result-content.error .face-result-icon {
-            color: #f44336;
-            animation: errorShake 0.6s ease;
-        }
-
-        @keyframes successPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-        }
-
-        @keyframes errorShake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
-        }
-
-        .face-result-title {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 28px;
-            margin: 0 0 15px 0;
-            color: #fff;
-        }
-
-        .face-result-message {
-            font-size: 16px;
-            color: #aaa;
-            margin: 0;
-            line-height: 1.6;
-        }
-
-        .face-result-content.success .face-result-title {
-            color: #4caf50;
-        }
-
-        .face-result-content.error .face-result-title {
-            color: #f44336;
-        }
-
-        @media (max-width: 768px) {
-            .face-result-content {
-                min-width: 280px;
-                padding: 30px 25px;
-            }
-
-            .face-result-icon {
-                font-size: 60px;
-            }
-
-            .face-result-title {
-                font-size: 22px;
-            }
-
-            .face-result-message {
-                font-size: 14px;
-            }
-        }
-    </style>
 
     <script>
         // ========== TOGGLE PASSWORD VISIBILITY ==========
@@ -1830,85 +1824,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         });
     </script>
 </body>
-</html><?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-require_once __DIR__ . '/../../controller/UserController.php';
-
-$controller = new UserController();
-$errors = [];
-$success = '';
-
-// Handle Google login errors
-if (isset($_GET['error'])) {
-    switch ($_GET['error']) {
-        case 'no_code':
-            $errors[] = 'Google authentication failed. Please try again.';
-            break;
-        case 'google_auth_failed':
-            $errors[] = 'Failed to authenticate with Google. Please try again.';
-            break;
-        case 'link_failed':
-            $errors[] = 'Failed to link Google account. Please try again.';
-            break;
-        case 'registration_failed':
-            $errors[] = 'Failed to create account with Google. Please try again.';
-            break;
-    }
-}
-
-// Handle Sign Up
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'signup') {
-    // Vérifier le CAPTCHA côté serveur
-    $recaptchaSecret = '6Ld8BxIsAAAAAMZnO7ypbmWefzS7e1Mgs5qRDK4_';
-    $recaptchaResponse = $_POST['g-recaptcha-response'] ?? '';
-    
-    if (empty($recaptchaResponse)) {
-        $errors[] = 'Please complete the CAPTCHA verification';
-    } else {
-        // Vérifier le CAPTCHA auprès de Google
-        $verifyURL = 'https://www.google.com/recaptcha/api/siteverify';
-        $response = file_get_contents($verifyURL . '?secret=' . $recaptchaSecret . '&response=' . $recaptchaResponse);
-        $responseData = json_decode($response);
-        
-        if (!$responseData->success) {
-            $errors[] = 'CAPTCHA verification failed. Please try again.';
-        }
-    }
-    
-    // Si pas d'erreur CAPTCHA, procéder à l'inscription
-    if (empty($errors)) {
-        $result = $controller->register(
-            $_POST['username'] ?? '',
-            $_POST['email'] ?? '',
-            $_POST['dob'] ?? '',
-            $_POST['password'] ?? '',
-            $_POST['password'] ?? '',
-            $_POST['gender'] ?? ''
-        );
-        
-        if ($result['success']) {
-            $success = $result['message'];
-        } else {
-            $errors = $result['errors'];
-        }
-    }
-}
-
-// Handle Sign In
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'signin') {
-    $result = $controller->login(
-        $_POST['email'] ?? '',
-        $_POST['password'] ?? ''
-    );
-    
-    if ($result['success']) {
-        // Redirect based on role
-        header('Location: ' . $result['redirect']);
-        exit();
-    } else {
-        $errors = $result['errors'];
-    }
-}
-?>
+</html>

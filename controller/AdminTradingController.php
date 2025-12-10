@@ -5,13 +5,13 @@
  */
 
 require_once __DIR__ . '/../model/config.php';
-require_once __DIR__ . '/../model/TradeHistoryModel.php';
+require_once __DIR__ . '/TradeHistoryController.php';
 
 class AdminTradingController {
     private $tradeHistoryModel;
     
     public function __construct() {
-        $this->tradeHistoryModel = new TradeHistoryModel();
+        $this->tradeHistoryModel = new TradeHistoryController();
     }
     
     /**
@@ -29,8 +29,34 @@ class AdminTradingController {
         ];
         $error = null;
         
+        // Filter params
+        $filters = [
+            'search' => isset($_GET['search']) ? trim($_GET['search']) : '',
+            'action' => isset($_GET['action']) ? trim($_GET['action']) : 'all',
+            'game' => isset($_GET['game']) ? trim($_GET['game']) : 'all'
+        ];
+
+        // Pagination logic
+        $limit = 10; // Number of items per page
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $offset = ($page - 1) * $limit;
+        $totalRecords = 0;
+        $totalPages = 0;
+
         try {
-            $tradeHistory = $this->tradeHistoryModel->getAllTradeHistory();
+            $totalRecords = $this->tradeHistoryModel->countAllTradeHistory($filters);
+            $totalPages = ceil($totalRecords / $limit);
+            
+            // Ensure page is within valid range (unless no records)
+            if ($page > $totalPages && $totalPages > 0) {
+                $page = $totalPages;
+                $offset = ($page - 1) * $limit;
+            } elseif ($totalPages == 0) {
+                $page = 1;
+                $offset = 0;
+            }
+            
+            $tradeHistory = $this->tradeHistoryModel->getPaginatedTradeHistory($limit, $offset, $filters);
             $stats = $this->tradeHistoryModel->getStatistics();
         } catch (Exception $e) {
             error_log("AdminTradingController::getViewData error: " . $e->getMessage());
@@ -40,7 +66,14 @@ class AdminTradingController {
         return [
             'tradeHistory' => $tradeHistory,
             'stats' => $stats,
-            'error' => $error
+            'error' => $error,
+            'filters' => $filters,
+            'pagination' => [
+                'current_page' => $page,
+                'total_pages' => $totalPages,
+                'total_records' => $totalRecords,
+                'limit' => $limit
+            ]
         ];
     }
 }

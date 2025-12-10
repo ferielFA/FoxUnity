@@ -467,6 +467,11 @@ if ($currentUser && $currentUser->getImage()) {
                         <span>My Profile</span>
                     </a>
                     
+                    <a href="tradehis.php" class="dropdown-item">
+                        <i class="fas fa-history"></i>
+                        <span>History</span>
+                    </a>
+                    
                     <?php 
                     $userRole = strtolower($currentUser->getRole());
                     if ($userRole === 'admin' || $userRole === 'superadmin'): 
