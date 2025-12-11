@@ -1,0 +1,22 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../config"
+		},
+		{
+			"path": "../controllers"
+		},
+		{
+			"path": "../foxunity"
+		},
+		{
+			"path": "../models"
+		},
+		{
+			"path": "../view"
+		}
+	]
+}
