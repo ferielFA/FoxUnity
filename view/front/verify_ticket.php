@@ -10,8 +10,13 @@ $messageType = '';
 $ticketData = null;
 $eventData = null;
 
+// Debug: Log all request parameters
+error_log("verify_ticket.php accessed - GET params: " . print_r($_GET, true));
+error_log("verify_ticket.php accessed - POST params: " . print_r($_POST, true));
+
 // Handle QR code scan or manual token input
 $token = $_GET['token'] ?? $_POST['token'] ?? '';
+error_log("Token extracted: " . $token);
 
 if (!empty($token)) {
     // Extract token from QR code content if needed

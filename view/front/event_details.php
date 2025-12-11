@@ -1254,6 +1254,9 @@ $statuts = [
                     currentRating = parseInt(this.getAttribute('data-rating'));
                     ratingInput.value = currentRating;
                     updateStars(currentRating);
+                    
+                    // Save rating in real-time
+                    saveRatingRealTime(currentRating);
                 });
                 
                 // Hover preview
@@ -1397,7 +1400,112 @@ $statuts = [
                 }
             });
         });
+
+        // Real-time rating save function
+        function saveRatingRealTime(rating) {
+            const eventId = <?= $eventId ?>;
+            <?php if ($isLoggedIn): ?>
+            const userId = <?= $currentUser->getId() ?>;
+            const userName = "<?= addslashes($currentUser->getUsername()) ?>";
+            const userEmail = "<?= addslashes($currentUser->getEmail()) ?>";
+            <?php else: ?>
+            const userId = null;
+            let userName = document.getElementById('user_name_comment')?.value || '';
+            let userEmail = document.getElementById('user_email_comment')?.value || '';
+            
+            // If not logged in and email is empty, ask for it
+            if (!userEmail) {
+                userEmail = prompt('Please enter your email to save your rating:');
+                if (!userEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmail)) {
+                    alert('Valid email is required to save your rating');
+                    return;
+                }
+                
+                if (!userName) {
+                    userName = prompt('Please enter your name:');
+                    if (!userName) {
+                        userName = 'Guest';
+                    }
+                }
+                
+                // Update form fields
+                if (document.getElementById('user_email_comment')) {
+                    document.getElementById('user_email_comment').value = userEmail;
+                }
+                if (document.getElementById('user_name_comment')) {
+                    document.getElementById('user_name_comment').value = userName;
+                }
+            }
+            <?php endif; ?>
+
+            // Show loading indicator
+            const starRating = document.getElementById('starRating');
+            const originalHTML = starRating.innerHTML;
+            starRating.style.opacity = '0.5';
+            starRating.style.pointerEvents = 'none';
+
+            // Send AJAX request
+            fetch('save_rating_ajax.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    event_id: eventId,
+                    rating: rating,
+                    user_id: userId,
+                    user_name: userName,
+                    user_email: userEmail,
+                    content: 'Quick rating: ' + rating + ' stars'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    const message = document.createElement('div');
+                    message.className = 'alert success';
+                    message.style.cssText = 'position: fixed; top: 80px; right: 20px; z-index: 10000; animation: slideIn 0.3s ease;';
+                    message.innerHTML = '<i class="fas fa-check-circle"></i> Rating saved: ' + rating + ' stars!';
+                    document.body.appendChild(message);
+                    
+                    // Remove after 3 seconds
+                    setTimeout(() => {
+                        message.style.animation = 'slideOut 0.3s ease';
+                        setTimeout(() => message.remove(), 300);
+                    }, 3000);
+
+                    // Update stats if available
+                    if (data.stats) {
+                        console.log('Updated stats:', data.stats);
+                        // You can update the stats display here if needed
+                    }
+                } else {
+                    console.error('Failed to save rating:', data.message);
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Network error. Please try again.');
+            })
+            .finally(() => {
+                // Restore star rating
+                starRating.style.opacity = '1';
+                starRating.style.pointerEvents = 'auto';
+            });
+        }
     </script>
+    <style>
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(400px); opacity: 0; }
+        }
+    </style>
 
     <script src="lang-toggle.js"></script>
 </body>

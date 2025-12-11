@@ -511,40 +511,73 @@ if (isset($_GET['token'])) {
             
             if (!isScanning) {
                 qrReader.style.display = 'block';
-                btn.textContent = 'Stop Scanner';
                 btn.innerHTML = '<i class="fas fa-stop"></i> Stop Scanner';
                 
                 html5QrCode = new Html5Qrcode("qr-reader");
                 
+                // Try to start with any available camera
                 html5QrCode.start(
-                    { facingMode: "environment" },
+                    { facingMode: "user" }, // Use front camera (works for both PC and phone)
                     {
                         fps: 10,
-                        qrbox: { width: 250, height: 250 }
+                        qrbox: { width: 250, height: 250 },
+                        aspectRatio: 1.0
                     },
                     (decodedText, decodedResult) => {
                         // QR code successfully scanned
+                        console.log("Scanned:", decodedText);
                         html5QrCode.stop().then(() => {
+                            window.location.href = 'scan_ticket.php?token=' + encodeURIComponent(decodedText);
+                        }).catch(err => {
+                            console.error("Error stopping camera:", err);
                             window.location.href = 'scan_ticket.php?token=' + encodeURIComponent(decodedText);
                         });
                     },
                     (errorMessage) => {
-                        // Scanning errors (can be ignored)
+                        // Scanning errors (can be ignored - these happen frequently during scanning)
                     }
                 ).catch((err) => {
-                    alert('Unable to access camera. Please check permissions.');
-                    console.error(err);
-                    qrReader.style.display = 'none';
-                    btn.innerHTML = '<i class="fas fa-camera"></i> Start Camera Scanner';
+                    console.error("Camera error:", err);
+                    // If user facingMode fails, try environment mode
+                    html5QrCode.start(
+                        { facingMode: "environment" },
+                        {
+                            fps: 10,
+                            qrbox: { width: 250, height: 250 }
+                        },
+                        (decodedText, decodedResult) => {
+                            console.log("Scanned:", decodedText);
+                            html5QrCode.stop().then(() => {
+                                window.location.href = 'scan_ticket.php?token=' + encodeURIComponent(decodedText);
+                            }).catch(err => {
+                                console.error("Error stopping camera:", err);
+                                window.location.href = 'scan_ticket.php?token=' + encodeURIComponent(decodedText);
+                            });
+                        },
+                        (errorMessage) => {}
+                    ).catch((err2) => {
+                        console.error("Both camera modes failed:", err2);
+                        alert('Unable to access camera. Please:\n1. Allow camera permissions in your browser\n2. Make sure no other app is using the camera\n3. Try refreshing the page');
+                        qrReader.style.display = 'none';
+                        btn.innerHTML = '<i class="fas fa-camera"></i> Start Camera Scanner';
+                        isScanning = false;
+                    });
                 });
                 
                 isScanning = true;
             } else {
-                html5QrCode.stop().then(() => {
-                    qrReader.style.display = 'none';
-                    btn.innerHTML = '<i class="fas fa-camera"></i> Start Camera Scanner';
-                    isScanning = false;
-                });
+                if (html5QrCode && html5QrCode.isScanning) {
+                    html5QrCode.stop().then(() => {
+                        qrReader.style.display = 'none';
+                        btn.innerHTML = '<i class="fas fa-camera"></i> Start Camera Scanner';
+                        isScanning = false;
+                    }).catch(err => {
+                        console.error("Error stopping scanner:", err);
+                        qrReader.style.display = 'none';
+                        btn.innerHTML = '<i class="fas fa-camera"></i> Start Camera Scanner';
+                        isScanning = false;
+                    });
+                }
             }
         });
     </script>

@@ -594,4 +594,56 @@ class CommentController {
             return false;
         }
     }
+
+    /**
+     * Get user's comment for a specific event
+     * 
+     * @param int $eventId
+     * @param string $userEmail
+     * @return array|null
+     */
+    public function getUserCommentForEvent(int $eventId, string $userEmail): ?array {
+        try {
+            $sql = "SELECT * FROM comment 
+                    WHERE id_evenement = :id_evenement AND user_email = :user_email
+                    LIMIT 1";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                ':id_evenement' => $eventId,
+                ':user_email' => $userEmail
+            ]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result ?: null;
+        } catch (PDOException $e) {
+            error_log("Error getting user comment: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Update comment rating in real-time
+     * 
+     * @param int $commentId
+     * @param int $rating
+     * @return bool
+     */
+    public function updateCommentRating(int $commentId, int $rating): bool {
+        try {
+            // Validate rating
+            if ($rating < 1 || $rating > 5) {
+                return false;
+            }
+
+            $sql = "UPDATE comment SET rating = :rating, updated_at = CURRENT_TIMESTAMP 
+                    WHERE id_comment = :id_comment";
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([
+                ':rating' => $rating,
+                ':id_comment' => $commentId
+            ]);
+        } catch (PDOException $e) {
+            error_log("Error updating rating: " . $e->getMessage());
+            return false;
+        }
+    }
 }

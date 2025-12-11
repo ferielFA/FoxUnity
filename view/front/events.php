@@ -151,6 +151,225 @@ unset($eventItem); // Break reference
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        /* View Toggle Buttons */
+        .view-toggle {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .btn-view-toggle {
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.2);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-view-toggle:hover {
+            border-color: #f5c242;
+            background: rgba(245, 194, 66, 0.1);
+        }
+
+        .btn-view-toggle.active {
+            background: linear-gradient(135deg, #f5c242, #f39c12);
+            color: #000;
+            border-color: #f5c242;
+        }
+
+        /* Calendar Styles */
+        .calendar-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, #16161a, #1b1b20);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            display: none;
+        }
+
+        .calendar-container.active {
+            display: block;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid rgba(245, 194, 66, 0.3);
+        }
+
+        .calendar-nav {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .calendar-nav button {
+            background: rgba(245, 194, 66, 0.2);
+            border: 2px solid rgba(245, 194, 66, 0.4);
+            color: #f5c242;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .calendar-nav button:hover {
+            background: rgba(245, 194, 66, 0.3);
+            border-color: #f5c242;
+        }
+
+        .calendar-month {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #f5c242;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+        }
+
+        .calendar-day-header {
+            text-align: center;
+            font-weight: 700;
+            color: #f5c242;
+            padding: 15px 5px;
+            background: rgba(245, 194, 66, 0.1);
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .calendar-day {
+            min-height: 120px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 10px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .calendar-day:hover {
+            background: rgba(245, 194, 66, 0.05);
+            border-color: rgba(245, 194, 66, 0.3);
+        }
+
+        .calendar-day.other-month {
+            opacity: 0.3;
+        }
+
+        .calendar-day.today {
+            border: 2px solid #f5c242;
+            background: rgba(245, 194, 66, 0.1);
+        }
+
+        .day-number {
+            font-weight: 700;
+            color: #fff;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+
+        .day-events {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .calendar-event {
+            background: linear-gradient(135deg, #f5c242, #f39c12);
+            color: #000;
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .calendar-event:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(245, 194, 66, 0.4);
+        }
+
+        .calendar-event.event-ongoing {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #fff;
+        }
+
+        .calendar-event.event-completed {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            color: #fff;
+        }
+
+        .calendar-event-time {
+            font-size: 0.65rem;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+
+        .calendar-legend {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #cfd3d8;
+            font-size: 0.9rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .legend-upcoming { background: linear-gradient(135deg, #f5c242, #f39c12); }
+        .legend-ongoing { background: linear-gradient(135deg, #10b981, #059669); }
+        .legend-completed { background: linear-gradient(135deg, #6b7280, #4b5563); }
+
+        @media (max-width: 768px) {
+            .calendar-day {
+                min-height: 80px;
+                padding: 5px;
+            }
+            
+            .calendar-event {
+                font-size: 0.65rem;
+                padding: 4px 6px;
+            }
+            
+            .day-number {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+    <style>
         .alert {
             padding: 15px 20px;
             border-radius: 12px;
@@ -733,6 +952,19 @@ unset($eventItem); // Break reference
             <div class="events-header">
                 <h2 data-lang-en="<?= $showMyEvents ? 'My Events' : 'Upcoming Events' ?>" data-lang-fr="<?= $showMyEvents ? 'Mes Événements' : 'Événements À Venir' ?>"><?= $showMyEvents ? 'My Events' : 'Upcoming Events' ?></h2>
                 <p data-lang-en="<?= $showMyEvents ? 'Events created by you' : 'Join exciting gaming events and tournaments' ?>" data-lang-fr="<?= $showMyEvents ? 'Événements créés par vous' : 'Rejoignez des événements gaming passionnants' ?>"><?= $showMyEvents ? 'Events created by you' : 'Join exciting gaming events and tournaments' ?></p>
+                
+                <!-- View Toggle -->
+                <div class="view-toggle">
+                    <button class="btn-view-toggle active" id="btnListView" onclick="switchView('list')">
+                        <i class="fas fa-list"></i>
+                        <span data-lang-en="List View" data-lang-fr="Vue Liste">List View</span>
+                    </button>
+                    <button class="btn-view-toggle" id="btnCalendarView" onclick="switchView('calendar')">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span data-lang-en="Calendar View" data-lang-fr="Vue Calendrier">Calendar View</span>
+                    </button>
+                </div>
+                
                 <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-top: 20px;">
                     <a href="?create=1" class="btn-create-event" data-lang-en="Create New Event" data-lang-fr="Créer un Nouvel Événement">
                         <i class="fas fa-plus-circle"></i> <span>Create New Event</span>
@@ -752,6 +984,42 @@ unset($eventItem); // Break reference
                 </div>
             </div>
 
+            <!-- Calendar View -->
+            <div class="calendar-container" id="calendarView">
+                <div class="calendar-header">
+                    <div class="calendar-nav">
+                        <button onclick="changeMonth(-1)">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <button onclick="goToToday()" data-lang-en="Today" data-lang-fr="Aujourd'hui">Today</button>
+                        <button onclick="changeMonth(1)">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <div class="calendar-month" id="calendarMonth"></div>
+                </div>
+                
+                <div class="calendar-grid" id="calendarGrid">
+                    <!-- Calendar will be generated by JavaScript -->
+                </div>
+                
+                <div class="calendar-legend">
+                    <div class="legend-item">
+                        <div class="legend-color legend-upcoming"></div>
+                        <span data-lang-en="Upcoming" data-lang-fr="À venir">Upcoming</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color legend-ongoing"></div>
+                        <span data-lang-en="Ongoing" data-lang-fr="En cours">Ongoing</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color legend-completed"></div>
+                        <span data-lang-en="Completed" data-lang-fr="Terminé">Completed</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- List View -->
             <div class="events-container" id="eventsContainer">
                 <?php 
                 $displayedEvents = $showMyEvents ? $evenements : array_filter($evenements, function($item) {
@@ -1194,5 +1462,173 @@ unset($eventItem); // Break reference
     </script>
 
     <script src="lang-toggle.js"></script>
+
+    <script>
+        // Calendar functionality
+        let currentCalendarDate = new Date();
+        
+        // All events data from PHP
+        const allEvents = <?= json_encode(array_map(function($item) {
+            $event = $item['evenement'];
+            return [
+                'id' => $event->getIdEvenement(),
+                'title' => $event->getTitre(),
+                'description' => $event->getDescription(),
+                'start' => $event->getDateDebut()->format('Y-m-d H:i:s'),
+                'end' => $event->getDateFin()->format('Y-m-d H:i:s'),
+                'location' => $event->getLieu(),
+                'status' => $event->getStatut(),
+                'participants' => $item['nb_participants']
+            ];
+        }, $displayedEvents)) ?>;
+
+        function switchView(view) {
+            const listView = document.getElementById('eventsContainer');
+            const calendarView = document.getElementById('calendarView');
+            const btnList = document.getElementById('btnListView');
+            const btnCalendar = document.getElementById('btnCalendarView');
+            const pagination = document.querySelector('.pagination-container');
+
+            if (view === 'calendar') {
+                listView.style.display = 'none';
+                calendarView.classList.add('active');
+                btnList.classList.remove('active');
+                btnCalendar.classList.add('active');
+                if (pagination) pagination.style.display = 'none';
+                renderCalendar();
+            } else {
+                listView.style.display = 'grid';
+                calendarView.classList.remove('active');
+                btnList.classList.add('active');
+                btnCalendar.classList.remove('active');
+                if (pagination) pagination.style.display = 'flex';
+            }
+        }
+
+        function changeMonth(direction) {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + direction);
+            renderCalendar();
+        }
+
+        function goToToday() {
+            currentCalendarDate = new Date();
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+            
+            // Update month display
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                               'July', 'August', 'September', 'October', 'November', 'December'];
+            document.getElementById('calendarMonth').textContent = `${monthNames[month]} ${year}`;
+
+            // Get first day of month and number of days
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startingDayOfWeek = firstDay.getDay();
+
+            // Get previous month's last days
+            const prevMonthLastDay = new Date(year, month, 0).getDate();
+
+            const calendarGrid = document.getElementById('calendarGrid');
+            calendarGrid.innerHTML = '';
+
+            // Day headers
+            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dayHeaders.forEach(day => {
+                const header = document.createElement('div');
+                header.className = 'calendar-day-header';
+                header.textContent = day;
+                calendarGrid.appendChild(header);
+            });
+
+            // Add previous month's trailing days
+            for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+                const dayDiv = createDayCell(prevMonthLastDay - i, month - 1, year, true);
+                calendarGrid.appendChild(dayDiv);
+            }
+
+            // Add current month's days
+            const today = new Date();
+            for (let day = 1; day <= daysInMonth; day++) {
+                const isToday = day === today.getDate() && 
+                               month === today.getMonth() && 
+                               year === today.getFullYear();
+                const dayDiv = createDayCell(day, month, year, false, isToday);
+                calendarGrid.appendChild(dayDiv);
+            }
+
+            // Add next month's leading days
+            const remainingCells = 42 - (startingDayOfWeek + daysInMonth);
+            for (let day = 1; day <= remainingCells; day++) {
+                const dayDiv = createDayCell(day, month + 1, year, true);
+                calendarGrid.appendChild(dayDiv);
+            }
+        }
+
+        function createDayCell(day, month, year, otherMonth = false, isToday = false) {
+            const dayDiv = document.createElement('div');
+            dayDiv.className = 'calendar-day';
+            if (otherMonth) dayDiv.classList.add('other-month');
+            if (isToday) dayDiv.classList.add('today');
+
+            const dayNumber = document.createElement('div');
+            dayNumber.className = 'day-number';
+            dayNumber.textContent = day;
+            dayDiv.appendChild(dayNumber);
+
+            // Find events for this day
+            const dayEvents = document.createElement('div');
+            dayEvents.className = 'day-events';
+
+            const currentDate = new Date(year, month, day);
+            const eventsOnDay = allEvents.filter(event => {
+                const eventStart = new Date(event.start);
+                const eventEnd = new Date(event.end);
+                return currentDate >= new Date(eventStart.toDateString()) && 
+                       currentDate <= new Date(eventEnd.toDateString());
+            });
+
+            eventsOnDay.forEach(event => {
+                const eventDiv = document.createElement('div');
+                eventDiv.className = 'calendar-event';
+                
+                if (event.status === 'ongoing') {
+                    eventDiv.classList.add('event-ongoing');
+                } else if (event.status === 'completed') {
+                    eventDiv.classList.add('event-completed');
+                }
+                
+                const eventStart = new Date(event.start);
+                const eventTime = eventStart.getHours().toString().padStart(2, '0') + ':' + 
+                                 eventStart.getMinutes().toString().padStart(2, '0');
+                
+                eventDiv.innerHTML = `
+                    <div>${event.title}</div>
+                    <div class="calendar-event-time">${eventTime}</div>
+                `;
+                
+                eventDiv.onclick = (e) => {
+                    e.stopPropagation();
+                    window.location.href = 'event_details.php?id=' + event.id;
+                };
+                
+                eventDiv.title = `${event.title}\n${event.location}\n${event.participants} participants`;
+                
+                dayEvents.appendChild(eventDiv);
+            });
+
+            dayDiv.appendChild(dayEvents);
+            return dayDiv;
+        }
+
+        // Initialize calendar on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            renderCalendar();
+        });
+    </script>
 </body>
 </html>
