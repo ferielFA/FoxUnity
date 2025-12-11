@@ -15,6 +15,7 @@ $showParticipationForm = false;
 $showCreateEventForm = false;
 $selectedEvent = null;
 $showMyEvents = isset($_GET['view']) && $_GET['view'] === 'my';
+$showHistory = isset($_GET['view']) && $_GET['view'] === 'history';
 $currentUserEmail = $isLoggedIn ? $currentUser->getEmail() : (isset($_GET['email']) ? htmlspecialchars($_GET['email']) : '');
 
 // Handle create event form submission
@@ -104,7 +105,20 @@ if (isset($_GET['create'])) {
 }
 
 // Get events based on filter
-if ($showMyEvents) {
+if ($showHistory) {
+    // Show events user has participated in
+    if (!$currentUserEmail && !$isLoggedIn) {
+        $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> Please login or provide your email to view your participation history.</div>';
+        $evenements = [];
+    } else {
+        $identifier = $isLoggedIn ? $currentUser->getId() : $currentUserEmail;
+        $participatedEvents = $participationController->getParticipatedEvents($identifier);
+        $evenements = array_map(function($event) use ($participationController) {
+            $nbParticipants = count($participationController->lireParEvenement($event->getIdEvenement()));
+            return ['evenement' => $event, 'nb_participants' => $nbParticipants];
+        }, $participatedEvents);
+    }
+} elseif ($showMyEvents) {
     if ($isLoggedIn) {
         // Use user ID for logged-in users
         $evenements = $eventController->lireParCreateurId($currentUser->getId());
@@ -950,8 +964,8 @@ unset($eventItem); // Break reference
 
         <section class="events-section">
             <div class="events-header">
-                <h2 data-lang-en="<?= $showMyEvents ? 'My Events' : 'Upcoming Events' ?>" data-lang-fr="<?= $showMyEvents ? 'Mes Événements' : 'Événements À Venir' ?>"><?= $showMyEvents ? 'My Events' : 'Upcoming Events' ?></h2>
-                <p data-lang-en="<?= $showMyEvents ? 'Events created by you' : 'Join exciting gaming events and tournaments' ?>" data-lang-fr="<?= $showMyEvents ? 'Événements créés par vous' : 'Rejoignez des événements gaming passionnants' ?>"><?= $showMyEvents ? 'Events created by you' : 'Join exciting gaming events and tournaments' ?></p>
+                <h2 data-lang-en="<?= $showHistory ? 'My Participation History' : ($showMyEvents ? 'My Events' : 'Upcoming Events') ?>" data-lang-fr="<?= $showHistory ? 'Mon Historique de Participation' : ($showMyEvents ? 'Mes Événements' : 'Événements À Venir') ?>"><?= $showHistory ? 'My Participation History' : ($showMyEvents ? 'My Events' : 'Upcoming Events') ?></h2>
+                <p data-lang-en="<?= $showHistory ? 'Events you have participated in' : ($showMyEvents ? 'Events created by you' : 'Join exciting gaming events and tournaments') ?>" data-lang-fr="<?= $showHistory ? 'Événements auxquels vous avez participé' : ($showMyEvents ? 'Événements créés par vous' : 'Rejoignez des événements gaming passionnants') ?>"><?= $showHistory ? 'Events you have participated in' : ($showMyEvents ? 'Events created by you' : 'Join exciting gaming events and tournaments') ?></p>
                 
                 <!-- View Toggle -->
                 <div class="view-toggle">
@@ -972,13 +986,22 @@ unset($eventItem); // Break reference
                     <a href="my_tickets.php" class="btn-create-event" style="background: linear-gradient(135deg, #2ed573, #1abc9c);" data-lang-en="My Tickets" data-lang-fr="Mes Tickets">
                         <i class="fas fa-ticket-alt"></i> <span>My Tickets</span>
                     </a>
-                    <?php if ($showMyEvents): ?>
+                    <?php if ($showHistory): ?>
+                        <a href="events.php" class="btn-view-all" data-lang-en="Show All Upcoming" data-lang-fr="Afficher Tous les Événements">
+                            <i class="fas fa-filter"></i> <span>Show All Upcoming</span>
+                        </a>
+                    <?php elseif ($showMyEvents): ?>
                         <a href="events.php" class="btn-view-all" data-lang-en="Show All Upcoming" data-lang-fr="Afficher Tous les Événements">
                             <i class="fas fa-filter"></i> <span>Show All Upcoming</span>
                         </a>
                     <?php else: ?>
                         <a href="#" onclick="showMyEvents(); return false;" class="btn-view-all" data-lang-en="My Events" data-lang-fr="Mes Événements">
                             <i class="fas fa-user-circle"></i> <span>My Events</span>
+                        </a>
+                    <?php endif; ?>
+                    <?php if (!$showHistory): ?>
+                        <a href="#" onclick="showHistory(); return false;" class="btn-view-all" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);" data-lang-en="Participation History" data-lang-fr="Historique">
+                            <i class="fas fa-history"></i> <span>Participation History</span>
                         </a>
                     <?php endif; ?>
                 </div>
@@ -1454,6 +1477,20 @@ unset($eventItem); // Break reference
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 if (emailRegex.test(email)) {
                     window.location.href = '?view=my&email=' + encodeURIComponent(email);
+                } else {
+                    alert('Please enter a valid email address');
+                }
+            }
+        }
+
+        // Function to prompt for email and redirect to History
+        function showHistory() {
+            const email = prompt('Enter your email to view your participation history:');
+            if (email && email.trim() !== '') {
+                // Basic email validation
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (emailRegex.test(email)) {
+                    window.location.href = '?view=history&email=' + encodeURIComponent(email);
                 } else {
                     alert('Please enter a valid email address');
                 }

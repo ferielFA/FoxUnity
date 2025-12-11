@@ -164,4 +164,47 @@ class ParticipationController {
             return [];
         }
     }
+
+    public function getParticipatedEvents($emailOrUserId): array {
+        try {
+            if (is_numeric($emailOrUserId)) {
+                // Search by user_id
+                $sql = "SELECT DISTINCT e.* 
+                        FROM evenement e 
+                        INNER JOIN participation p ON e.id_evenement = p.id_evenement 
+                        WHERE p.user_id = :identifier
+                        ORDER BY e.date_debut DESC";
+            } else {
+                // Search by email
+                $sql = "SELECT DISTINCT e.* 
+                        FROM evenement e 
+                        INNER JOIN participation p ON e.id_evenement = p.id_evenement 
+                        WHERE p.email_participant = :identifier
+                        ORDER BY e.date_debut DESC";
+            }
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':identifier' => $emailOrUserId]);
+            
+            $events = [];
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $events[] = new Evenement(
+                    $row['id_evenement'],
+                    $row['titre'],
+                    $row['description'],
+                    new DateTime($row['date_debut']),
+                    new DateTime($row['date_fin']),
+                    $row['lieu'],
+                    $row['creator_id'],
+                    $row['createur_email'],
+                    $row['statut']
+                );
+            }
+            
+            return $events;
+        } catch (PDOException $e) {
+            error_log("Erreur lecture événements participés: " . $e->getMessage());
+            return [];
+        }
+    }
 }
