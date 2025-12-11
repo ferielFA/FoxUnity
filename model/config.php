@@ -21,8 +21,9 @@ define('BACK_PATH', VIEW_PATH . 'back/');
 define('IMAGES_PATH', BASE_PATH . 'images/');
 
 
-define('BASE_URL', 'http://localhost/foxunity/');
-define('IMAGES_URL', BASE_URL . 'images/');
+// BASE_URL is now defined in config/site_config.php
+// define('BASE_URL', 'http://localhost/foxunity/');
+// define('IMAGES_URL', BASE_URL . 'images/');
 
 
 // Only declare Database class if it doesn't already exist
