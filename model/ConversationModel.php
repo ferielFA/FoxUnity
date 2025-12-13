@@ -420,5 +420,47 @@ class ConversationModel {
             return false;
         }
     }
+    
+    /**
+     * Permanently delete a conversation and its associated trade_history entries
+     * 
+     * @param string $negotiationId The negotiation ID to delete
+     * @return bool True on success, false on failure
+     */
+    public function deleteConversationPermanently(string $negotiationId): bool {
+        try {
+            $this->ensureConversationsTable();
+            
+            // Start transaction
+            $this->db->beginTransaction();
+            
+            // Delete from trade_conversations
+            $stmt1 = $this->db->prepare("
+                DELETE FROM trade_conversations 
+                WHERE negotiation_id = :negotiation_id
+            ");
+            $stmt1->execute([':negotiation_id' => $negotiationId]);
+            
+            // Delete from trade_history
+            $stmt2 = $this->db->prepare("
+                DELETE FROM trade_history 
+                WHERE negotiation_id = :negotiation_id 
+                AND action = 'negotiation_refused'
+            ");
+            $stmt2->execute([':negotiation_id' => $negotiationId]);
+            
+            // Commit transaction
+            $this->db->commit();
+            
+            return true;
+        } catch (PDOException $e) {
+            // Rollback on error
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            error_log("ConversationModel::deleteConversationPermanently error: " . $e->getMessage());
+            return false;
+        }
+    }
 }
 

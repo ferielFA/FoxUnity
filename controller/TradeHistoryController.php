@@ -20,9 +20,11 @@ class TradeHistoryController {
             $stmt = $this->db->query("SHOW COLUMNS FROM trade_history LIKE 'action'");
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($row) {
-                // Check if 'negotiation_refused' is present in the Type definition
-                if (strpos($row['Type'], "'negotiation_refused'") === false) {
-                    $this->db->exec("ALTER TABLE trade_history MODIFY COLUMN action ENUM('created', 'updated', 'deleted', 'buy', 'bought', 'negotiation_refused') NOT NULL");
+                // Ensure 'trade' and 'negotiation_refused' exist in ENUM
+                $type = $row['Type'] ?? '';
+                $needsAlter = (strpos($type, "'trade'") === false) || (strpos($type, "'negotiation_refused'") === false);
+                if ($needsAlter) {
+                    $this->db->exec("ALTER TABLE trade_history MODIFY COLUMN action ENUM('created', 'updated', 'deleted', 'buy', 'bought', 'negotiation_refused', 'trade') NOT NULL");
                 }
             }
 
@@ -46,7 +48,7 @@ class TradeHistoryController {
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         user_id INT NOT NULL,
                         skin_id INT NOT NULL,
-                        action ENUM('created', 'updated', 'deleted', 'buy', 'bought', 'negotiation_refused') NOT NULL,
+                        action ENUM('created', 'updated', 'deleted', 'buy', 'bought', 'negotiation_refused', 'trade') NOT NULL,
                         skin_name VARCHAR(255) NOT NULL,
                         skin_price DECIMAL(10,2) NOT NULL,
                         skin_category VARCHAR(50) NOT NULL,
@@ -116,7 +118,7 @@ class TradeHistoryController {
             $sql = "DELETE FROM trade_history WHERE user_id = :user_id";
             
             if ($type === 'negotiations') {
-                $sql .= " AND action = 'negotiation_refused'";
+                $sql .= " AND action IN ('negotiation_refused', 'trade')";
             } elseif ($type === 'standard') {
                 $sql .= " AND action != 'negotiation_refused'";
             }
@@ -157,7 +159,7 @@ class TradeHistoryController {
 
         if (!empty($filters['action']) && $filters['action'] !== 'all') {
             if ($filters['action'] === 'finished') {
-                $where[] = "th.action IN ('finished', 'bought', 'buy')";
+                $where[] = "th.action IN ('finished', 'bought', 'buy', 'trade')";
             } else {
                 $where[] = "th.action = :action";
                 $params[':action'] = $filters['action'];

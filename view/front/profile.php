@@ -460,7 +460,7 @@ if ($currentUser->getImage()) {
             <a href="trading.html">Trading</a>
             <a href="news.html">News</a>
             <a href="reclamation.html">Complaints</a>
-            <a href="about.html">About Us</a>
+      <a href="about.php">About Us</a>
         </nav>
         
         <div class="header-right">

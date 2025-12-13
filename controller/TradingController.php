@@ -71,6 +71,8 @@ class TradingController {
             return $this->handleGetMessages();
         } elseif (isset($_POST['refuse_offer'])) {
             return $this->handleRefuseOffer();
+        } elseif (isset($_POST['accept_offer'])) {
+            return $this->handleAcceptOffer();
         } elseif (isset($_POST['get_archived_messages'])) {
             return $this->handleGetArchivedMessages();
         } elseif (isset($_POST['buy_skins'])) {
@@ -375,6 +377,90 @@ class TradingController {
                 return ['success' => false, 'error' => 'Failed to refuse offer (Database executed but returned false).'];
             }
         } catch (Exception $e) {
+            return ['success' => false, 'error' => 'Database Error: ' . $e->getMessage()];
+        }
+    }
+
+    private function handleAcceptOffer(): ?array {
+        $skinId = isset($_POST['skin_id']) ? (int)$_POST['skin_id'] : 0;
+
+        if ($skinId <= 0) {
+            return ['success' => false, 'error' => 'Invalid skin'];
+        }
+
+        $skin = $this->skinModel->getSkinById($skinId);
+        if (!$skin) {
+            return ['success' => false, 'error' => 'Skin not found'];
+        }
+
+        $sellerObj = User::getByUsername($this->currentUser);
+        $sellerId = $sellerObj ? $sellerObj->getId() : null;
+        if (!$sellerId) {
+            return ['success' => false, 'error' => 'User not found'];
+        }
+
+        if ($skin['seller_username'] !== $this->currentUser) {
+            return ['success' => false, 'error' => 'Only the seller can accept the offer.'];
+        }
+
+        $buyerId = $this->conversationModel->getConversationPartner($skinId, $sellerId);
+        if (!$buyerId) {
+            $buyerId = $this->conversationModel->getAnyBuyerForSkin($skinId, $sellerId);
+            if (!$buyerId) {
+                return ['success' => false, 'error' => 'No active negotiation found to accept.'];
+            }
+        }
+
+        try {
+            $this->db->beginTransaction();
+
+            if (!$this->skinModel->transferOwnership($skinId, $buyerId)) {
+                $this->db->rollBack();
+                return ['success' => false, 'error' => 'Failed to transfer ownership'];
+            }
+
+            try {
+                $stmt = $this->db->prepare("\n                    INSERT INTO trade (buyer_id, seller_id, skin_id, trade_type, trade_date)\n                    VALUES (:buyer_id, :seller_id, :skin_id, 'buy', NOW())\n                ");
+                $stmt->execute([
+                    ':buyer_id' => $buyerId,
+                    ':seller_id' => $sellerId,
+                    ':skin_id' => $skinId
+                ]);
+            } catch (PDOException $e) {
+                $this->db->rollBack();
+                error_log("Failed to insert trade record: " . $e->getMessage());
+                return ['success' => false, 'error' => 'Failed to record trade'];
+            }
+
+            $negotiationId = uniqid('neg_ok_');
+            $this->conversationModel->closeConversation($skinId, $sellerId, $buyerId, $negotiationId);
+
+            $this->tradeHistoryModel->logTradeHistory(
+                $buyerId,
+                $skinId,
+                'trade',
+                $skin['name'],
+                (float)$skin['price'],
+                (string)$skin['category'],
+                $negotiationId
+            );
+
+            $this->tradeHistoryModel->logTradeHistory(
+                $sellerId,
+                $skinId,
+                'trade',
+                $skin['name'],
+                (float)$skin['price'],
+                (string)$skin['category'],
+                $negotiationId
+            );
+
+            $this->db->commit();
+            return ['success' => true, 'message' => 'Offer accepted. Trade completed.'];
+        } catch (Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             return ['success' => false, 'error' => 'Database Error: ' . $e->getMessage()];
         }
     }

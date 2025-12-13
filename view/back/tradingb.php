@@ -3,6 +3,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../../controller/UserController.php';
 require_once __DIR__ . '/../../controller/AdminTradingController.php';
+require_once __DIR__ . '/../../controller/AdminConversationController.php';
 
 // Check if user is logged in and is Admin or SuperAdmin
 if (!UserController::isLoggedIn()) {
@@ -30,6 +31,12 @@ $tradeHistory = $viewData['tradeHistory'];
 $stats = $viewData['stats'];
 $error = $viewData['error'];
 $filters = $viewData['filters']; // Default filters
+
+// Get conversation data
+$conversationController = new AdminConversationController();
+// Get ALL conversations merged
+$customConversations = $conversationController->getAllConversations();
+$conversationStats = $conversationController->getConversationStats();
 
 // Handler for AJAX Pagination requests
 if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
@@ -529,6 +536,87 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                 color: #888;
                 font-size: 0.9em;
             }
+
+    /* Conversation Modal Styles */
+    .conversation-modal {
+        position: fixed;
+        inset: 0;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        background: rgba(0,0,0,0.85);
+        z-index: 10001;
+    }
+    .conversation-modal.active {
+        display: flex;
+    }
+    .conversation-modal-content {
+        background: #111;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 700px;
+        max-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+        border: 1px solid rgba(255, 122, 0, 0.3);
+    }
+    .conversation-header {
+        padding: 20px;
+        border-bottom: 1px solid #333;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .conversation-header h3 {
+        margin: 0;
+        color: #fff;
+        font-family: 'Orbitron', sans-serif;
+    }
+    .conversation-messages {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    .conversation-message {
+        padding: 12px 16px;
+        border-radius: 12px;
+        max-width: 80%;
+        word-wrap: break-word;
+    }
+    .conversation-message.sent {
+        background: #ff7a00;
+        color: #000;
+        align-self: flex-end;
+        border-bottom-right-radius: 4px;
+    }
+    .conversation-message.received {
+        background: #333;
+        color: #fff;
+        align-self: flex-start;
+        border-bottom-left-radius: 4px;
+    }
+    .conversation-message-time {
+        font-size: 11px;
+        opacity: 0.7;
+        margin-top: 5px;
+    }
+    .close-modal {
+        color: #ff7a00;
+        font-size: 28px;
+        cursor: pointer;
+        line-height: 1;
+    }
+    .close-modal:hover {
+        color: #ff9000;
+    }
+    .view-conversation-btn:hover {
+        transform: translateY(-2px);
+        opacity: 0.9;
+    }
   </style>
 </head>
 
@@ -734,11 +822,126 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             <?php endif; ?>
         </div>
       </section>
+
+      <!-- ===== DISCUSSION HISTORY SECTION ===== -->
+      <section class="trade-history-section" style="margin-top: 40px;">
+        <h2 class="section-title"><span>Discussion</span> History</h2>
+        <p style="color:#ccc; margin-bottom: 20px; text-align: center;">All conversations between buyers and sellers</p>
+        
+        <div class="stats-grid" style="margin-bottom: 30px;">
+          <div class="stat-card">
+            <div class="stat-label">Total Conversations</div>
+            <div class="stat-number"><?= number_format((int)$conversationStats['total_conversations']) ?></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Messages</div>
+            <div class="stat-number"><?= number_format((int)$conversationStats['total_messages']) ?></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Active Messages</div>
+            <div class="stat-number"><?= number_format((int)$conversationStats['active_messages']) ?></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Archived Messages</div>
+            <div class="stat-number"><?= number_format((int)$conversationStats['archived_messages']) ?></div>
+          </div>
+        </div>
+
+        <!-- MERGED DISCUSSION HISTORY -->
+        <h3 style="color: #fff; font-family: 'Orbitron', sans-serif; margin: 30px 0 15px 0; font-size: 1.5em;">
+          <i class="fas fa-comments" style="color: #ff7a00; margin-right: 10px;"></i>
+          Discussion History
+        </h3>
+        <div class="table-container">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Last Activity</th>
+                <th>Buyer</th>
+                <th>Seller</th>
+                <th>Status</th>
+                <th>Skin Name</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (count($customConversations) === 0): ?>
+                <tr>
+                  <td colspan="6" class="no-data">
+                    No discussion history found.
+                  </td>
+                </tr>
+              <?php else: ?>
+                <?php foreach ($customConversations as $conv): ?>
+                <tr class="history-row">
+                  <td><?= date('M j, Y g:i A', strtotime($conv['last_activity'])) ?></td>
+                  <td><span class="username">@<?= htmlspecialchars($conv['buyer_name']) ?></span></td>
+                  <td><span class="username">@<?= htmlspecialchars($conv['seller_name']) ?></span></td>
+                  <td>
+                    <?php if ($conv['status'] === 'Active'): ?>
+                        <span class="action-badge action-created">Active</span>
+                    <?php elseif ($conv['status'] === 'Accepted'): ?>
+                        <span class="action-badge action-bought">Accepted</span>
+                    <?php else: ?>
+                        <span class="action-badge action-deleted">Refused</span>
+                    <?php endif; ?>
+                  </td>
+                  <td><?= htmlspecialchars($conv['skin_name'] ?: 'Unknown Skin') ?></td>
+                  <td>
+                    <?php if ($conv['status'] === 'Active'): ?>
+                        <button 
+                          class="view-conversation-btn" 
+                          onclick="viewConversation(<?= $conv['skin_id'] ?>, <?= $conv['sender_id'] ?>, <?= $conv['receiver_id'] ?>, '<?= htmlspecialchars($conv['skin_name'] ?: 'Unknown') ?>', '<?= htmlspecialchars($conv['sender_username'] ?? 'Unknown') ?>', '<?= htmlspecialchars($conv['receiver_username'] ?? 'Unknown') ?>', '<?= htmlspecialchars($conv['negotiation_id'] ?? '') ?>')"
+                          style="background: #2ed573; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
+                          <i class="fas fa-eye"></i> View
+                        </button>
+                    <?php else: ?>
+                        <button 
+                          class="view-conversation-btn" 
+                          onclick="viewConversation(<?= $conv['skin_id'] ?>, <?= $conv['sender_id'] ?>, <?= $conv['receiver_id'] ?>, '<?= htmlspecialchars($conv['skin_name'] ?: 'Unknown') ?>', '<?= htmlspecialchars($conv['sender_username'] ?? 'Unknown') ?>', '<?= htmlspecialchars($conv['receiver_username'] ?? 'Unknown') ?>', '<?= htmlspecialchars($conv['negotiation_id'] ?? '') ?>')"
+                          style="background: <?= ($conv['status'] === 'Accepted') ? '#2ed573' : '#ff4757' ?>; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; margin-right: 8px;">
+                          <i class="fas fa-history"></i> History
+                        </button>
+                        <?php if (!empty($conv['negotiation_id'])): ?>
+                        <button 
+                          class="delete-conversation-btn" 
+                          onclick="deleteArchivedConversation('<?= htmlspecialchars($conv['negotiation_id']) ?>')"
+                          style="background: #333; color: #ff4757; border: 1px solid #ff4757; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                  </td>
+                </tr>
+                <?php endforeach; ?>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
 
     <footer class="site-footer">
       © 2025 <span>Nine Tailed Fox</span>. All Rights Reserved.
     </footer>
+    </div>
+
+  <!-- CONVERSATION VIEWING MODAL -->
+  <div class="conversation-modal" id="conversationModal">
+    <div class="conversation-modal-content">
+      <div class="conversation-header">
+        <div>
+          <h3 id="conversationTitle">Conversation</h3>
+          <p style="color: #888; font-size: 14px; margin: 5px 0 0 0;" id="conversationSubtitle"></p>
+        </div>
+        <span class="close-modal" id="closeConversationModal">&times;</span>
+      </div>
+      
+      <div class="conversation-messages" id="conversationMessagesContainer">
+        <!-- Messages will be loaded here -->
+        <p style="text-align:center; color:#888;">Loading messages...</p>
+      </div>
+    </div>
   </div>
 
   <div class="transition-screen"></div>
@@ -881,6 +1084,184 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
 
     // Initialize listeners
     attachPaginationListeners();
+
+    // Conversation Modal Functions
+    const conversationModal = document.getElementById('conversationModal');
+    const closeConversationModal = document.getElementById('closeConversationModal');
+
+    function viewConversation(skinId, senderId, receiverId, skinName, senderUsername, receiverUsername, negotiationId) {
+        // Set modal title
+        document.getElementById('conversationTitle').textContent = `Discussion: ${skinName}`;
+        document.getElementById('conversationSubtitle').textContent = `Between @${senderUsername} and @${receiverUsername}`;
+        
+        // Show modal
+        conversationModal.classList.add('active');
+        
+        // Load messages
+        loadConversationMessages(skinId, senderId, receiverId, negotiationId);
+    }
+
+    function loadConversationMessages(skinId, senderId, receiverId, negotiationId) {
+        const container = document.getElementById('conversationMessagesContainer');
+        container.innerHTML = '<p style="text-align:center; color:#888;">Loading messages...</p>';
+        
+        // Create form data
+        const formData = new FormData();
+        formData.append('get_conversation', '1');
+        formData.append('skin_id', skinId);
+        formData.append('sender_id', senderId);
+        formData.append('receiver_id', receiverId);
+        if (negotiationId) {
+            formData.append('negotiation_id', negotiationId);
+        }
+        
+        // Fetch messages
+        fetch('../../controller/GetConversationController.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.messages) {
+                displayConversationMessages(data.messages);
+            } else {
+                container.innerHTML = '<p style="text-align:center; color:#ff4757;">Failed to load messages</p>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading messages:', error);
+            container.innerHTML = '<p style="text-align:center; color:#ff4757;">Error loading messages</p>';
+        });
+    }
+
+    function displayConversationMessages(messages) {
+        const container = document.getElementById('conversationMessagesContainer');
+        container.innerHTML = '';
+        
+        if (messages.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#888;">No messages in this conversation</p>';
+            return;
+        }
+        
+        messages.forEach(message => {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'conversation-message';
+            
+            let timeString = '';
+            if (message.created_at) {
+                const date = new Date(message.created_at);
+                timeString = date.toLocaleString();
+            }
+            
+            let content = `
+                <div style="font-size: 12px; font-weight: 600; margin-bottom: 5px;">
+                    ${escapeHtml(message.sender_username)}
+                </div>
+            `;
+            
+            if (message.message) {
+                content += `<div>${escapeHtml(message.message)}</div>`;
+            }
+            
+            if (message.image_path) {
+                content += `<div style="margin-top: 8px;"><img src="../../view/${escapeHtml(message.image_path)}" style="max-width: 100%; max-height: 250px; border-radius: 8px;"></div>`;
+            }
+            
+            content += `<div class="conversation-message-time">${timeString}</div>`;
+            
+            messageDiv.innerHTML = content;
+            container.appendChild(messageDiv);
+        });
+        
+        // Scroll to bottom
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Close modal events
+    closeConversationModal.addEventListener('click', () => {
+        conversationModal.classList.remove('active');
+    });
+
+    conversationModal.addEventListener('click', (e) => {
+        if (e.target === conversationModal) {
+            conversationModal.classList.remove('active');
+        }
+    });
+
+    // View Archived Chat function (for negotiation_refused entries)
+    function viewArchivedChat(skinId, negotiationId = null) {
+        conversationModal.classList.add('active');
+        const container = document.getElementById('conversationMessagesContainer');
+        container.innerHTML = '<p style="text-align:center; color:#888;">Loading archived messages...</p>';
+        
+        // Set modal title
+        document.getElementById('conversationTitle').textContent = 'Archived Chat History';
+        document.getElementById('conversationSubtitle').textContent = 'Read-only view';
+        
+        const formData = new FormData();
+        formData.append('get_archived_conversation', '1');
+        formData.append('skin_id', skinId);
+        if (negotiationId) {
+            formData.append('negotiation_id', negotiationId);
+        }
+        
+        fetch('../../controller/GetConversationController.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.messages) {
+                displayConversationMessages(data.messages);
+            } else {
+                container.innerHTML = '<p style="text-align:center; color:#ff4757;">No archived messages found</p>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading archived messages:', error);
+            container.innerHTML = '<p style="text-align:center; color:#ff4757;">Error loading messages</p>';
+        });
+    }
+
+    // Delete Archived Conversation function
+    function deleteArchivedConversation(negotiationId) {
+        if (!negotiationId) {
+            alert('Invalid negotiation ID');
+            return;
+        }
+        
+        if (!confirm('Are you sure you want to permanently delete this conversation?\n\nThis will remove:\n- All conversation messages\n- The trade history entry\n\nThis action cannot be undone.')) {
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('delete_conversation', '1');
+        formData.append('negotiation_id', negotiationId);
+        
+        fetch('../../controller/GetConversationController.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Conversation deleted successfully');
+                location.reload();
+            } else {
+                alert('Error: ' + (data.error || 'Failed to delete conversation'));
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting conversation:', error);
+            alert('Error deleting conversation');
+        });
+    }
 
   </script>
 </body>
