@@ -1,12 +1,9 @@
 <?php
-// Controller for single article pages (class-based)
-require_once __DIR__ . '/../model/db.php';
-require_once __DIR__ . '/../model/ArticleRepository.php';
-require_once __DIR__ . '/../model/CategoryRepository.php';
-require_once __DIR__ . '/../model/helpers.php';
-
-require_once __DIR__ . '/../model/CommentRepository.php';
+// Controller for news article page (class-based, fully MVC)
+require_once __DIR__ . '/../model/Article.php';
 require_once __DIR__ . '/../model/Comment.php';
+require_once __DIR__ . '/../model/Categorie.php'; // For category processing if needed
+
 
 /**
  * Class NewsArticleController
@@ -23,17 +20,8 @@ class NewsArticleController
     private array $comments = [];
     private array $errors = [];
 
-    private ArticleRepository $articleRepository;
-    private CategoryRepository $categoryRepository;
-    private CommentRepository $commentRepository;
-
     public function __construct()
     {
-        global $pdo;
-        $this->articleRepository  = new ArticleRepository($pdo);
-        $this->categoryRepository = new CategoryRepository($pdo);
-        $this->commentRepository  = new CommentRepository($pdo);
-
         $this->slug = $_GET['id'] ?? '';
         $this->load();
         $this->handlePost();
@@ -46,35 +34,53 @@ class NewsArticleController
             return;
         }
 
-        $a = $this->articleRepository->findBySlug($this->slug);
+        $a = Article::findBySlug($this->slug);
         if (!$a) {
             $this->notFound = true;
             return;
         }
 
         $this->article    = $a;
-        $this->categories = $this->categoryRepository->getAll();
+        $this->categories = Categorie::getAll();
         
         // Load comments
-        $loadedComments = $this->commentRepository->findCommentsByArticleId($a['idArticle']);
-        
-        // Convert to array for view compatibility (legacy structure)
+        // Calculate Community Verdict
+        $positiveCount = 0;
+        $negativeCount = 0;
+        $loadedComments = Comment::findByArticleId($a['idArticle']);
         $this->comments = [];
         foreach ($loadedComments as $c) {
+            if ($c->getSentimentLabel() === 'positive') $positiveCount++;
+            if ($c->getSentimentLabel() === 'negative') $negativeCount++;
+            
             $this->comments[] = [
                 'name' => $c->getName(),
                 'email' => $c->getEmail(),
-                'text' => $c->getText(),
+                'text' => $c->getText(), // Already censored in DB
+                'sentiment' => $c->getSentimentLabel(),
+                'rating' => $c->getRating(),
                 'date' => $c->getCreatedAt()->format('Y-m-d H:i:s')
             ];
         }
+        
+        $total = $positiveCount + $negativeCount;
+        $verdict = 'Neutral';
+        if ($total > 0) {
+            if ($positiveCount > $negativeCount * 1.5) $verdict = 'Mostly Positive';
+            elseif ($negativeCount > $positiveCount * 1.5) $verdict = 'Mostly Negative';
+            else $verdict = 'Mixed';
+        }
+        $this->article['verdict'] = $verdict;
     }
 
     private function handlePost(): void
     {
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment_submit']) && $this->article) {
             $name = trim((string)($_POST['name'] ?? ''));
             $text = trim((string)($_POST['comment'] ?? ''));
+            $rating = isset($_POST['rating']) ? (int)$_POST['rating'] : null;
+            if ($rating !== null && ($rating < 1 || $rating > 5)) $rating = null;
 
             if ($name === '') $this->errors[] = 'Name is required.';
             if ($text === '') $this->errors[] = 'Comment is required.';
@@ -92,12 +98,24 @@ class NewsArticleController
             }
 
             if (empty($this->errors)) {
-                $newComment = new Comment(null, $this->article['idArticle'], $name, '', $text);
-                $this->commentRepository->save($newComment);
                 
-                // Redirect to avoid repost
-                header('Location: news_article.php?id=' . urlencode($this->slug) . '#comments');
-                exit;
+                // AI Analysis
+                $analysis = Comment::analyzeSentiment($text);
+                
+                // 2. Reject if too toxic
+                if ($analysis['toxicity'] > 70) {
+                    $this->errors[] = 'Your comment was rejected because it violates our community guidelines (High Toxicity).';
+					$rating = null; // Reset rating if rejected
+                } else {
+                    $censoredText = Comment::censor($text);
+                    
+                    $newComment = new Comment(null, $this->article['idArticle'], $name, '', $censoredText, false, $analysis['toxicity'], $analysis['label'], $rating);
+                    Comment::save($newComment);
+                    
+                    // Redirect to avoid repost
+                    header('Location: news_article.php?id=' . urlencode($this->slug) . '#comments');
+                    exit;
+                }
             }
         }
     }

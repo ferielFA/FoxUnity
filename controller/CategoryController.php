@@ -1,11 +1,10 @@
 <?php
 // Controller for categories management (admin) – class based, MVC friendly
-require_once __DIR__ . '/../model/CategoryRepository.php';
-require_once __DIR__ . '/../model/ArticleRepository.php';
+require_once __DIR__ . '/../model/Categorie.php';
+require_once __DIR__ . '/../model/Article.php';
 
 class CategoryController
 {
-    /** @var array */
     private array $messages = [];
 
     /** @var array */
@@ -14,18 +13,11 @@ class CategoryController
     private array $categories = [];
     private array $articleCountsByCategory = [];
 
-    private CategoryRepository $categoryRepository;
-    private ArticleRepository $articleRepository;
-
     public function __construct()
     {
-        global $pdo;
-        $this->categoryRepository  = new CategoryRepository($pdo);
-        $this->articleRepository   = new ArticleRepository($pdo);
-
         // Load initial data used by views (arrays, for compatibility)
-        $this->categories              = $this->categoryRepository->getAll();
-        $this->articleCountsByCategory = $this->articleRepository->countByCategory();
+        $this->categories              = Categorie::getAll();
+        $this->articleCountsByCategory = Article::countByCategory();
     }
 
     /**
@@ -63,8 +55,8 @@ class CategoryController
         }
 
         // After mutations, refresh cached category data
-        $this->categories              = $this->categoryRepository->getAll();
-        $this->articleCountsByCategory = $this->articleRepository->countByCategory();
+        $this->categories              = Categorie::getAll();
+        $this->articleCountsByCategory = Article::countByCategory();
     }
 
     private function handleAdd(): void
@@ -77,7 +69,7 @@ class CategoryController
         }
 
         if (empty($this->errors)) {
-            [$ok, $result] = $this->categoryRepository->add([
+            [$ok, $result] = Categorie::add([
                 'nom'         => $name,
                 'slug'        => $slug,
                 'description' => $_POST['description'] ?? '',
@@ -108,7 +100,7 @@ class CategoryController
         }
 
         if (empty($this->errors)) {
-            [$ok, $msg] = $this->categoryRepository->update($id, [
+            [$ok, $msg] = Categorie::update($id, [
                 'nom'        => $name,
                 'slug'       => $slug,
                 'description'=> $_POST['description'] ?? '',
@@ -132,7 +124,7 @@ class CategoryController
         }
 
         $id          = (int) $_POST['id'];
-        [$ok, $msg]  = $this->categoryRepository->delete($id);
+        [$ok, $msg]  = Categorie::delete($id);
 
         if ($ok) {
             $this->messages[] = 'Category deleted.';
@@ -152,7 +144,7 @@ class CategoryController
         // Use explicit posted value (0 or 1)
         $new = isset($_POST['active']) ? (int) $_POST['active'] : 0;
 
-        if ($this->categoryRepository->setStatus($id, $new)) {
+        if (Categorie::setStatus($id, $new)) {
             $this->messages[] = 'Category status updated.';
         } else {
             $this->errors[] = 'Failed to update status.';
@@ -169,7 +161,7 @@ class CategoryController
         $id  = (int) $_POST['id'];
         $pos = (int) ($_POST['position'] ?? 0);
 
-        if ($this->categoryRepository->reorder($id, $pos)) {
+        if (Categorie::reorder($id, $pos)) {
             $this->messages[] = 'Category order updated.';
         } else {
             $this->errors[] = 'Failed to reorder.';

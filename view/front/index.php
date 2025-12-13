@@ -30,7 +30,7 @@
         </div>
         
         <nav class="site-nav">
-            <a href="http://localhost/projet_web/view/front/indexf.php" class="active">Home</a>
+            <a href="http://localhost/projet_web/view/front/index.php" class="active">Home</a>
             <a href="events.html">Events</a>
             <a href="shop.html">Shop</a>
             <a href="trading.html">Trading</a>

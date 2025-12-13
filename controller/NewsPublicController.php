@@ -1,9 +1,8 @@
 <?php
 // Controller for public news listing (class-based, MVC-friendly)
 require_once __DIR__ . '/../model/db.php';
-require_once __DIR__ . '/../model/ArticleRepository.php';
-require_once __DIR__ . '/../model/CategoryRepository.php';
-require_once __DIR__ . '/../model/helpers.php';
+require_once __DIR__ . '/../model/Article.php';
+require_once __DIR__ . '/../model/Categorie.php';
 
 /**
  * Class NewsPublicController
@@ -19,21 +18,15 @@ class NewsPublicController
     private array $articles = [];
     private array $hotNews = [];
 
-    private ArticleRepository $articleRepository;
-    private CategoryRepository $categoryRepository;
-
     public function __construct()
     {
-        global $pdo;
-        $this->articleRepository  = new ArticleRepository($pdo);
-        $this->categoryRepository = new CategoryRepository($pdo);
         $this->loadData();
     }
 
     private function loadData(): void
     {
-        $allCategories = $this->categoryRepository->getAll();
-        $allArticles   = $this->articleRepository->getAll();
+        $allCategories = Categorie::getAll();
+        $allArticles   = Article::getAll();
 
         $hot    = [];
         $normal = [];

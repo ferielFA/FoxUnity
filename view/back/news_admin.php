@@ -1,9 +1,9 @@
 <?php
 // News admin page - uses NewsAdminController for MVC pattern
-require __DIR__ . '/db.php';
+require_once __DIR__ . '/../../model/db.php';
 require_once __DIR__ . '/../../controller/NewsAdminController.php';
-require_once __DIR__ . '/../../model/CommentRepository.php';
-require_once __DIR__ . '/../../model/helpers.php';
+require_once __DIR__ . '/../../model/Comment.php';
+require_once __DIR__ . '/../../model/Subscriber.php';
 
 // Create directories for uploads if they don't exist
 $uploadsDir = __DIR__ . '/uploads/images';
@@ -40,8 +40,9 @@ $commentsDir = __DIR__ . '/uploads/comments';
     <a href="news_admin.php" class="active">News</a>
     <a href="news_history.php" id="news-history-link">News History</a>
     <a href="categories.php" id="categories-link">Categories</a>
+    <a href="newsletter_admin.php" id="newsletter-link">Newsletter</a>
     <a href="#">Support</a>
-    <a href="../front/indexf.php">← Return Homepage</a>
+    <a href="../front/index.php">← Return Homepage</a>
   </div>
 
   <div class="main">
@@ -82,6 +83,7 @@ $commentsDir = __DIR__ . '/uploads/comments';
               <h3><?php echo $editing ? 'Edit' : 'New'; ?> Article</h3>
               <form id="article-form" class="admin-form" method="post" action="news_admin.php<?php echo $editing ? '?id='.urlencode($editing['id']) : '' ;?>" enctype="multipart/form-data">
                 <input type="hidden" name="action" value="<?php echo $editing ? 'save' : 'add'; ?>">
+                <?php if ($editing): ?><input type="hidden" name="id" value="<?php echo htmlspecialchars($editing['id'] ?? ''); ?>"><?php endif; ?>
                 <?php if (!$editing): ?><label for="fld-id">ID (alphanumeric):</label><input id="fld-id" name="id" value="<?php echo htmlspecialchars($it['id'] ?? ''); ?>" class="small"><?php endif; ?>
                 <label for="fld-datePublication">Publication Date</label><input id="fld-datePublication" name="datePublication" type="date" value="<?php echo htmlspecialchars($it['datePublication'] ?? date('Y-m-d')); ?>" class="small">
                 <label for="fld-title">Title</label><input id="fld-title" name="title" value="<?php echo htmlspecialchars($it['title'] ?? ''); ?>">
@@ -116,7 +118,8 @@ $commentsDir = __DIR__ . '/uploads/comments';
                     <span>🔥 Mark as Hot News (will appear at top of news page)</span>
                   </label>
                 </div>
-                <label for="fld-excerpt">Excerpt / Summary</label><textarea id="fld-excerpt" name="excerpt" rows="3"><?php echo htmlspecialchars($it['excerpt'] ?? ''); ?></textarea>
+                <label for="fld-excerpt">Excerpt</label><textarea id="fld-excerpt" name="excerpt" rows="3"><?php echo htmlspecialchars($it['excerpt'] ?? ''); ?></textarea>
+
                 <label for="fld-content">Full Content</label><textarea id="fld-content" name="content" rows="8"><?php echo htmlspecialchars($it['content'] ?? ''); ?></textarea>
 
                 <?php if ($editing): ?>
@@ -124,8 +127,7 @@ $commentsDir = __DIR__ . '/uploads/comments';
                   <h3 style="margin-top:0;color:#ff7a00">Comments for: <?php echo htmlspecialchars($editing['id']); ?></h3>
                   <?php
                   $slug = $editing['id'];
-                  $commentRepository = new CommentRepository($pdo);
-                  $comments = $commentRepository->findCommentsByArticleId($editing['idArticle']);
+                  $comments = Comment::findByArticleId($editing['idArticle']);
 
                   if (empty($comments)) {
                     echo '<p style="color:#bbb">No comments for this article.</p>';
@@ -190,7 +192,7 @@ $commentsDir = __DIR__ . '/uploads/comments';
             <section style="margin-top:16px">
               <h3>Existing Articles (<?php echo count($data); ?>)</h3>
               <table class="admin-table" id="articles-table">
-                <thead><tr><th>#</th><th>Slug</th><th>Title</th><th>Date</th><th>Category</th><th>Hot</th><th>Actions</th></tr></thead>
+                <thead><tr><th>#</th><th>Slug</th><th>Title</th><th>Date</th><th>Category</th><th>Hot</th><th>Sentiment</th><th>Actions</th></tr></thead>
                 <tbody>
                 <?php foreach ($data as $row): ?>
                   <tr>
@@ -200,6 +202,14 @@ $commentsDir = __DIR__ . '/uploads/comments';
                     <td><?php echo htmlspecialchars($row['date'] ?? ''); ?></td>
                     <td><?php echo htmlspecialchars((findCategoryName($row['idCategorie'] ?? 0, $categories) ?? '') . (empty($row['idCategorie']) ? '' : ' (ID:'. ($row['idCategorie']) .')')); ?></td>
                     <td><?php echo $row['hot'] ? '🔥 Yes' : 'No'; ?></td>
+                    <td>
+                      <?php 
+                        $stats = $row['sentiment_stats'] ?? ['positive'=>0,'negative'=>0];
+                        $pos = $stats['positive']; $neg = $stats['negative'];
+                        if($pos+$neg == 0) echo '-';
+                        else echo "<span style='color:#28a745'>+$pos</span> / <span style='color:#dc3545'>-$neg</span>";
+                      ?>
+                    </td>
                     <td class="admin-actions">
                       <a href="news_admin.php?action=edit&id=<?php echo urlencode($row['id']); ?>">Edit</a> |
                       <a href="news_admin.php?action=delete&id=<?php echo urlencode($row['id']); ?>" onclick="return confirm('Delete this article?');">Delete</a>
@@ -226,6 +236,46 @@ $commentsDir = __DIR__ . '/uploads/comments';
                 </form>
               </section>
             <?php endif; ?>
+
+            <section style="margin-top:24px">
+              <h3>Newsletter Snapshot</h3>
+              <?php 
+                // Notification service moved to Categorie
+                $subscribers = Subscriber::getAll();
+                $recent = array_slice($subscribers, 0, 5);
+              ?>
+              <p style="color:#bbb">Total Subscribers: <strong><?php echo count($subscribers); ?></strong></p>
+              <table class="admin-table" style="width:100%">
+                <thead><tr><th>ID</th><th>Email</th><th>Interests</th><th>Subscribed</th></tr></thead>
+                <tbody>
+                  <?php 
+                    // Create simple map for display
+                    $catMap = [];
+                    foreach ($categories as $c) { $catMap[$c['idCategorie']] = $c['nom']; }
+                  ?>
+                  <?php foreach ($recent as $s): ?>
+                  <?php
+                    $sIds = array_filter(explode(',', $s['categories'] ?? ''));
+                    $sNames = [];
+                    foreach($sIds as $sid) { if(isset($catMap[$sid])) $sNames[] = $catMap[$sid]; }
+                    $catDisplay = empty($sNames) ? '-' : implode(', ', $sNames);
+                  ?>
+                  <tr>
+                    <td><?php echo intval($s['id'] ?? 0); ?></td>
+                    <td><?php echo htmlspecialchars($s['email'] ?? ''); ?></td>
+                    <td><?php echo htmlspecialchars($catDisplay); ?></td>
+                    <td><?php echo htmlspecialchars($s['created_at'] ?? ''); ?></td>
+                  </tr>
+                  <?php endforeach; ?>
+                  <?php if (empty($recent)): ?>
+                  <tr><td colspan="4" style="color:#888">No subscribers yet.</td></tr>
+                  <?php endif; ?>
+                </tbody>
+              </table>
+              <div style="margin-top:10px;text-align:right">
+                <a class="btn" href="newsletter_admin.php">Open Newsletter Admin</a>
+              </div>
+            </section>
 
 
           <?php endif; ?>
@@ -464,6 +514,7 @@ $commentsDir = __DIR__ . '/uploads/comments';
           category: (document.getElementById('fld-category')||{}).value || '',
           hot: (document.getElementById('fld-hot')||{}).checked ? '1' : '0',
           excerpt: (document.getElementById('fld-excerpt')||{}).value || '',
+
           content: (document.getElementById('fld-content')||{}).value || '',
           timestamp: Date.now()
         };
@@ -540,6 +591,7 @@ $commentsDir = __DIR__ . '/uploads/comments';
             errors.forEach(function(m){ toast(m,'error'); });
             return false;
           }
+
           console.log('Form validation passed, allowing submit');
         });
       } else {
@@ -565,6 +617,7 @@ $commentsDir = __DIR__ . '/uploads/comments';
           toast('Failed to update hot status', 'error');
         });
       };
+
     })();
   </script>
 </body>

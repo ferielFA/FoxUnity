@@ -1,12 +1,6 @@
 <?php
-// news.php
-// Loads all news using NewsPublicController (MVC)
-
 require_once __DIR__ . '/../../controller/NewsPublicController.php';
-
-// Image path helper is now in model/helpers.php
-// Variables provided by NewsPublicController:
-// $categories, $articles (non-hot), $hotNews
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -31,7 +25,7 @@ require_once __DIR__ . '/../../controller/NewsPublicController.php';
       <span class="site-name">FoxUnity</span>
     </div>
     <nav class="site-nav">
-      <a href="http://localhost/projet_web/view/front/indexf.php">Home</a>
+      <a href="http://localhost/projet_web/view/front/index.php">Home</a>
       <a href="../front/events.html">Events</a>
       <a href="../front/shop.html">Shop</a>
       <a href="../front/trading.html">Trading</a>
@@ -59,38 +53,51 @@ require_once __DIR__ . '/../../controller/NewsPublicController.php';
                     <option value="12">12 per page</option>
                   </select>
                 </div>
+                <div class="category-filters" id="category-filters" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:8px;">
+                  <?php foreach ($categories as $c): ?>
+                    <button class="cat-chip" data-catid="<?php echo intval($c['idCategorie']); ?>" style="background:#1f1f1f;border:1px solid #444;color:#ddd;padding:6px 10px;border-radius:999px;cursor:pointer;">#<?php echo htmlspecialchars($c['nom']); ?></button>
+                  <?php endforeach; ?>
+                </div>
             </div>
 
             <!-- Moved Subscribe Box -->
             <div class="subscribe-hero" id="newsletter">
-               <h3><i class="fas fa-bell"></i> Get Updates</h3>
+               <div class="subscribe-header"><i class="fas fa-bell"></i><div class="subscribe-title">Stay in the loop</div></div>
+               <div class="subscribe-desc">Get updates on the categories you care about.</div>
                <?php if (!empty($_GET['msg'])): ?>
-                   <div style="background:#0f03; color:#eff; padding:6px; border-radius:4px; font-size:0.8rem;"><?php echo htmlspecialchars($_GET['msg']); ?></div>
+                   <div class="alert alert-success"><?php echo htmlspecialchars($_GET['msg']); ?></div>
                <?php endif; ?>
                <?php if (!empty($_GET['err'])): ?>
-                   <div style="background:#f003; color:#fee; padding:6px; border-radius:4px; font-size:0.8rem;"><?php echo htmlspecialchars($_GET['err']); ?></div>
+                   <div class="alert alert-error"><?php echo htmlspecialchars($_GET['err']); ?></div>
                <?php endif; ?>
-               <form action="/projet_web/controller/NewsletterController.php" method="POST">
+               <form action="/projet_web/controller/NewsletterController.php" method="POST" class="subscribe-form">
                    <input type="hidden" name="action" value="subscribe">
-                   <input type="email" name="email" class="hero-input" placeholder="Your Email Address" required>
-                   
-                   <div style="position:relative">
-                       <div class="hero-cat-btn" onclick="this.nextElementSibling.classList.toggle('show');">
-                           Select Categories <i class="fas fa-chevron-down"></i>
-                       </div>
-                       <div class="cat-dropdown-content">
+                   <input type="email" name="email" class="hero-input" placeholder="Your email" required>
+                   <div class="cat-select">
+                       <button type="button" class="hero-cat-btn" id="cat-toggle"><span>Select Categories</span><span class="badge" id="cat-count">0</span><i class="fas fa-chevron-down"></i></button>
+                       <div class="cat-dropdown-content" id="cat-dropdown">
+                           <input type="text" class="cat-search" id="cat-search" placeholder="Search categories...">
+                           <div class="cat-actions">
+                               <button type="button" class="cat-action" id="cat-select-all">Select All</button>
+                               <button type="button" class="cat-action" id="cat-clear">Clear</button>
+                           </div>
+                           <div class="cat-list">
                            <?php 
                            if (!isset($allCategories)) {
                                $allCategories = $pdo->query("SELECT * FROM categorie ORDER BY nom")->fetchAll();
                            }
                            foreach ($allCategories as $c): ?>
-                               <label><input type="checkbox" name="categories[]" value="<?php echo $c['idCategorie']; ?>"> <?php echo htmlspecialchars($c['nom']); ?></label>
+                               <label class="cat-item"><input type="checkbox" name="categories[]" value="<?php echo $c['idCategorie']; ?>" data-name="<?php echo htmlspecialchars($c['nom']); ?>"> <span><?php echo htmlspecialchars($c['nom']); ?></span></label>
                            <?php endforeach; ?>
+                           </div>
                        </div>
+                       <div class="selected-chips" id="selected-chips"></div>
                    </div>
                    <button type="submit" class="hero-submit">Subscribe</button>
+                   <div class="subscribe-note">You can unsubscribe anytime.</div>
                </form>
             </div>
+            <?php /* Subscriptions panel moved to bottom */ ?>
         </div>
         
         <div class="saved-controls" id="saved-controls" style="display:none; margin-bottom:20px;">
@@ -128,8 +135,10 @@ require_once __DIR__ . '/../../controller/NewsPublicController.php';
               $plain = strip_tags($a['content'] ?? '');
               $words = str_word_count($plain);
               $rt = max(1, (int)ceil($words/200));
+              $tags = extractKeywordsAI($a['content'] ?? '', 6);
+              $catIdAttr = intval($a['idCategorie'] ?? 0);
             ?>
-            <div id="news-<?php echo htmlspecialchars($a['id']); ?>" class="news-card <?php echo $isNew; ?>">
+            <div id="news-<?php echo htmlspecialchars($a['id']); ?>" class="news-card <?php echo $isNew; ?>" data-catid="<?php echo $catIdAttr; ?>">
               <div class="news-card-image">
                 <img src="<?php echo htmlspecialchars($imgPath); ?>" alt="<?php echo htmlspecialchars($a['title'] ?? ''); ?>" onerror="this.src='../images/nopic.png'">
               </div>
@@ -137,6 +146,13 @@ require_once __DIR__ . '/../../controller/NewsPublicController.php';
                 <div class="news-card-date"><?php echo htmlspecialchars($a['date'] ?? ''); ?> • <?php echo htmlspecialchars($dispCat); ?> <span class="reading-time-badge"><?php echo $rt; ?> min</span></div>
                 <h2 class="news-card-title"><?php echo htmlspecialchars($a['title'] ?? ''); ?></h2>
                 <p class="news-card-excerpt"><?php echo htmlspecialchars($a['excerpt'] ?? ''); ?></p>
+                <?php if (!empty($tags)): ?>
+                  <div class="news-tags" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;">
+                    <?php foreach ($tags as $tg): ?>
+                      <span class="chip" style="background:#262626;border:1px solid #444;color:#ddd;padding:4px 8px;border-radius:999px;font-size:0.75rem;">#<?php echo htmlspecialchars($tg); ?></span>
+                    <?php endforeach; ?>
+                  </div>
+                <?php endif; ?>
                 <div style="display:flex;gap:8px;align-items:center;justify-content:flex-start">
                   <a class="read-more" href="news_article.php?id=<?php echo urlencode($a['id']); ?>">Read More →</a>
                   <button class="read-later-btn" data-slug="<?php echo htmlspecialchars($a['id']); ?>">Save</button>
@@ -162,6 +178,8 @@ require_once __DIR__ . '/../../controller/NewsPublicController.php';
         var cards = Array.from(grid.querySelectorAll('.news-card'));
         var perSelect = document.getElementById('news-perpage');
         var search = document.getElementById('news-search');
+        var catBar = document.getElementById('category-filters');
+        var activeCats = new Set();
         var pager = document.getElementById('news-pagination');
         var per = parseInt(perSelect.value,10) || 9; // Default 9 for 3-grid match
         var filtered = cards.slice();
@@ -204,15 +222,28 @@ require_once __DIR__ . '/../../controller/NewsPublicController.php';
         function applyFilter(){
           var q = (search.value||'').trim().toLowerCase();
           filtered = cards.filter(function(c){
-            if(!q) return true;
+            // Category filter
+            var catOk = activeCats.size === 0 ? true : activeCats.has(String(c.getAttribute('data-catid')));
+            // Text filter
             var txt = (c.textContent||'').toLowerCase();
-            return txt.indexOf(q) !== -1;
+            var qOk = !q || txt.indexOf(q) !== -1;
+            return catOk && qOk;
           });
           per = parseInt(perSelect.value,10) || 6;
           renderPage(1);
         }
         perSelect.addEventListener('change', applyFilter);
         search.addEventListener('input', function(){ setTimeout(applyFilter,150); });
+        if(catBar){
+          catBar.addEventListener('click', function(e){
+            var btn = e.target.closest('.cat-chip');
+            if(!btn) return;
+            var id = String(btn.getAttribute('data-catid'));
+            if(activeCats.has(id)){ activeCats.delete(id); btn.classList.remove('active'); btn.style.borderColor = '#444'; btn.style.background = '#1f1f1f'; }
+            else { activeCats.add(id); btn.classList.add('active'); btn.style.borderColor = '#ff7a00'; btn.style.background = '#2a2a2a'; }
+            applyFilter();
+          });
+        }
         // initial layout: ensure flex display on cards
         cards.forEach(function(c){ c.style.display='flex'; });
         applyFilter();
@@ -302,6 +333,47 @@ require_once __DIR__ . '/../../controller/NewsPublicController.php';
         renderSaved();
       })();
     </script>
+    <?php
+      $__userEmail = $_SESSION['newsletter_email'] ?? '';
+      if ($__userEmail) {
+          require_once __DIR__ . '/../../model/Subscriber.php';
+          $row = Subscriber::getByEmail($__userEmail);
+          $__userSubs = [];
+          if ($row) {
+              $ids = array_filter(explode(',', $row['categories'] ?? ''), 'strlen');
+              $ids = array_map('intval', $ids);
+              $catsSrc = isset($allCategories) ? $allCategories : (isset($categories) ? $categories : []);
+              $map = [];
+              foreach ($catsSrc as $c) { $map[$c['idCategorie']] = $c['nom']; }
+              foreach ($ids as $id) { $__userSubs[] = ['id' => $id, 'name' => $map[$id] ?? ('Category #' . $id)]; }
+          }
+    ?>
+    <section id="my-subs-section" style="margin:40px 0 0;">
+      <div class="subscribe-hero" id="my-subs">
+        <div class="subscribe-header"><i class="fas fa-bookmark"></i><div class="subscribe-title">Your Subscriptions</div></div>
+        <div class="subscribe-desc">Subscribed as <?php echo htmlspecialchars($__userEmail); ?>.</div>
+        <div class="selected-chips">
+          <?php if (empty($__userSubs)): ?>
+            <div class="subscribe-note">You have no categories selected.</div>
+          <?php else: foreach ($__userSubs as $s): ?>
+            <form action="/projet_web/controller/NewsletterController.php" method="POST" class="chip">
+              <input type="hidden" name="action" value="unsubscribe">
+              <input type="hidden" name="email" value="<?php echo htmlspecialchars($__userEmail); ?>">
+              <span><?php echo htmlspecialchars($s['name']); ?></span>
+              <button type="submit" class="chip-close" name="category_id" value="<?php echo $s['id']; ?>" title="Remove">&times;</button>
+            </form>
+          <?php endforeach; endif; ?>
+        </div>
+        <?php if (!empty($__userSubs)): ?>
+        <form action="/projet_web/controller/NewsletterController.php" method="POST" style="margin-top:8px; text-align:right;">
+          <input type="hidden" name="action" value="unsubscribe_all">
+          <input type="hidden" name="email" value="<?php echo htmlspecialchars($__userEmail); ?>">
+          <button type="submit" class="cat-action">Clear all</button>
+        </form>
+        <?php endif; ?>
+      </div>
+    </section>
+    <?php } ?>
     </div>
   </main>
 
@@ -371,53 +443,60 @@ require_once __DIR__ . '/../../controller/NewsPublicController.php';
     
     /* Premium Subscribe Box - Top Right */
     .subscribe-hero {
-        background: linear-gradient(135deg, rgba(30,30,30,0.8), rgba(20,20,20,0.9));
+        background: linear-gradient(135deg, rgba(20,20,20,0.85), rgba(10,10,10,0.95));
         backdrop-filter: blur(10px);
-        border: 1px solid rgba(255,120,0,0.2);
-        border-radius: 12px;
+        border: 1px solid rgba(255,153,0,0.25);
+        border-radius: 14px;
         padding: 20px;
-        max-width: 400px;
+        max-width: 420px;
         width: 100%;
         box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         z-index: 10;
-        transition: transform 0.3s ease;
+        transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     }
     .subscribe-hero:hover {
         transform: translateY(-2px);
-        border-color: rgba(255,120,0,0.4);
+        border-color: rgba(255,153,0,0.45);
+        box-shadow: 0 12px 40px rgba(255,153,0,0.08), 0 10px 30px rgba(0,0,0,0.4);
     }
-    .subscribe-hero h3 {
-        margin: 0 0 8px 0;
-        color: #f90;
-        font-family: Orbitron, sans-serif;
-        font-size: 1.1rem;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .subscribe-hero h3 i { font-size: 0.9em; }
-    .subscribe-hero form { display: flex; flex-direction: column; gap: 10px; }
+    .subscribe-header { display:flex; align-items:center; gap:10px; color:#ff9900; }
+    .subscribe-header i { font-size:1rem; }
+    .subscribe-title { font-family: Orbitron, sans-serif; font-size:1.05rem; }
+    .subscribe-desc { color:#bbb; font-size:0.9rem; margin:6px 0 10px; }
+    .subscribe-form { display:flex; flex-direction:column; gap:12px; }
+    .alert { border-radius:8px; padding:8px 10px; font-size:0.85rem; }
+    .alert-success { background:#0f0a; color:#eaffea; border:1px solid #2b7a2b; }
+    .alert-error { background:#f00a; color:#ffeaea; border:1px solid #7a2b2b; }
     .hero-input {
         background: rgba(0,0,0,0.4);
         border: 1px solid #444;
         color: #fff;
         padding: 8px 12px;
-        border-radius: 6px;
+        border-radius: 8px;
         font-size: 0.9rem;
         outline: none;
         transition: border-color 0.3s;
     }
     .hero-input:focus { border-color: #f90; }
-    .hero-cat-btn {
-        background: #2a2a2a; border: 1px solid #444; color: #ccc;
-        padding: 8px; border-radius: 6px; cursor: pointer; text-align: left;
-        font-size: 0.85rem; display: flex; justify-content: space-between;
-    }
-    .cat-dropdown-content {
-        display: none; background: #222; border: 1px solid #444;
-        max-height: 150px; overflow-y: auto; padding: 5px;
-        margin-top: 5px; border-radius: 6px;
-    }
+    .cat-select { position:relative; }
+    .hero-cat-btn { background:#1f1f1f; border:1px solid #444; color:#ddd; padding:10px; border-radius:8px; cursor:pointer; text-align:left; font-size:0.9rem; display:flex; align-items:center; gap:10px; justify-content:space-between; width:100%; }
+    .hero-cat-btn i { transition: transform 0.25s ease; }
+    .hero-cat-btn.open i { transform: rotate(180deg); }
+    .badge { background:#ff9900; color:#000; font-weight:600; font-size:0.75rem; padding:2px 8px; border-radius:999px; }
+    .cat-dropdown-content { display:none; background:#1b1b1b; border:1px solid #444; max-height:240px; overflow-y:auto; padding:8px; margin-top:6px; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.35); }
+    .cat-dropdown-content.show { display:block; }
+    .cat-search { width:100%; background:#111; border:1px solid #333; color:#eee; padding:8px 10px; border-radius:6px; margin-bottom:8px; font-size:0.85rem; }
+    .cat-actions { display:flex; gap:8px; margin-bottom:8px; }
+    .cat-action { background:#2a2a2a; border:1px solid #444; color:#ccc; padding:6px 10px; border-radius:6px; font-size:0.8rem; cursor:pointer; }
+    .cat-list { display:grid; grid-template-columns:1fr; gap:6px; }
+    .cat-item { display:flex; align-items:center; gap:8px; color:#ddd; font-size:0.9rem; }
+    .selected-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+    .chip { display:flex; align-items:center; gap:6px; background:#262626; border:1px solid #444; color:#ddd; padding:6px 10px; border-radius:999px; font-size:0.8rem; }
+    .chip .chip-close { background:transparent; border:0; color:#aaa; cursor:pointer; font-size:0.9rem; }
+    .chip .chip-close:hover { color:#fff; }
+    .hero-submit { background:#ff9900; color:#000; border:0; border-radius:8px; padding:10px 14px; font-weight:700; cursor:pointer; transition:transform 0.2s ease, box-shadow 0.2s ease; }
+    .hero-submit:hover { transform: translateY(-1px); box-shadow: 0 10px 20px rgba(255,153,0,0.15); }
+    .subscribe-note { color:#888; font-size:0.8rem; text-align:center; }
     .cat-dropdown-content.show { display: block; }
     .cat-dropdown-content label { display: block; padding: 4px; color: #ddd; font-size: 0.85rem; cursor: pointer; }
     .cat-dropdown-content label:hover { background: #333; }
@@ -522,4 +601,78 @@ require_once __DIR__ . '/../../controller/NewsPublicController.php';
         .news-grid{grid-template-columns:1fr;}
     }
   </style>
+<script>
+(function(){
+  var toggle = document.getElementById('cat-toggle');
+  var dropdown = document.getElementById('cat-dropdown');
+  var search = document.getElementById('cat-search');
+  var countEl = document.getElementById('cat-count');
+  var chips = document.getElementById('selected-chips');
+  var selectAllBtn = document.getElementById('cat-select-all');
+  var clearBtn = document.getElementById('cat-clear');
+
+  function updateCount(){
+    var checked = dropdown.querySelectorAll('input[type="checkbox"]:checked');
+    countEl.textContent = checked.length;
+  }
+
+  function rebuildChips(){
+    chips.innerHTML = '';
+    var checked = dropdown.querySelectorAll('input[type="checkbox"]:checked');
+    checked.forEach(function(cb){
+      var name = cb.getAttribute('data-name') || cb.nextElementSibling && cb.nextElementSibling.textContent || 'Selected';
+      var chip = document.createElement('span');
+      chip.className = 'chip';
+      var label = document.createElement('span');
+      label.textContent = name;
+      var close = document.createElement('button');
+      close.className = 'chip-close';
+      close.type = 'button';
+      close.innerHTML = '&times;';
+      close.addEventListener('click', function(){ cb.checked = false; updateCount(); rebuildChips(); });
+      chip.appendChild(label);
+      chip.appendChild(close);
+      chips.appendChild(chip);
+    });
+  }
+
+  function filterCats(){
+    var q = (search.value || '').toLowerCase();
+    dropdown.querySelectorAll('.cat-item').forEach(function(item){
+      var t = item.textContent.toLowerCase();
+      item.style.display = t.indexOf(q) !== -1 ? '' : 'none';
+    });
+  }
+
+  if(toggle){
+    toggle.addEventListener('click', function(){ dropdown.classList.toggle('show'); this.classList.toggle('open'); });
+  }
+  if(search){ search.addEventListener('input', filterCats); }
+
+  dropdown.querySelectorAll('input[type="checkbox"]').forEach(function(cb){
+    cb.addEventListener('change', function(){ updateCount(); rebuildChips(); });
+  });
+
+  if(selectAllBtn){
+    selectAllBtn.addEventListener('click', function(){
+      dropdown.querySelectorAll('.cat-item').forEach(function(item){
+        if(item.style.display !== 'none'){
+          var cb = item.querySelector('input[type="checkbox"]');
+          if(cb) cb.checked = true;
+        }
+      });
+      updateCount(); rebuildChips();
+    });
+  }
+
+  if(clearBtn){
+    clearBtn.addEventListener('click', function(){
+      dropdown.querySelectorAll('input[type="checkbox"]').forEach(function(cb){ cb.checked = false; });
+      updateCount(); rebuildChips();
+    });
+  }
+
+  updateCount(); rebuildChips();
+})();
+</script>
 </html>

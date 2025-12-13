@@ -1,2 +1,8 @@
-[2025-12-10 17:34:02] FAILED (Check PHP mail setup) TO: rayenkabar780@gmail.com | SUB: Welcome to FoxUnity News! (Welcome)
-[2025-12-10 18:38:24] FAILED (Check PHP mail setup) TO: rayenkabar780@gmail.com | SUB: Welcome to FoxUnity News! (Welcome)
+[2025-12-13 12:38:41] SENT TO: yassinebenmustapha05@gmail.com | SUB: Welcome to FoxUnity News! | TYPE: Welcome
+[2025-12-13 12:40:40] SENT TO: rayenkabar780@gmail.com | SUB: 🔥 Hot News: aaa | TYPE: Article Notification
+[2025-12-13 12:40:41] SENT TO: marwakb4@gmail.com | SUB: 🔥 Hot News: aaa | TYPE: Article Notification
+[2025-12-13 12:40:43] SENT TO: yassinebenmustapha05@gmail.com | SUB: 🔥 Hot News: aaa | TYPE: Article Notification
+[2025-12-13 14:26:01] SENT TO: rayenkabar780@gmail.com | SUB: Welcome to FoxUnity News! | TYPE: Welcome
+[2025-12-13 16:00:05] FAILED TO: rayenkabar780@gmail.com | SUB: Welcome to FoxUnity News! | TYPE: Welcome
+[2025-12-13 16:00:29] FAILED TO: rayenkabar780@gmail.com | SUB: Welcome to FoxUnity News! | TYPE: Welcome
+[2025-12-13 16:02:33] SENT TO: rayenkabar780@gmail.com | SUB: Welcome to FoxUnity News! | TYPE: Welcome

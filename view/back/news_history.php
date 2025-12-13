@@ -2,20 +2,18 @@
 // News History page - Dedicated page for viewing article edit history
 // Usage: Access via dashboard sidebar "News History" link
 
-require __DIR__ . '/db.php';
-require_once __DIR__ . '/../../model/ArticleRepository.php';
-
-$articleRepository = new ArticleRepository($pdo);
+require_once __DIR__ . '/../../model/db.php';
+require_once __DIR__ . '/../../model/Article.php';
 
 // Load categories for display names
 $catStmt = $pdo->query("SELECT idCategorie, nom, description FROM categorie ORDER BY nom");
 $categories = $catStmt->fetchAll();
 
 // Get all articles with their history
-$articles = $articleRepository->getAll();
+$articles = Article::getAll();
 $historyData = [];
 foreach ($articles as $article) {
-  $history = $articleRepository->getHistoryByArticleId($article['idArticle']);
+  $history = Article::getHistoryByArticleId($article['idArticle']);
   if (!empty($history)) {
     $historyData[$article['idArticle']] = [
       'article' => $article,
@@ -49,7 +47,7 @@ foreach ($articles as $article) {
     <a href="news_admin.php">News</a>
     <a href="news_history.php" class="active">News History</a>
     <a href="#">Support</a>
-    <a href="../front/indexf.php">← Return Homepage</a>
+    <a href="../front/index.php">← Return Homepage</a>
   </div>
 
   <div class="main">

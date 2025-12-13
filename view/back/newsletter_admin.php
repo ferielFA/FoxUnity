@@ -1,13 +1,16 @@
 <?php
 require_once __DIR__ . '/../../model/db.php';
-require_once __DIR__ . '/../../model/SubscriberRepository.php';
-require_once __DIR__ . '/../../model/NotificationService.php';
+require_once __DIR__ . '/../../model/Subscriber.php';
+require_once __DIR__ . '/../../model/Categorie.php';
 
-$subRepo = new SubscriberRepository($pdo);
-$notifService = new NotificationService($pdo);
-
-$subscribers = $subRepo->getAll();
-$logs = $notifService->getLogs();
+$subscribers = Subscriber::getAll();
+$categories = Categorie::getAll();
+$catMap = [];
+foreach ($categories as $c) {
+    if (is_array($c) && isset($c['idCategorie'])) {
+        $catMap[$c['idCategorie']] = $c['nom'];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -19,11 +22,10 @@ $logs = $notifService->getLogs();
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap" rel="stylesheet">
   <style>
       .admin-panel { padding: 2rem; color: #fff; }
-      .table-container { margin-top: 2rem; background: rgba(0,0,0,0.5); padding: 1rem; border-radius: 8px; }
+      .table-container { margin-top: 2 rem; background: rgba(0,0,0,0.5); padding: 1rem; border-radius: 8px; }
       table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
       th, td { padding: 12px; text-align: left; border-bottom: 1px solid #444; }
       th { color: #ff9900; }
-      .log-container { background: #111; padding: 1rem; border-radius: 8px; font-family: monospace; height: 300px; overflow-y: scroll; margin-top: 2rem; white-space: pre-wrap; color: #0f0; }
   </style>
 </head>
 <body class="dashboard-body">
@@ -33,7 +35,7 @@ $logs = $notifService->getLogs();
     <a href="dashboard.php">Overview</a>
     <a href="news_admin.php">News</a>
     <a href="newsletter_admin.php" class="active">Newsletter</a>
-    <a href="../front/indexf.php">Return Homepage</a>
+    <a href="../front/index.php">Return Homepage</a>
   </div>
 
   <div class="main">
@@ -65,7 +67,12 @@ $logs = $notifService->getLogs();
                         <tr>
                             <td><?php echo $s['id']; ?></td>
                             <td><?php echo htmlspecialchars($s['email']); ?></td>
-                            <td><?php echo htmlspecialchars($s['categories']); ?></td>
+                            <td><?php 
+                                $sIds = array_filter(explode(',', $s['categories'] ?? ''));
+                                $sNames = [];
+                                foreach($sIds as $sid) { if(isset($catMap[$sid])) $sNames[] = $catMap[$sid]; }
+                                echo htmlspecialchars(empty($sNames) ? '-' : implode(', ', $sNames));
+                            ?></td>
                             <td><?php echo $s['created_at']; ?></td>
                         </tr>
                         <?php endforeach; ?>
@@ -77,13 +84,7 @@ $logs = $notifService->getLogs();
             </div>
         </div>
 
-        <div class="card" style="margin-top:20px;">
-            <h3>Notification Logs</h3>
-            <p>Simulated emails sent when HOT articles are published.</p>
-            <div class="log-container">
-<?php echo htmlspecialchars($logs); ?>
-            </div>
-        </div>
+        
     </div>
   </div>
 </body>

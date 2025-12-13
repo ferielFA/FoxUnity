@@ -46,7 +46,7 @@ $isAdmin = false;
     </div>
     
     <nav class="site-nav">
-      <a href="http://localhost/projet_web/view/front/indexf.php">Home</a>
+      <a href="http://localhost/projet_web/view/front/index.php">Home</a>
       <a href="../front/events.html">Events</a>
       <a href="../front/shop.html">Shop</a>
       <a href="../front/trading.html">Trading</a>
@@ -121,8 +121,10 @@ $isAdmin = false;
           <?php if ($a['hot']): ?>
             <span style="color: #ff7a00;">🔥 Hot News</span>
           <?php endif; ?>
+          
         </div>
       </div>
+
 
       <div class="article-image">
         <img src="<?php echo htmlspecialchars(getImagePath($a['image'] ?? '')); ?>" alt="<?php echo htmlspecialchars($a['title'] ?? ''); ?>" onerror="this.src='../images/nopic.png'">
@@ -156,7 +158,30 @@ $isAdmin = false;
       
       <!-- Comments -->
       <div id="comments" class="comments-section" style="max-width:900px;margin:0 auto 60px;padding:0 40px">
-        <h3 style="color:#fff;margin-bottom:12px">Comments (<?php echo count($comments); ?>)</h3>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <h3 style="color:#fff;margin:0">Comments (<?php echo count($comments); ?>)</h3>
+          <?php if(isset($a['verdict']) && $a['verdict'] !== 'Neutral'): ?>
+            <span style="background:<?php echo $a['verdict'] === 'Mostly Positive' ? 'rgba(40,167,69,0.2)' : ($a['verdict'] === 'Mostly Negative' ? 'rgba(220,53,69,0.2)' : 'rgba(255,193,7,0.2)'); ?>; color:<?php echo $a['verdict'] === 'Mostly Positive' ? '#28a745' : ($a['verdict'] === 'Mostly Negative' ? '#dc3545' : '#ffc107'); ?>; padding:4px 10px; border-radius:20px; font-weight:600; font-size:0.9rem;">
+              Community Verdict: <?php echo htmlspecialchars($a['verdict']); ?>
+            </span>
+          <?php endif; ?>
+        </div>
+
+        <form class="comment-form" method="post" action="news_article.php?id=<?php echo urlencode($slug); ?>#comments" style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid #333">
+          <div class="star-rating-container" style="margin-top:0">
+             <span style="color:#bbb;margin-right:10px">Rate this article:</span>
+             <div class="star-rating">
+               <input type="radio" id="star5" name="rating" value="5" /><label for="star5" title="5 stars"></label>
+               <input type="radio" id="star4" name="rating" value="4" /><label for="star4" title="4 stars"></label>
+               <input type="radio" id="star3" name="rating" value="3" /><label for="star3" title="3 stars"></label>
+               <input type="radio" id="star2" name="rating" value="2" /><label for="star2" title="2 stars"></label>
+               <input type="radio" id="star1" name="rating" value="1" /><label for="star1" title="1 star"></label>
+             </div>
+          </div>
+          <input type="text" name="name" placeholder="Your name" style="width:100%;padding:8px;margin:6px 0;border-radius:4px;border:1px solid #333;background:#0b0b0b;color:#fff">
+          <textarea name="comment" rows="4" placeholder="Your comment" style="width:100%;padding:8px;margin:6px 0;border-radius:4px;border:1px solid #333;background:#0b0b0b;color:#fff"></textarea>
+          <button type="submit" name="comment_submit" style="background:#ff9900;color:#000;padding:8px 12px;border-radius:6px;border:0;cursor:pointer;font-weight:600">Post Comment</button>
+        </form>
 
         <?php if (!empty($errors)): ?>
           <div style="color:#ffd6d6;background:#2b0b0b;padding:10px;border-radius:6px;margin-bottom:12px">
@@ -169,20 +194,28 @@ $isAdmin = false;
         <?php else: ?>
           <?php foreach ($comments as $c): ?>
             <div class="comment" style="background:#111;padding:12px;border-radius:8px;margin-bottom:10px">
-              <div class="comment-meta" style="font-weight:700;color:#fff">
+              <div class="comment-header" style="display:flex;justify-content:space-between;align-items:center">
+                <div class="comment-meta" style="font-weight:700;color:#fff">
                 <?php echo htmlspecialchars($c['name']); ?>
+                <?php if(($c['sentiment'] ?? 'neutral') === 'positive'): ?>
+                  <span title="Positive Vibes" style="margin-left:8px; background:rgba(40,167,69,0.2); color:#28a745; padding:2px 6px; border-radius:4px; font-size:0.75rem;">
+                    <i class="fas fa-heart"></i> Positive Vibes
+                  </span>
+                <?php endif; ?>
                 <span class="comment-date" style="font-weight:400;color:#999;margin-left:8px;font-size:0.9rem"><?php echo htmlspecialchars($c['date']); ?></span>
+              </div>
+              <?php if (!empty($c['rating'])): ?>
+                <div style="color:#ffc107;font-size:0.9rem">
+                  <?php for($i=1; $i<=5; $i++) echo $i <= $c['rating'] ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>'; ?>
+                </div>
+              <?php endif; ?>
               </div>
               <div class="comment-text" style="margin-top:8px;color:#ddd"><?php echo nl2br(htmlspecialchars($c['text'])); ?></div>
             </div>
           <?php endforeach; ?>
         <?php endif; ?>
 
-        <form class="comment-form" method="post" action="news_article.php?id=<?php echo urlencode($slug); ?>#comments" style="margin-top:12px">
-          <input type="text" name="name" placeholder="Your name" style="width:100%;padding:8px;margin:6px 0;border-radius:4px;border:1px solid #333;background:#0b0b0b;color:#fff">
-          <textarea name="comment" rows="4" placeholder="Your comment" style="width:100%;padding:8px;margin:6px 0;border-radius:4px;border:1px solid #333;background:#0b0b0b;color:#fff"></textarea>
-          <button type="submit" name="comment_submit" style="background:#ff7a00;color:#000;padding:8px 12px;border-radius:6px;border:0;cursor:pointer">Post Comment</button>
-        </form>
+
       </div>
   <?php if ($isAdmin): ?>
   <script>
@@ -260,6 +293,7 @@ $isAdmin = false;
       });
     })();
   </script>
+
   <?php endif; ?>
 
   <script>
@@ -465,6 +499,7 @@ $isAdmin = false;
       overflow-x: auto;
       margin: 20px 0;
     }
+    .summary-btn:hover { box-shadow: 0 8px 20px rgba(255,153,0,0.2); transform: translateY(-1px); }
     .back-to-news {
       display: inline-block;
       color: var(--accent);
@@ -491,6 +526,42 @@ $isAdmin = false;
       .article-content {
         font-size: 1rem;
       }
+    }
+    
+    /* Star Rating CSS */
+    .star-rating-container {
+      display: flex;
+      align-items: center;
+      margin: 10px 0;
+      background: rgba(255,255,255,0.05);
+      padding: 10px 15px;
+      border-radius: 8px;
+    }
+    .star-rating {
+      display: flex;
+      flex-direction: row-reverse;
+      gap: 5px;
+    }
+    .star-rating input {
+      display: none;
+    }
+    .star-rating label {
+      cursor: pointer;
+      font-size: 1.4rem;
+      color: #444;
+      transition: all 0.2s ease;
+    }
+    .star-rating label:before {
+      content: '\f005';
+      font-family: 'Font Awesome 5 Free';
+      font-weight: 900;
+    }
+    .star-rating input:checked ~ label,
+    .star-rating label:hover,
+    .star-rating label:hover ~ label {
+      color: #ffc107;
+      text-shadow: 0 0 15px rgba(255,193,7,0.6);
+      transform: scale(1.1);
     }
   </style>
 </body>

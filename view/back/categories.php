@@ -1,6 +1,6 @@
 <?php
 // Categories management page (admin view)
-require __DIR__ . '/db.php';
+require_once __DIR__ . '/../../model/db.php';
 require_once __DIR__ . '/../../controller/CategoryController.php';
 ?>
 <!doctype html>
@@ -33,7 +33,7 @@ require_once __DIR__ . '/../../controller/CategoryController.php';
     <a href="news_history.php">News History</a>
     <a href="categories.php" class="active">Categories</a>
     <a href="#">Support</a>
-    <a href="../front/indexf.php">← Return Homepage</a>
+    <a href="../front/index.php">← Return Homepage</a>
   </div>
 
   <div class="main">
