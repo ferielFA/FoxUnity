@@ -68,10 +68,14 @@ $currentUser = $viewData['currentUser'];
 // Split history into standard actions and refused negotiations
 $standardHistory = [];
 $refusedHistory = [];
+$acceptedHistory = [];
 
 foreach ($tradeHistoryFull as $item) {
     if ($item['action'] === 'negotiation_refused') {
         $refusedHistory[] = $item;
+    } elseif ($item['action'] === 'trade') {
+        $acceptedHistory[] = $item;
+        $standardHistory[] = $item;
     } else {
         $standardHistory[] = $item;
     }
@@ -90,9 +94,13 @@ $tradeHistory = $viewData['tradeHistory'];
 $tradeHistoryFull = $viewData['tradeHistory'];
 $standardHistory = [];
 $refusedHistory = [];
+$acceptedHistory = [];
 foreach ($tradeHistoryFull as $item) {
     if ($item['action'] === 'negotiation_refused') {
         $refusedHistory[] = $item;
+    } elseif ($item['action'] === 'trade') {
+        $acceptedHistory[] = $item;
+        $standardHistory[] = $item;
     } else {
         $standardHistory[] = $item;
     }
@@ -557,7 +565,7 @@ $currentUser = $viewData['currentUser'];
       <a href="trading.php" class="active">Trading</a>
       <a href="news.html">News</a>
       <a href="reclamation.html">Support</a>
-      <a href="about.html">About Us</a>
+      <a href="about.php">About Us</a>
     </nav>
 
     <div class="header-right">
@@ -683,11 +691,7 @@ $currentUser = $viewData['currentUser'];
               <button class="edit-btn" onclick="openEditModal(<?= $row['skin_id'] ?>, '<?= htmlspecialchars(addslashes($row['name'])) ?>', <?= $row['price'] ?>, '<?= htmlspecialchars($category) ?>', '<?= htmlspecialchars(addslashes($description)) ?>')">
                 <i class="fas fa-edit"></i> Edit
               </button>
-              <form method="POST" action="trading.php" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this trade?')">
-                <input type="hidden" name="skinId" value="<?= $row['skin_id'] ?>">
-                <input type="hidden" name="delete_trade" value="1">
-                <button type="submit" class="delete-btn"><i class="fas fa-trash"></i> Delete</button>
-              </form>
+              <button class="delete-btn" onclick="deleteTrade(<?= $row['skin_id'] ?>)"><i class="fas fa-trash"></i> Delete</button>
             </div>
 
             <a href="description.php?id=<?= $row['skin_id'] ?>" class="desc-btn" style="text-decoration: none; display: inline-block; text-align: center;"><i class="fas fa-info-circle"></i> Description</a>
@@ -755,6 +759,51 @@ $currentUser = $viewData['currentUser'];
                 <td>$<?= number_format((float)$history['skin_price'], 2) ?></td>
                 <td><?= htmlspecialchars(ucfirst($history['skin_category'])) ?></td>
                 <td></td>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      <?php endif; ?>
+    </section>
+
+    <!-- ACCEPTED NEGOTIATIONS SECTION -->
+    <section class="trade-history-section" style="border-color: #2ed573; background: rgba(46, 213, 115, 0.05); margin-top: 20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <div>
+           <h2 class="section-title" style="margin-bottom:5px;"><span style="color:#2ed573;">Accepted Negotiations</span></h2>
+           <p style="color:#ccc; margin:0;">Chats for offers that were accepted</p>
+        </div>
+      </div>
+
+      <?php if (count($acceptedHistory) === 0): ?>
+        <div class="no-history">
+          <p>No accepted negotiations found.</p>
+        </div>
+      <?php else: ?>
+        <div class="table-container">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th style="background: rgba(46, 213, 115, 0.2);">Date & Time</th>
+                <th style="background: rgba(46, 213, 115, 0.2);">Status</th>
+                <th style="background: rgba(46, 213, 115, 0.2);">Skin Name</th>
+                <th style="background: rgba(46, 213, 115, 0.2);">Price</th>
+                <th style="background: rgba(46, 213, 115, 0.2);">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($acceptedHistory as $history): ?>
+              <tr class="history-row">
+                <td><?= date('M j, Y g:i A', strtotime($history['created_at'])) ?></td>
+                <td><span class="action-badge action-bought">Accepted</span></td>
+                <td><?= htmlspecialchars($history['skin_name']) ?></td>
+                <td>$<?= number_format((float)$history['skin_price'], 2) ?></td>
+                <td>
+                    <button class="desc-btn" onclick="viewArchivedChat(<?= $history['skin_id'] ?>, '<?= isset($history['negotiation_id']) ? htmlspecialchars($history['negotiation_id']) : '' ?>')" style="padding:6px 12px; font-size:12px; background: #2ed573; color: #000; border: 1px solid #2ed573;">
+                        <i class="fas fa-comments"></i> View Chat
+                    </button>
+                </td>
               </tr>
               <?php endforeach; ?>
             </tbody>
@@ -1012,25 +1061,54 @@ $currentUser = $viewData['currentUser'];
     function confirmClearHistory(type) {
         const typeName = type === 'standard' ? 'trade activities' : (type === 'negotiations' ? 'archived negotiations' : 'history');
         if (confirm(`Are you sure you want to clear your ${typeName}? This action cannot be undone.`)) {
-          // Create a form and submit
-          const form = document.createElement('form');
-          form.method = 'POST';
-          form.action = 'tradehis.php';
+          const formData = new FormData();
+          formData.append('clear_history', '1');
+          formData.append('clear_type', type);
+          formData.append('active_user_check', currentLoggedInUser);
           
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = 'clear_history';
-          input.value = '1';
-          form.appendChild(input);
+          fetch('tradehis.php', {
+            method: 'POST',
+            body: formData
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              location.reload();
+            } else {
+              alert('Error: ' + (data.error || 'Failed to clear history'));
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to clear history');
+          });
+        }
+    }
 
-          const typeInput = document.createElement('input');
-          typeInput.type = 'hidden';
-          typeInput.name = 'clear_type';
-          typeInput.value = type;
-          form.appendChild(typeInput);
+    // Delete trade functionality
+    function deleteTrade(skinId) {
+        if (confirm('Are you sure you want to delete this trade?')) {
+          const formData = new FormData();
+          formData.append('delete_trade', '1');
+          formData.append('skinId', skinId);
+          formData.append('active_user_check', currentLoggedInUser);
           
-          document.body.appendChild(form);
-          form.submit();
+          fetch('trading.php', {
+            method: 'POST',
+            body: formData
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              location.reload();
+            } else {
+              alert('Error: ' + (data.error || 'Failed to delete trade'));
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to delete trade');
+          });
         }
     }
 

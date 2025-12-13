@@ -440,7 +440,7 @@ if ($currentUser && $currentUser->getImage()) {
             <a href="trading.php">Trading</a>
             <a href="news.html">News</a>
             <a href="reclamation.html">Support</a>
-            <a href="about.html">About Us</a>
+      <a href="about.php">About Us</a>
         </nav>
         
         <div class="header-right">

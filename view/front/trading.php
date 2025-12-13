@@ -366,6 +366,179 @@ $currentUser = $viewData['currentUser'];
         background: rgba(255, 68, 68, 0.1);
         border-left-color: #ff4444;
     }
+
+    /* Custom Confirmation Modal Styles */
+    .confirm-modal {
+        position: fixed;
+        inset: 0;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 10001;
+        animation: fadeIn 0.2s ease;
+    }
+    .confirm-modal.active {
+        display: flex;
+    }
+    .confirm-modal-content {
+        background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+        border-radius: 16px;
+        padding: 32px;
+        width: 90%;
+        max-width: 450px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+        border: 1px solid rgba(255, 122, 0, 0.2);
+        animation: slideUp 0.3s ease;
+        text-align: center;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    @keyframes slideUp {
+        from { transform: translateY(30px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    .confirm-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 20px;
+        background: rgba(255, 122, 0, 0.1);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 3px solid rgba(255, 122, 0, 0.3);
+    }
+    .confirm-icon i {
+        font-size: 40px;
+        color: #ff7a00;
+    }
+    .confirm-title {
+        color: #fff;
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0 0 16px 0;
+    }
+    .confirm-message {
+        color: #ccc;
+        font-size: 16px;
+        margin: 0 0 8px 0;
+        line-height: 1.5;
+    }
+    .confirm-submessage {
+        color: #888;
+        font-size: 14px;
+        margin: 0 0 28px 0;
+        line-height: 1.4;
+    }
+    .confirm-buttons {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+    }
+    .confirm-btn {
+        padding: 12px 28px;
+        border: none;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .cancel-btn {
+        background: #333;
+        color: #fff;
+    }
+    .cancel-btn:hover {
+        background: #444;
+        transform: translateY(-2px);
+    }
+    .confirm-btn-action {
+        background: linear-gradient(135deg, #ff7a00, #ff4f00);
+        color: #fff;
+    }
+    .confirm-btn-action:hover {
+        background: linear-gradient(135deg, #ff9000, #ff6a00);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(255, 122, 0, 0.4);
+    }
+
+    /* Custom Success Modal Styles */
+    .success-modal {
+        position: fixed;
+        inset: 0;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 10002;
+        animation: fadeIn 0.2s ease;
+    }
+    .success-modal.active {
+        display: flex;
+    }
+    .success-modal-content {
+        background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+        border-radius: 16px;
+        padding: 32px;
+        width: 90%;
+        max-width: 400px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+        border: 1px solid rgba(46, 213, 115, 0.3);
+        animation: slideUp 0.3s ease;
+        text-align: center;
+    }
+    .success-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 20px;
+        background: rgba(46, 213, 115, 0.1);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 3px solid rgba(46, 213, 115, 0.3);
+    }
+    .success-icon i {
+        font-size: 40px;
+        color: #2ed573;
+    }
+    .success-title {
+        color: #fff;
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0 0 16px 0;
+    }
+    .success-message {
+        color: #ccc;
+        font-size: 16px;
+        margin: 0 0 28px 0;
+        line-height: 1.5;
+    }
+    .success-btn {
+        padding: 12px 32px;
+        border: none;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: linear-gradient(135deg, #2ed573, #1abc9c);
+        color: #fff;
+    }
+    .success-btn:hover {
+        background: linear-gradient(135deg, #3ee583, #20d6ac);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(46, 213, 115, 0.4);
+    }
   </style>
 </head>
 <body>
@@ -390,7 +563,7 @@ $currentUser = $viewData['currentUser'];
       <a href="trading.php" class="active">Trading</a>
       <a href="news.html">News</a>
       <a href="reclamation.html">Support</a>
-      <a href="about.html">About Us</a>
+      <a href="about.php">About Us</a>
     </nav>
 
     <div class="header-right">
@@ -635,6 +808,9 @@ $currentUser = $viewData['currentUser'];
           <p style="color: #888; font-size: 14px; margin: 0;">With: <span id="sellerName"></span></p>
         </div>
         <div style="display:flex; gap:10px; align-items:center;">
+          <button id="acceptOfferBtn" style="display:none; background: #2ed573; color: black; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold;">
+            <i class="fas fa-check-circle"></i> Accept Offer
+          </button>
           <button id="refuseOfferBtn" style="display:none; background: #ff4757; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold;">
             <i class="fas fa-times-circle"></i> Refuse Offer
           </button>
@@ -652,6 +828,43 @@ $currentUser = $viewData['currentUser'];
         <button id="attachImageBtn" title="Attach image"><i class="fas fa-image"></i></button>
         <button id="sendDiscussionBtn">Send</button>
       </div>
+    </div>
+  </div>
+
+
+  <!-- CUSTOM CONFIRMATION MODAL -->
+  <div class="confirm-modal" id="refuseConfirmModal">
+    <div class="confirm-modal-content">
+      <div class="confirm-icon">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <h3 class="confirm-title">Refuse Negotiation?</h3>
+      <p class="confirm-message">Are you sure you want to refuse/cancel this negotiation?</p>
+      <p class="confirm-submessage">This will reset the conversation and unlock the skin for others.</p>
+      <div class="confirm-buttons">
+        <button class="confirm-btn cancel-btn" id="cancelRefuseBtn">
+          <i class="fas fa-times"></i> Cancel
+        </button>
+        <button class="confirm-btn confirm-btn-action" id="confirmRefuseBtn">
+          <i class="fas fa-check"></i> Yes, Refuse
+        </button>
+      </div>
+    </div>
+  </div>
+
+  </div>
+
+  <!-- CUSTOM SUCCESS MODAL -->
+  <div class="success-modal" id="successModal">
+    <div class="success-modal-content">
+      <div class="success-icon">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <h3 class="success-title">Success!</h3>
+      <p class="success-message" id="successMessage">Negotiation refused/cancelled. Skin is now unlocked.</p>
+      <button class="success-btn" id="successOkBtn">
+        <i class="fas fa-check"></i> OK
+      </button>
     </div>
   </div>
 
@@ -816,6 +1029,37 @@ $currentUser = $viewData['currentUser'];
       });
     });
 
+    // Handle add trade form submission with AJAX
+    document.getElementById('tradeForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(this);
+      
+      fetch('trading.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Close modal
+          document.getElementById('tradeModal').classList.remove('active');
+          
+          // Reset form
+          document.getElementById('tradeForm').reset();
+          
+          // Refresh the page to show new trade
+          location.reload();
+        } else {
+          alert('Error adding trade: ' + (data.error || 'Unknown error'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to add trade');
+      });
+    });
+
 
     let currentSkinId = null;
     let messageRefreshInterval = null;
@@ -897,13 +1141,12 @@ $currentUser = $viewData['currentUser'];
             console.log('isSeller:', data.isSeller, 'canMessage:', data.canMessage);
             updateDiscussionInputState(data.canMessage);
 
-            // Show Refuse button if there are messages and user is seller
+            // Show Accept/Refuse buttons if there are messages and user is seller
             const refuseBtn = document.getElementById('refuseOfferBtn');
-            if (data.messages && data.messages.length > 0 && data.isSeller) {
-                refuseBtn.style.display = 'block';
-            } else {
-                refuseBtn.style.display = 'none';
-            }
+            const acceptBtn = document.getElementById('acceptOfferBtn');
+            const showActionButtons = (data.messages && data.messages.length > 0 && data.isSeller);
+            refuseBtn.style.display = showActionButtons ? 'block' : 'none';
+            acceptBtn.style.display = showActionButtons ? 'block' : 'none';
 
           } else {
             showChatError(data.error || 'Failed to load messages');
@@ -923,9 +1166,21 @@ $currentUser = $viewData['currentUser'];
     // Handle Refuse Offer Logic
     function handleRefuseOffer() {
         if (!currentSkinId) return;
-        if (!confirm('Are you sure you want to refuse/cancel this negotiation? This will reset the conversation and unlock the skin for others.')) {
-            return;
-        }
+        
+        // Show custom confirmation modal
+        document.getElementById('refuseConfirmModal').classList.add('active');
+    }
+
+    // Custom modal event listeners
+    document.getElementById('cancelRefuseBtn').addEventListener('click', () => {
+        document.getElementById('refuseConfirmModal').classList.remove('active');
+    });
+
+    document.getElementById('confirmRefuseBtn').addEventListener('click', () => {
+        // Hide the modal
+        document.getElementById('refuseConfirmModal').classList.remove('active');
+        
+        if (!currentSkinId) return;
 
         const formData = new FormData();
         formData.append('refuse_offer', '1');
@@ -939,20 +1194,74 @@ $currentUser = $viewData['currentUser'];
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('Negotiation refused/cancelled. Skin is now unlocked.');
+                // Close discussion modal
                 document.getElementById('discussionModal').classList.remove('active');
-                location.reload();
+                
+                // Show custom success modal
+                document.getElementById('successMessage').textContent = 'Negotiation refused/cancelled. Skin is now unlocked.';
+                document.getElementById('successModal').classList.add('active');
             } else {
                 alert('Error: ' + (data.error || 'Failed to refuse offer'));
             }
         })
         .catch(error => {
-            console.error('Error reusing offer:', error);
+            console.error('Error refusing offer:', error);
             alert('Failed to refuse offer');
+        });
+    });
+
+    // Success modal event listeners
+    document.getElementById('successOkBtn').addEventListener('click', () => {
+        document.getElementById('successModal').classList.remove('active');
+        location.reload();
+    });
+
+    // Close success modal when clicking outside
+    document.getElementById('successModal').addEventListener('click', (e) => {
+        if (e.target.id === 'successModal') {
+            document.getElementById('successModal').classList.remove('active');
+            location.reload();
+        }
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('refuseConfirmModal').addEventListener('click', (e) => {
+        if (e.target.id === 'refuseConfirmModal') {
+            document.getElementById('refuseConfirmModal').classList.remove('active');
+        }
+    });
+
+    document.getElementById('refuseOfferBtn').addEventListener('click', handleRefuseOffer);
+
+    function handleAcceptOffer() {
+        if (!currentSkinId) return;
+
+        const formData = new FormData();
+        formData.append('accept_offer', '1');
+        formData.append('skin_id', currentSkinId);
+        formData.append('active_user_check', currentLoggedInUser);
+
+        fetch('trading.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('discussionModal').classList.remove('active');
+                document.getElementById('successMessage').textContent = 'Offer accepted. Trade completed.';
+                document.getElementById('successModal').classList.add('active');
+            } else {
+                alert('Error: ' + (data.error || 'Failed to accept offer'));
+            }
+        })
+        .catch(error => {
+            console.error('Error accepting offer:', error);
+            alert('Failed to accept offer');
         });
     }
 
-    document.getElementById('refuseOfferBtn').addEventListener('click', handleRefuseOffer);
+    document.getElementById('acceptOfferBtn').addEventListener('click', handleAcceptOffer);
     
     function updateDiscussionInputState(canMessage) {
       const discussionInput = document.getElementById('discussionInput');
