@@ -5,7 +5,7 @@
  */
 
 require_once __DIR__ . '/../../controller/CommentController.php';
-require_once __DIR__ . '/../../model/Comment.php';
+require_once __DIR__ . '/../../model/Comments.php';
 
 header('Content-Type: application/json');
 
