@@ -2,6 +2,26 @@
 require_once __DIR__ . '/../../model/db.php';
 require_once __DIR__ . '/../../model/Subscriber.php';
 require_once __DIR__ . '/../../model/Categorie.php';
+require_once __DIR__ . '/../../controller/UserController.php';
+
+// Check if user is logged in and is Admin
+if (!UserController::isLoggedIn()) {
+    header('Location: ../front/login.php');
+    exit();
+}
+
+$currentUser = UserController::getCurrentUser();
+$userRole = strtolower($currentUser ? $currentUser->getRole() : '');
+if (!$currentUser || ($userRole !== 'admin' && $userRole !== 'superadmin')) {
+    header('Location: ../front/index.php');
+    exit();
+}
+
+// Get user image
+$userImage = null;
+if ($currentUser->getImage()) {
+    $userImage = '../../view/' . $currentUser->getImage();
+}
 
 $subscribers = Subscriber::getAll();
 $categories = Categorie::getAll();
@@ -26,6 +46,120 @@ foreach ($categories as $c) {
       table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
       th, td { padding: 12px; text-align: left; border-bottom: 1px solid #444; }
       th { color: #ff9900; }
+
+    /* Admin Dropdown Styles */
+    .admin-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .admin-user {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.3s ease;
+      padding: 5px 10px;
+      border-radius: 8px;
+    }
+
+    .admin-user:hover {
+      background: rgba(255, 122, 0, 0.1);
+    }
+
+    .admin-user img {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #ff7a00;
+    }
+
+    .admin-user i.fa-user-circle {
+      font-size: 35px;
+      color: #ff7a00;
+    }
+
+    .admin-user span {
+      color: #fff;
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .admin-user i.fa-chevron-down {
+      font-size: 12px;
+      color: #ff7a00;
+      transition: transform 0.3s ease;
+    }
+
+    .admin-dropdown.active .admin-user i.fa-chevron-down {
+      transform: rotate(180deg);
+    }
+
+    .admin-dropdown-menu {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 10px;
+      background: rgba(20, 20, 20, 0.98);
+      border: 2px solid rgba(255, 122, 0, 0.3);
+      border-radius: 12px;
+      min-width: 200px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: all 0.3s ease;
+      z-index: 1000;
+      overflow: hidden;
+    }
+
+    .admin-dropdown.active .admin-dropdown-menu {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .dropdown-item {
+      padding: 12px 15px;
+      color: #fff;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.3s ease;
+      border-left: 3px solid transparent;
+    }
+
+    .dropdown-item:hover {
+      background: rgba(255, 122, 0, 0.1);
+      border-left-color: #ff7a00;
+    }
+
+    .dropdown-item i {
+      font-size: 16px;
+      color: #ff7a00;
+      width: 20px;
+    }
+
+    .dropdown-divider {
+      height: 1px;
+      background: rgba(255, 122, 0, 0.2);
+      margin: 5px 0;
+    }
+
+    .dropdown-item.logout {
+      color: #ff4444;
+    }
+
+    .dropdown-item.logout i {
+      color: #ff4444;
+    }
+
+    .dropdown-item.logout:hover {
+      background: rgba(255, 68, 68, 0.1);
+      border-left-color: #ff4444;
+    }
   </style>
 </head>
 <body class="dashboard-body">
@@ -33,17 +167,45 @@ foreach ($categories as $c) {
     <img src="../images/Nine__1_-removebg-preview.png" alt="Logo" class="dashboard-logo">
     <h2>Dashboard</h2>
     <a href="dashboard.php">Overview</a>
+    <a href="users.php">Users</a>
+    <a href="#">Shop</a>
+    <a href="tradingb.php">Trade History</a>
+    <a href="eventsb.php">Events</a>
     <a href="news_admin.php">News</a>
+    <a href="news_history.php" id="news-history-link">News History</a>
+    <a href="categories.php" id="categories-link">Categories</a>
     <a href="newsletter_admin.php" class="active">Newsletter</a>
-    <a href="../front/index.php">Return Homepage</a>
+    <a href="#">Support</a>
+    <a href="../front/index.php">← Return Homepage</a>
   </div>
 
   <div class="main">
     <div class="topbar">
       <h1>Newsletter Management</h1>
-      <div class="user">
-        <img src="../images/meriem.png" alt="Admin">
-        <span>FoxLeader</span>
+      <div class="admin-dropdown" id="adminDropdown">
+        <div class="user admin-user">
+          <?php if ($userImage): ?>
+          <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
+          <?php else: ?>
+          <i class="fas fa-user-circle"></i>
+          <?php endif; ?>
+          <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
+          <i class="fas fa-chevron-down"></i>
+        </div>
+        
+        <div class="admin-dropdown-menu">
+          <a href="admin-profile.php" class="dropdown-item">
+            <i class="fas fa-user"></i>
+            <span>My Profile</span>
+          </a>
+          
+          <div class="dropdown-divider"></div>
+          
+          <a href="../front/logout.php" class="dropdown-item logout">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+          </a>
+        </div>
       </div>
     </div>
 
@@ -77,7 +239,11 @@ foreach ($categories as $c) {
                             <td>
                                 <button class="btn-edit" 
                                     onclick='openEditModal(<?php echo json_encode($s); ?>)'>
-                                    Edit
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button class="btn-delete" 
+                                    onclick='deleteSubscriber("<?php echo htmlspecialchars($s["email"]); ?>")'>
+                                    <i class="fas fa-trash"></i> Delete
                                 </button>
                             </td>
                         </tr>
@@ -253,6 +419,31 @@ function openEditModal(subscriber) {
     }
 }
 
+function deleteSubscriber(email) {
+    if (!confirm('Are you sure you want to delete this subscriber: ' + email + '?')) {
+        return;
+    }
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '../../controller/NewsletterController.php';
+    
+    const actionInput = document.createElement('input');
+    actionInput.type = 'hidden';
+    actionInput.name = 'action';
+    actionInput.value = 'delete_subscriber';
+    form.appendChild(actionInput);
+    
+    const emailInput = document.createElement('input');
+    emailInput.type = 'hidden';
+    emailInput.name = 'email';
+    emailInput.value = email;
+    form.appendChild(emailInput);
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
 function closeEditModal() {
     document.getElementById('editModal').style.display = 'none';
 }
@@ -263,6 +454,37 @@ window.onclick = function(event) {
         closeEditModal();
     }
 }
+
+// Dropdown Menu Toggle
+document.addEventListener('DOMContentLoaded', function() {
+  const adminDropdown = document.getElementById('adminDropdown');
+  
+  if (adminDropdown) {
+    const adminUser = adminDropdown.querySelector('.admin-user');
+    
+    // Toggle dropdown on click
+    if (adminUser) {
+        adminUser.addEventListener('click', function(e) {
+          e.stopPropagation();
+          adminDropdown.classList.toggle('active');
+        });
+    }
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!adminDropdown.contains(e.target)) {
+        adminDropdown.classList.remove('active');
+      }
+    });
+    
+    // Close dropdown when pressing Escape
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        adminDropdown.classList.remove('active');
+      }
+    });
+  }
+});
 </script>
 </body>
 </html>

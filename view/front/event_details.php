@@ -809,9 +809,9 @@ $statuts = [
             <a href="events.php" class="active" data-lang-en="Events" data-lang-fr="Événements">Events</a>
             <a href="shop.html" data-lang-en="Shop" data-lang-fr="Boutique">Shop</a>
             <a href="trading.php" data-lang-en="Trading" data-lang-fr="Échange">Trading</a>
-            <a href="news.html" data-lang-en="News" data-lang-fr="Actualités">News</a>
+            <a href="news.php" data-lang-en="News" data-lang-fr="Actualités">News</a>
             <a href="reclamation.html" data-lang-en="Support" data-lang-fr="Support">Support</a>
-            <a href="about.html" data-lang-en="About Us" data-lang-fr="À Propos">About Us</a>
+            <a href="about.php" data-lang-en="About Us" data-lang-fr="À Propos">About Us</a>
         </nav>
         
         <div class="header-right">
@@ -819,7 +819,7 @@ $statuts = [
                 <i class="fas fa-language"></i>
                 <span id="currentLang">FR</span>
             </button>
-            <a href="login.html" class="login-register-link" data-lang-en="Login / Register" data-lang-fr="Connexion / S'inscrire">
+            <a href="Login.php" class="login-register-link" data-lang-en="Login / Register" data-lang-fr="Connexion / S'inscrire">
                 <i class="fas fa-user"></i> <span>Login / Register</span>
             </a>
         </div>

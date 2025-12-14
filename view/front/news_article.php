@@ -4,6 +4,19 @@
 // Uses NewsArticleController (MVC)
 
 require_once __DIR__ . '/../../controller/NewsArticleController.php';
+require_once __DIR__ . '/../../controller/UserController.php';
+
+$isLoggedIn = UserController::isLoggedIn();
+$currentUser = null;
+
+if ($isLoggedIn) {
+    $currentUser = UserController::getCurrentUser();
+}
+
+$userImage = null;
+if ($currentUser && $currentUser->getImage()) {
+    $userImage = '../../view/' . $currentUser->getImage();
+}
 
 // NewsArticleController ($__newsArticleController) already handles:
 // - 404 check
@@ -26,6 +39,402 @@ $isAdmin = false;
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 </head>
+    <style>
+        /* User Dropdown Menu Styles - LARGE PHOTO LIKE PROFILE.PHP */
+        .user-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .username-display {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            padding: 5px 10px;
+            border-radius: 8px;
+        }
+
+        .username-display:hover {
+            background: rgba(255, 122, 0, 0.1);
+        }
+
+        /* LARGE PROFILE IMAGE - 45px x 45px */
+        .username-display img {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ff7a00;
+        }
+
+        .username-display span {
+            color: #ff7a00;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .username-display i.fa-chevron-down {
+            font-size: 12px;
+            color: #ff7a00;
+            transition: transform 0.3s ease;
+        }
+
+        .username-display i.fa-user-circle {
+            font-size: 24px;
+            color: #ff7a00;
+        }
+
+        .user-dropdown.active .username-display i.fa-chevron-down {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 10px;
+            background: rgba(20, 20, 20, 0.98);
+            border: 2px solid rgba(255, 122, 0, 0.3);
+            border-radius: 12px;
+            min-width: 200px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .user-dropdown.active .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-item {
+            padding: 12px 15px;
+            color: #fff;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(255, 122, 0, 0.1);
+            border-left-color: #ff7a00;
+        }
+
+        .dropdown-item i {
+            display: inline-block; /* Fix for missing icons sometimes */
+            font-size: 16px;
+            color: #ff7a00;
+            width: 20px;
+            text-align: center;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: rgba(255, 122, 0, 0.2);
+            margin: 5px 0;
+        }
+
+        .dropdown-item.logout {
+            color: #ff4444;
+        }
+
+        .dropdown-item.logout i {
+            color: #ff4444;
+        }
+
+        .dropdown-item.logout:hover {
+            background: rgba(255, 68, 68, 0.1);
+            border-left-color: #ff4444;
+        }
+
+        /* Cart icon styling */
+        .cart-icon {
+            color: #ff7a00 !important;
+            position: relative;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-left: 15px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .cart-icon:hover {
+            color: #ff9933 !important;
+            transform: translateY(-2px);
+        }
+        
+        .cart-icon i {
+            color: #ff7a00;
+            font-size: 18px;
+        }
+        
+        .cart-count {
+            background: linear-gradient(135deg, #ff7a00, #ff4f00);
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: 700;
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            min-width: 18px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(255, 122, 0, 0.4);
+        }
+
+        /* Social Share Buttons */
+        .share-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .share-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: white;
+        }
+
+        .share-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        .share-btn i {
+            font-size: 16px;
+        }
+
+        .share-btn.twitter {
+            background: linear-gradient(135deg, #1DA1F2, #0d8bd9);
+        }
+
+        .share-btn.facebook {
+            background: linear-gradient(135deg, #1877F2, #0e5fc7);
+        }
+
+        .share-btn.instagram {
+            background: linear-gradient(135deg, #E1306C, #C13584, #833AB4);
+        }
+
+        .share-btn.copy {
+            background: linear-gradient(135deg, #6c757d, #495057);
+        }
+
+        .share-btn.copy.copied {
+            background: linear-gradient(135deg, #28a745, #1e7e34);
+        }
+
+        /* Comment Avatar Styles */
+        .comment-item {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .comment-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ff7a00;
+            flex-shrink: 0;
+        }
+
+        .comment-avatar-placeholder {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(255, 122, 0, 0.2), rgba(255, 122, 0, 0.1));
+            border: 2px solid rgba(255, 122, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .comment-avatar-placeholder i {
+            font-size: 24px;
+            color: #ff7a00;
+        }
+
+        .comment-body {
+            flex: 1;
+        }
+
+        /* Comment Action Buttons */
+        .comment-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .comment-action-btn {
+            background: transparent;
+            border: 1px solid rgba(255, 122, 0, 0.3);
+            color: #ff7a00;
+            padding: 6px 14px;
+            border-radius: 15px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .comment-action-btn:hover {
+            background: rgba(255, 122, 0, 0.1);
+            border-color: #ff7a00;
+            transform: translateY(-2px);
+        }
+
+        .comment-action-btn i {
+            font-size: 12px;
+        }
+
+        /* Reply Form */
+        .reply-form {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(255, 122, 0, 0.05);
+            border-left: 3px solid #ff7a00;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .reply-form.active {
+            display: block;
+        }
+
+        .reply-form textarea {
+            width: 100%;
+            padding: 10px;
+            background: #0b0b0b;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: #fff;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .reply-form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn-submit-reply {
+            background: linear-gradient(135deg, #ff7a00, #ff4f00);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-submit-reply:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 122, 0, 0.4);
+        }
+
+        .btn-cancel-reply {
+            background: transparent;
+            border: 1px solid #666;
+            color: #999;
+            padding: 8px 16px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-cancel-reply:hover {
+            border-color: #ff7a00;
+            color: #ff7a00;
+        }
+
+        /* Edit Mode */
+        .comment-text.editing {
+            display: none;
+        }
+
+        .edit-form {
+            display: none;
+            margin-top: 10px;
+        }
+
+        .edit-form.active {
+            display: block;
+        }
+
+        /* Reply Display */
+        .replies-container {
+            margin-top: 15px;
+            padding-left: 20px;
+            border-left: 2px solid rgba(255, 122, 0, 0.2);
+        }
+
+        .reply-item {
+            background: rgba(255, 122, 0, 0.03);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 2px solid #ff7a00;
+        }
+
+        .reply-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .reply-author {
+            font-weight: 600;
+            color: #ff7a00;
+            font-size: 14px;
+        }
+
+        .reply-date {
+            color: #999;
+            font-size: 12px;
+        }
+
+        .reply-text {
+            color: #ddd;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
 <body>
   <!-- Bulles animées rouges -->
   <div class="bubbles">
@@ -47,21 +456,72 @@ $isAdmin = false;
     
     <nav class="site-nav">
       <a href="http://localhost/projet_web/view/front/index.php">Home</a>
-      <a href="../front/events.html">Events</a>
-      <a href="../front/shop.html">Shop</a>
-      <a href="../front/trading.html">Trading</a>
+      <a href="events.php">Events</a>
+      <a href="shop.html">Shop</a>
+      <a href="trading.php">Trading</a>
       <a href="news.php" class="active">News</a>
-      <a href="../front/reclamation.html">Support</a>
-      <a href="../front/about.html">About Us</a>
+      <a href="reclamation.html">Support</a>
+      <a href="about.php">About Us</a>
     </nav>
     
     <div class="header-right">
-      <a href="../front/login.html" class="login-register-link">
-        <i class="fas fa-user"></i> Login / Register
-      </a>
-      <a href="../front/profile.html" class="profile-icon">
-        <i class="fas fa-user-circle"></i>
-      </a>
+            <div class="user-dropdown" id="userDropdown">
+                <div class="username-display">
+                    <?php if ($isLoggedIn && $currentUser): ?>
+                        <?php if ($userImage): ?>
+                            <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Profile">
+                        <?php else: ?>
+                            <i class="fas fa-user-circle"></i>
+                        <?php endif; ?>
+                        <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
+                    <?php else: ?>
+                        <i class="fas fa-user-circle"></i>
+                        <span>Guest</span>
+                    <?php endif; ?>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                
+                <div class="dropdown-menu">
+                    <?php if ($isLoggedIn && $currentUser): ?>
+                    <a href="profile.php" class="dropdown-item">
+                        <i class="fas fa-user"></i>
+                        <span>My Profile</span>
+                    </a>
+                    
+                    <a href="tradehis.php" class="dropdown-item">
+                        <i class="fas fa-history"></i>
+                        <span>History</span>
+                    </a>
+                    
+                    <?php 
+                    $userRole = strtolower($currentUser->getRole());
+                    if ($userRole === 'admin' || $userRole === 'superadmin'): 
+                    ?>
+                    <a href="../back/dashboard.php" class="dropdown-item">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <?php endif; ?>
+                    
+                    <div class="dropdown-divider"></div>
+                    
+                    <a href="logout.php" class="dropdown-item logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </a>
+                    <?php else: ?>
+                    <a href="login.php" class="dropdown-item">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>Login/Register</span>
+                    </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+            
+            <a href="panier.php" class="cart-icon">
+                <i class="fas fa-shopping-cart"></i> Cart
+                <span class="cart-count">0</span>
+            </a>
     </div>
   </header>
 
@@ -150,11 +610,6 @@ $isAdmin = false;
         }
         ?>
       </div>
-        <?php if (!empty($tocHtml)): ?>
-        <aside class="toc-container">
-          <?php echo $tocHtml; ?>
-        </aside>
-        <?php endif; ?>
       
       <!-- Comments -->
       <div id="comments" class="comments-section" style="max-width:900px;margin:0 auto 60px;padding:0 40px">
@@ -178,7 +633,8 @@ $isAdmin = false;
                <input type="radio" id="star1" name="rating" value="1" /><label for="star1" title="1 star"></label>
              </div>
           </div>
-          <input type="text" name="name" placeholder="Your name" style="width:100%;padding:8px;margin:6px 0;border-radius:4px;border:1px solid #333;background:#0b0b0b;color:#fff">
+          <input type="text" name="name" placeholder="Your name" value="<?php echo $isLoggedIn && $currentUser ? htmlspecialchars($currentUser->getUsername()) : ''; ?>" <?php echo $isLoggedIn && $currentUser ? 'readonly' : ''; ?> style="width:100%;padding:8px;margin:6px 0;border-radius:4px;border:1px solid #333;background:#0b0b0b;color:#fff">
+          <input type="hidden" name="email" value="<?php echo $isLoggedIn && $currentUser ? htmlspecialchars($currentUser->getEmail()) : 'guest@foxunity.com'; ?>">
           <textarea name="comment" rows="4" placeholder="Your comment" style="width:100%;padding:8px;margin:6px 0;border-radius:4px;border:1px solid #333;background:#0b0b0b;color:#fff"></textarea>
           <button type="submit" name="comment_submit" style="background:#ff9900;color:#000;padding:8px 12px;border-radius:6px;border:0;cursor:pointer;font-weight:600">Post Comment</button>
         </form>
@@ -193,13 +649,42 @@ $isAdmin = false;
           <p style="color:#bbb;margin:8px 0">Be the first to comment on this article.</p>
         <?php else: ?>
           <?php foreach ($comments as $c): ?>
+            <div class="comment-item">
+              <?php
+              // Get commenter's profile picture
+              $commenterImage = null;
+              if (!empty($c['email'])) {
+                try {
+                  require_once __DIR__ . '/../../model/User.php';
+                  $commenterUser = User::findByEmail($c['email']);
+                  if ($commenterUser && $commenterUser->getImage()) {
+                    $commenterImage = '../../view/' . $commenterUser->getImage();
+                  }
+                } catch (Exception $e) {}
+              }
+              ?>
+              <?php if ($commenterImage): ?>
+                <img src="<?php echo htmlspecialchars($commenterImage); ?>" alt="<?php echo htmlspecialchars($c['name']); ?>" class="comment-avatar">
+              <?php else: ?>
+                <div class="comment-avatar-placeholder">
+                  <i class="fas fa-user"></i>
+                </div>
+              <?php endif; ?>
+              <div class="comment-body">
             <div class="comment" style="background:#111;padding:12px;border-radius:8px;margin-bottom:10px">
               <div class="comment-header" style="display:flex;justify-content:space-between;align-items:center">
                 <div class="comment-meta" style="font-weight:700;color:#fff">
                 <?php echo htmlspecialchars($c['name']); ?>
-                <?php if(($c['sentiment'] ?? 'neutral') === 'positive'): ?>
+                <?php 
+                $sentiment = strtolower($c['sentiment'] ?? 'neutral');
+                if($sentiment === 'positive'): 
+                ?>
                   <span title="Positive Vibes" style="margin-left:8px; background:rgba(40,167,69,0.2); color:#28a745; padding:2px 6px; border-radius:4px; font-size:0.75rem;">
                     <i class="fas fa-heart"></i> Positive Vibes
+                  </span>
+                <?php elseif($sentiment === 'negative'): ?>
+                  <span title="Negative Sentiment" style="margin-left:8px; background:rgba(220,53,69,0.2); color:#dc3545; padding:2px 6px; border-radius:4px; font-size:0.75rem;">
+                    <i class="fas fa-frown"></i> Negative
                   </span>
                 <?php endif; ?>
                 <span class="comment-date" style="font-weight:400;color:#999;margin-left:8px;font-size:0.9rem"><?php echo htmlspecialchars($c['date']); ?></span>
@@ -210,13 +695,212 @@ $isAdmin = false;
                 </div>
               <?php endif; ?>
               </div>
-              <div class="comment-text" style="margin-top:8px;color:#ddd"><?php echo nl2br(htmlspecialchars($c['text'])); ?></div>
+              <div class="comment-text" style="margin-top:8px;color:#ddd" data-comment-id="<?php echo $c['id'] ?? ''; ?>"><?php echo nl2br(htmlspecialchars($c['text'])); ?></div>
+              
+              <!-- Comment Actions -->
+              <div class="comment-actions">
+                <button class="comment-action-btn" onclick="toggleReplyForm(<?php echo $c['id'] ?? 0; ?>)">
+                  <i class="fas fa-reply"></i> Reply
+                </button>
+                <?php if ($isLoggedIn && $currentUser && strtolower($c['email'] ?? '') === strtolower($currentUser->getEmail())): ?>
+                <button class="comment-action-btn" onclick="toggleEditForm(<?php echo $c['id'] ?? 0; ?>)">
+                  <i class="fas fa-edit"></i> Edit
+                </button>
+                <?php endif; ?>
+              </div>
+
+              <!-- Reply Form -->
+              <div class="reply-form" id="reply-form-<?php echo $c['id'] ?? 0; ?>">
+                <textarea placeholder="Write your reply..." id="reply-text-<?php echo $c['id'] ?? 0; ?>"></textarea>
+                <div class="reply-form-actions">
+                  <button class="btn-submit-reply" onclick="submitReply(<?php echo $c['id'] ?? 0; ?>)">Post Reply</button>
+                  <button class="btn-cancel-reply" onclick="cancelReply(<?php echo $c['id'] ?? 0; ?>)">Cancel</button>
+                </div>
+              </div>
+
+              <!-- Edit Form -->
+              <div class="edit-form" id="edit-form-<?php echo $c['id'] ?? 0; ?>">
+                <textarea id="edit-text-<?php echo $c['id'] ?? 0; ?>"><?php echo htmlspecialchars($c['text']); ?></textarea>
+                <div class="reply-form-actions">
+                  <button class="btn-submit-reply" onclick="submitEdit(<?php echo $c['id'] ?? 0; ?>)">Save Changes</button>
+                  <button class="btn-cancel-reply" onclick="cancelEdit(<?php echo $c['id'] ?? 0; ?>)">Cancel</button>
+                </div>
+              </div>
+
+              <!-- Replies Container -->
+              <div class="replies-container" id="replies-<?php echo $c['id'] ?? 0; ?>"></div>
+              </div>
+              </div>
+              </div>
             </div>
           <?php endforeach; ?>
         <?php endif; ?>
 
 
       </div>
+
+  <script>
+    // Social Sharing Functions
+    function shareOnTwitter() {
+      const url = window.location.href;
+      const title = document.querySelector('h1').textContent;
+      const text = encodeURIComponent(title + ' - FoxUnity Gaming News');
+      window.open('https://twitter.com/intent/tweet?text=' + text + '&url=' + encodeURIComponent(url), '_blank', 'width=600,height=400');
+    }
+
+    function shareOnFacebook() {
+      const url = window.location.href;
+      window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url), '_blank', 'width=600,height=400');
+    }
+
+    function openInstagram() {
+      window.open('https://www.instagram.com/', '_blank');
+    }
+
+    function copyArticleLink(button) {
+      const url = window.location.href;
+      navigator.clipboard.writeText(url).then(function() {
+        const textSpan = button.querySelector('.copy-text');
+        const originalText = textSpan.textContent;
+        textSpan.textContent = 'Copied!';
+        button.classList.add('copied');
+        setTimeout(function() {
+          textSpan.textContent = originalText;
+          button.classList.remove('copied');
+        }, 2000);
+      }).catch(function(err) {
+        alert('Failed to copy link');
+      });
+    }
+
+    // Comment Reply and Edit Functions
+    function toggleReplyForm(commentId) {
+      const replyForm = document.getElementById('reply-form-' + commentId);
+      const allReplyForms = document.querySelectorAll('.reply-form');
+      
+      // Close all other reply forms
+      allReplyForms.forEach(form => {
+        if (form.id !== 'reply-form-' + commentId) {
+          form.classList.remove('active');
+        }
+      });
+      
+      // Toggle current form
+      replyForm.classList.toggle('active');
+    }
+
+    function cancelReply(commentId) {
+      const replyForm = document.getElementById('reply-form-' + commentId);
+      const replyText = document.getElementById('reply-text-' + commentId);
+      replyForm.classList.remove('active');
+      replyText.value = '';
+    }
+
+    function submitReply(commentId) {
+      const replyText = document.getElementById('reply-text-' + commentId).value.trim();
+      
+      if (!replyText) {
+        return;
+      }
+      
+      // Get current user name (from the comment form)
+      const userName = document.querySelector('input[name="name"]').value || 'Guest';
+      
+      // Create reply element
+      const repliesContainer = document.getElementById('replies-' + commentId);
+      const replyItem = document.createElement('div');
+      replyItem.className = 'reply-item';
+      
+      const now = new Date();
+      const dateStr = now.getFullYear() + '-' + 
+                      String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                      String(now.getDate()).padStart(2, '0') + ' ' +
+                      String(now.getHours()).padStart(2, '0') + ':' + 
+                      String(now.getMinutes()).padStart(2, '0');
+      
+      replyItem.innerHTML = `
+        <div class="reply-header">
+          <span class="reply-author">${escapeHtml(userName)}</span>
+          <span class="reply-date">${dateStr}</span>
+        </div>
+        <div class="reply-text">${escapeHtml(replyText).replace(/\n/g, '<br>')}</div>
+      `;
+      
+      repliesContainer.appendChild(replyItem);
+      cancelReply(commentId);
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function toggleEditForm(commentId) {
+      const editForm = document.getElementById('edit-form-' + commentId);
+      const commentText = document.querySelector('[data-comment-id="' + commentId + '"]');
+      const allEditForms = document.querySelectorAll('.edit-form');
+      
+      // Close all other edit forms
+      allEditForms.forEach(form => {
+        if (form.id !== 'edit-form-' + commentId) {
+          form.classList.remove('active');
+        }
+      });
+      
+      // Toggle current form
+      if (editForm.classList.contains('active')) {
+        editForm.classList.remove('active');
+        commentText.classList.remove('editing');
+      } else {
+        editForm.classList.add('active');
+        commentText.classList.add('editing');
+      }
+    }
+
+    function cancelEdit(commentId) {
+      const editForm = document.getElementById('edit-form-' + commentId);
+      const commentText = document.querySelector('[data-comment-id="' + commentId + '"]');
+      editForm.classList.remove('active');
+      commentText.classList.remove('editing');
+    }
+
+    function submitEdit(commentId) {
+      const editText = document.getElementById('edit-text-' + commentId).value.trim();
+      
+      if (!editText) {
+        alert('Comment cannot be empty');
+        return;
+      }
+      
+      // Submit edit via form
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = window.location.href;
+      
+      const actionInput = document.createElement('input');
+      actionInput.type = 'hidden';
+      actionInput.name = 'edit_comment';
+      actionInput.value = '1';
+      form.appendChild(actionInput);
+      
+      const idInput = document.createElement('input');
+      idInput.type = 'hidden';
+      idInput.name = 'comment_id';
+      idInput.value = commentId;
+      form.appendChild(idInput);
+      
+      const textInput = document.createElement('input');
+      textInput.type = 'hidden';
+      textInput.name = 'comment_text';
+      textInput.value = editText;
+      form.appendChild(textInput);
+      
+      document.body.appendChild(form);
+      form.submit();
+    }
+  </script>
+
   <?php if ($isAdmin): ?>
   <script>
     // AJAX handlers for admin comment edit/delete/clear
@@ -565,4 +1249,34 @@ $isAdmin = false;
     }
   </style>
 </body>
+<script>
+    // Dropdown Menu Toggle
+    document.addEventListener('DOMContentLoaded', function() {
+        const userDropdown = document.getElementById('userDropdown');
+        
+        if (userDropdown) {
+            const usernameDisplay = userDropdown.querySelector('.username-display');
+            
+            // Toggle dropdown on click
+            usernameDisplay.addEventListener('click', function(e) {
+                e.stopPropagation();
+                userDropdown.classList.toggle('active');
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!userDropdown.contains(e.target)) {
+                    userDropdown.classList.remove('active');
+                }
+            });
+            
+            // Close dropdown when pressing Escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    userDropdown.classList.remove('active');
+                }
+            });
+        }
+    });
+</script>
 </html>

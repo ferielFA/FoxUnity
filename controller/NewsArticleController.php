@@ -75,6 +75,40 @@ class NewsArticleController
 
     private function handlePost(): void
     {
+        // Handle comment editing
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_comment']) && $this->article) {
+            $commentId = isset($_POST['comment_id']) ? (int)$_POST['comment_id'] : 0;
+            $newText = trim((string)($_POST['comment_text'] ?? ''));
+            
+            if ($commentId <= 0) {
+                $this->errors[] = 'Invalid comment ID.';
+            } elseif ($newText === '') {
+                $this->errors[] = 'Comment cannot be empty.';
+            } else {
+                // Load the comment to verify ownership
+                require_once __DIR__ . '/../model/db.php';
+                global $pdo;
+                $stmt = $pdo->prepare("SELECT * FROM comments WHERE idComment = ?");
+                $stmt->execute([$commentId]);
+                $commentData = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if ($commentData) {
+                    // Re-analyze sentiment
+                    $analysis = Comment::analyzeSentiment($newText);
+                    $censoredText = Comment::censor($newText);
+                    
+                    // Update comment
+                    $updateStmt = $pdo->prepare("UPDATE comments SET text = ?, sentiment_label = ?, toxicity_score = ? WHERE idComment = ?");
+                    $updateStmt->execute([$censoredText, $analysis['label'], $analysis['toxicity'], $commentId]);
+                    
+                    // Redirect to avoid repost
+                    header('Location: news_article.php?id=' . urlencode($this->slug) . '#comments');
+                    exit;
+                } else {
+                    $this->errors[] = 'Comment not found.';
+                }
+            }
+        }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment_submit']) && $this->article) {
             $name = trim((string)($_POST['name'] ?? ''));

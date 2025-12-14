@@ -1,4 +1,4 @@
-=<?php
+<?php
 require_once __DIR__ . '/../../controller/UserController.php';
 
 
@@ -633,7 +633,7 @@ if ($currentUser && $currentUser->getImage()) {
                         <li><i class="fas fa-check"></i> Charity Milestones</li>
                         <li><i class="fas fa-check"></i> Gaming Industry News</li>
                     </ul>
-                    <a href="news.html" class="feature-btn">
+                    <a href="news.php" class="feature-btn">
                         <i class="fas fa-newspaper"></i> Read News
                     </a>
                 </div>

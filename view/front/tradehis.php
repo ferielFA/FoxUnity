@@ -560,10 +560,10 @@ $currentUser = $viewData['currentUser'];
 
     <nav class="site-nav">
       <a href="index.php">Home</a>
-      <a href="events.html">Events</a>
+      <a href="events.php">Events</a>
       <a href="shop.html">Shop</a>
       <a href="trading.php" class="active">Trading</a>
-      <a href="news.html">News</a>
+      <a href="news.php">News</a>
       <a href="reclamation.html">Support</a>
       <a href="about.php">About Us</a>
     </nav>

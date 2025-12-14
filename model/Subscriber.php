@@ -233,6 +233,17 @@ class Subscriber
             return $row;
         }
     }
+
+    public static function deleteByEmail(string $email): bool
+    {
+        $pdo = self::getPdo();
+        try {
+            $stmt = $pdo->prepare("DELETE FROM subscribers WHERE email = ?");
+            return $stmt->execute([$email]);
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
 }
 
 ?>
