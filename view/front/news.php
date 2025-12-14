@@ -71,8 +71,19 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
                    <div class="alert alert-error"><?php echo htmlspecialchars($_GET['err']); ?></div>
                <?php endif; ?>
                <form action="/projet_web/controller/NewsletterController.php" method="POST" class="subscribe-form">
+                   <?php 
+                   $sessEmail = $_SESSION['newsletter_email'] ?? ''; 
+                   $myCats = [];
+                   if($sessEmail) {
+                       require_once __DIR__ . '/../../model/Subscriber.php';
+                       $subRow = Subscriber::getByEmail($sessEmail);
+                       if($subRow && !empty($subRow['categories'])) {
+                           $myCats = array_filter(explode(',', $subRow['categories']));
+                       }
+                   }
+                   ?>
                    <input type="hidden" name="action" value="subscribe">
-                   <input type="email" name="email" class="hero-input" placeholder="Your email" required>
+                   <input type="email" name="email" class="hero-input" placeholder="Your email" required value="<?php echo htmlspecialchars($sessEmail); ?>">
                    <div class="cat-select">
                        <button type="button" class="hero-cat-btn" id="cat-toggle"><span>Select Categories</span><span class="badge" id="cat-count">0</span><i class="fas fa-chevron-down"></i></button>
                        <div class="cat-dropdown-content" id="cat-dropdown">
@@ -86,16 +97,52 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
                            if (!isset($allCategories)) {
                                $allCategories = $pdo->query("SELECT * FROM categorie ORDER BY nom")->fetchAll();
                            }
-                           foreach ($allCategories as $c): ?>
-                               <label class="cat-item"><input type="checkbox" name="categories[]" value="<?php echo $c['idCategorie']; ?>" data-name="<?php echo htmlspecialchars($c['nom']); ?>"> <span><?php echo htmlspecialchars($c['nom']); ?></span></label>
+                           foreach ($allCategories as $c): 
+                               $isChecked = in_array($c['idCategorie'], $myCats) ? 'checked' : '';
+                           ?>
+                               <label class="cat-item"><input type="checkbox" name="categories[]" value="<?php echo $c['idCategorie']; ?>" data-name="<?php echo htmlspecialchars($c['nom']); ?>" <?php echo $isChecked; ?>> <span><?php echo htmlspecialchars($c['nom']); ?></span></label>
                            <?php endforeach; ?>
                            </div>
                        </div>
                        <div class="selected-chips" id="selected-chips"></div>
                    </div>
-                   <button type="submit" class="hero-submit">Subscribe</button>
-                   <div class="subscribe-note">You can unsubscribe anytime.</div>
+                   <button type="submit" class="hero-submit">
+                       <?php echo $sessEmail ? 'Update Subscription' : 'Subscribe'; ?>
+                   </button>
+                   <?php if($sessEmail): ?>
+                       <div style="text-align:center;margin-top:10px;">
+                           <a href="#" onclick="document.querySelector('[name=action]').value='unsubscribe_all';document.querySelector('.subscribe-form').submit();return false;" style="color:#888;font-size:0.8rem;text-decoration:underline;">Unsubscribe All</a>
+                       </div>
+                   <?php else: ?>
+                       <div class="subscribe-note">You can unsubscribe anytime.</div>
+                   <?php endif; ?>
                </form>
+               <?php if($sessEmail && !empty($myCats)): ?>
+               <script>
+                   document.addEventListener('DOMContentLoaded', function(){
+                       // Trigger UI update for pre-checked boxes
+                       if(typeof updateCount === 'function') { updateCount(); rebuildChips(); }
+                       else {
+                           // Fallback if defined inside closure
+                           var checkboxes = document.querySelectorAll('#cat-dropdown input:checked');
+                           if(checkboxes.length > 0) {
+                               var chips = document.getElementById('selected-chips');
+                               var count = document.getElementById('cat-count');
+                               if(count) count.textContent = checkboxes.length;
+                               if(chips) {
+                                   checkboxes.forEach(function(cb){
+                                       var name = cb.getAttribute('data-name');
+                                       var chip = document.createElement('span');
+                                       chip.className = 'chip';
+                                       chip.innerHTML = '<span>'+name+'</span>';
+                                       chips.appendChild(chip);
+                                   });
+                               }
+                           }
+                       }
+                   });
+               </script>
+               <?php endif; ?>
             </div>
             <?php /* Subscriptions panel moved to bottom */ ?>
         </div>

@@ -6,3 +6,5 @@
 [2025-12-13 16:00:05] FAILED TO: rayenkabar780@gmail.com | SUB: Welcome to FoxUnity News! | TYPE: Welcome
 [2025-12-13 16:00:29] FAILED TO: rayenkabar780@gmail.com | SUB: Welcome to FoxUnity News! | TYPE: Welcome
 [2025-12-13 16:02:33] SENT TO: rayenkabar780@gmail.com | SUB: Welcome to FoxUnity News! | TYPE: Welcome
+[2025-12-14 12:04:47] SENT TO: rayenkabar780@gmail.com | SUB: Welcome to FoxUnity News! | TYPE: Welcome
+[2025-12-14 12:06:45] SENT TO: yassinebenmustapha05@gmail.com | SUB: 🔥 Hot News: sdsadasdsa | TYPE: Article Notification

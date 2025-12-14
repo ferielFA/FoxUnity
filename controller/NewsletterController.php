@@ -62,8 +62,32 @@ class NewsletterController {
                 }
                 [$ok, $msg] = Subscriber::add($email, []);
                 $this->redirectWithMsg($ok ? 'All categories cleared.' : 'Failed to clear preferences.', $ok ? 'success' : 'error');
+            } elseif ($action === 'update_subscription') {
+                $email = $_POST['email'] ?? '';
+                $originalEmail = $_POST['original_email'] ?? '';
+                $cats = $_POST['categories'] ?? [];
+
+                if (empty($email)) {
+                    $this->redirectBackToAdmin('Email is required.', 'error');
+                }
+
+                // If email changed, unsubscribe old one first
+                if ($originalEmail && $originalEmail !== $email) {
+                    Subscriber::add($originalEmail, []);
+                }
+
+                // Update/Create new subscription
+                [$ok, $msg] = Subscriber::add($email, $cats);
+                
+                $this->redirectBackToAdmin($ok ? 'Subscription updated successfully.' : $msg, $ok ? 'success' : 'error');
             }
         }
+    }
+
+    private function redirectBackToAdmin($msg, $type) {
+        $prefix = $type === 'success' ? 'msg' : 'err';
+        header("Location: /projet_web/view/back/newsletter_admin.php?$prefix=" . urlencode($msg));
+        exit;
     }
 
     private function redirectWithMsg($msg, $type) {

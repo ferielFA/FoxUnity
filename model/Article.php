@@ -9,7 +9,7 @@ class Article
 {
     private ?int $idArticle;
     private string $slug;
-    private int $id_pub;
+    private int $user_id;
     private string $titre;
     private string $description;
     private string $contenu;
@@ -22,7 +22,7 @@ class Article
     public function __construct(
         ?int $idArticle = null,
         string $slug = '',
-        int $id_pub = 0,
+        int $user_id = 0,
         string $titre = '',
         string $description = '',
         string $contenu = '',
@@ -34,7 +34,7 @@ class Article
     ) {
         $this->idArticle       = $idArticle;
         $this->slug            = $slug;
-        $this->id_pub          = $id_pub;
+        $this->user_id          = $user_id;
         $this->titre           = $titre;
         $this->description     = $description;
         $this->contenu         = $contenu;
@@ -48,7 +48,7 @@ class Article
     // Getters
     public function getIdArticle(): ?int { return $this->idArticle; }
     public function getSlug(): string { return $this->slug; }
-    public function getIdPub(): int { return $this->id_pub; }
+    public function getUserId(): int { return $this->user_id; }
     public function getTitre(): string { return $this->titre; }
     public function getDescription(): string { return $this->description; }
     public function getContenu(): string { return $this->contenu; }
@@ -61,7 +61,7 @@ class Article
     // Setters
     public function setIdArticle(?int $idArticle): void { $this->idArticle = $idArticle; }
     public function setSlug(string $slug): void { $this->slug = $slug; }
-    public function setIdPub(int $id_pub): void { $this->id_pub = $id_pub; }
+    public function setUserId(int $user_id): void { $this->user_id = $user_id; }
     public function setTitre(string $titre): void { $this->titre = $titre; }
     public function setDescription(string $description): void { $this->description = $description; }
     public function setContenu(string $contenu): void { $this->contenu = $contenu; }
@@ -130,8 +130,10 @@ class Article
 
     private static function getPdo(): PDO
     {
-        require_once __DIR__ . '/db.php';
         global $pdo;
+        if (!$pdo instanceof PDO) {
+            require __DIR__ . '/db.php';
+        }
         return $pdo;
     }
 
@@ -229,18 +231,18 @@ class Article
 
         $stmt = $pdo->prepare(
             "INSERT INTO article
-                (slug, id_pub, titre, contenu, excerpt, summary, image, datePublication, idCategorie, hot)
+                (slug, user_id, titre, contenu, excerpt, summary, image, datePublication, idCategorie, hot)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         );
 
-        $id_pub          = 4;
+        $user_id          = 4;
         $isHot           = isset($data['hot']) && $data['hot'] == '1' ? 1 : 0;
         $validIdCategorie = (int) ($data['idCategorie'] ?? 0);
 
         $summary = generateAdvancedSummaryAI($data['content'] ?? '', $data['title'] ?? '');
         $ok = $stmt->execute([
             $data['id'],
-            $id_pub,
+            $user_id,
             $data['title'],
             $data['content'],
             $data['excerpt'] ?? '',
@@ -255,6 +257,11 @@ class Article
             $item              = $data;
             $item['image']     = $imagePath;
             $item['idArticle'] = (int) $pdo->lastInsertId();
+            
+            // Trigger notifications
+            require_once __DIR__ . '/Categorie.php';
+            Categorie::notifySubscribersForArticle($item);
+
             return [true, $item];
         }
 
