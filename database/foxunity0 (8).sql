@@ -2,10 +2,10 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1
--- Generation Time: Dec 14, 2025 at 11:50 AM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.0.30
+-- Hôte : 127.0.0.1
+-- Généré le : dim. 14 déc. 2025 à 14:29
+-- Version du serveur : 10.4.32-MariaDB
+-- Version de PHP : 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,13 +18,13 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `foxunity0`
+-- Base de données : `foxunity0`
 --
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `article`
+-- Structure de la table `article`
 --
 
 CREATE TABLE `article` (
@@ -48,7 +48,7 @@ CREATE TABLE `article` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `article`
+-- Déchargement des données de la table `article`
 --
 
 INSERT INTO `article` (`idArticle`, `slug`, `user_id`, `titre`, `contenu`, `datePublication`, `idCategorie`, `excerpt`, `created_at`, `updated_at`, `image`, `displayDate`, `hot`, `comments`, `comments_count`, `summary`, `notifications_sent`) VALUES
@@ -67,7 +67,7 @@ INSERT INTO `article` (`idArticle`, `slug`, `user_id`, `titre`, `contenu`, `date
 -- --------------------------------------------------------
 
 --
--- Table structure for table `article_history`
+-- Structure de la table `article_history`
 --
 
 CREATE TABLE `article_history` (
@@ -87,7 +87,7 @@ CREATE TABLE `article_history` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `article_history`
+-- Déchargement des données de la table `article_history`
 --
 
 INSERT INTO `article_history` (`id_history`, `idArticle`, `slug`, `titre`, `contenu`, `excerpt`, `summary`, `image`, `datePublication`, `idCategorie`, `hot`, `edited_by`, `edited_at`) VALUES
@@ -99,7 +99,7 @@ INSERT INTO `article_history` (`id_history`, `idArticle`, `slug`, `titre`, `cont
 -- --------------------------------------------------------
 
 --
--- Table structure for table `categorie`
+-- Structure de la table `categorie`
 --
 
 CREATE TABLE `categorie` (
@@ -112,7 +112,7 @@ CREATE TABLE `categorie` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `categorie`
+-- Déchargement des données de la table `categorie`
 --
 
 INSERT INTO `categorie` (`idCategorie`, `nom`, `description`, `created_at`, `active`, `created_by`) VALUES
@@ -125,7 +125,7 @@ INSERT INTO `categorie` (`idCategorie`, `nom`, `description`, `created_at`, `act
 -- --------------------------------------------------------
 
 --
--- Table structure for table `charity_votes`
+-- Structure de la table `charity_votes`
 --
 
 CREATE TABLE `charity_votes` (
@@ -138,7 +138,7 @@ CREATE TABLE `charity_votes` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `comment`
+-- Structure de la table `comment`
 --
 
 CREATE TABLE `comment` (
@@ -157,10 +157,21 @@ CREATE TABLE `comment` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Déchargement des données de la table `comment`
+--
+
+INSERT INTO `comment` (`id_comment`, `id_evenement`, `user_id`, `user_name`, `user_email`, `content`, `rating`, `likes`, `dislikes`, `is_reported`, `report_reason`, `created_at`, `updated_at`) VALUES
+(7, 9, 18, 'fifi', 'ferielayari19@gmail.com', 'nice event', 5, 0, 0, 0, NULL, '2025-12-14 10:47:39', '2025-12-14 10:47:39'),
+(8, 10, 18, 'fifi', 'ferielayari19@gmail.com', 'Quick rating: 3 stars', 3, 0, 0, 0, NULL, '2025-12-14 10:59:03', '2025-12-14 13:07:23'),
+(9, 10, 19, 'fifi', 'ferielayari19@gmail.com', 'Share your experience about this event...', 5, 0, 0, 0, NULL, '2025-12-14 13:07:11', '2025-12-14 13:07:11'),
+(10, 12, 19, 'fifi', 'ferielayari19@gmail.com', 'Quick rating: 4 stars', 4, 0, 0, 0, NULL, '2025-12-14 13:18:22', '2025-12-14 13:18:22'),
+(11, 12, 19, 'fifi', 'ferielayari19@gmail.com', 'Share your experience about this event...', 4, 0, 0, 0, NULL, '2025-12-14 13:18:24', '2025-12-14 13:18:24');
+
 -- --------------------------------------------------------
 
 --
--- Table structure for table `comments`
+-- Structure de la table `comments`
 --
 
 CREATE TABLE `comments` (
@@ -178,7 +189,7 @@ CREATE TABLE `comments` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `comments`
+-- Déchargement des données de la table `comments`
 --
 
 INSERT INTO `comments` (`idComment`, `article_id`, `name`, `email`, `text`, `is_deleted`, `created_at`, `toxicity_score`, `sentiment_label`, `rating`, `user_id`) VALUES
@@ -199,7 +210,7 @@ INSERT INTO `comments` (`idComment`, `article_id`, `name`, `email`, `text`, `is_
 -- --------------------------------------------------------
 
 --
--- Table structure for table `comment_interaction`
+-- Structure de la table `comment_interaction`
 --
 
 CREATE TABLE `comment_interaction` (
@@ -214,7 +225,7 @@ CREATE TABLE `comment_interaction` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `email_verifications`
+-- Structure de la table `email_verifications`
 --
 
 CREATE TABLE `email_verifications` (
@@ -226,7 +237,7 @@ CREATE TABLE `email_verifications` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `email_verifications`
+-- Déchargement des données de la table `email_verifications`
 --
 
 INSERT INTO `email_verifications` (`id`, `user_id`, `token`, `expires_at`, `created_at`) VALUES
@@ -238,7 +249,7 @@ INSERT INTO `email_verifications` (`id`, `user_id`, `token`, `expires_at`, `crea
 -- --------------------------------------------------------
 
 --
--- Table structure for table `evenement`
+-- Structure de la table `evenement`
 --
 
 CREATE TABLE `evenement` (
@@ -255,10 +266,21 @@ CREATE TABLE `evenement` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Déchargement des données de la table `evenement`
+--
+
+INSERT INTO `evenement` (`id_evenement`, `titre`, `description`, `date_debut`, `date_fin`, `lieu`, `createur_id`, `createur_email`, `statut`, `created_at`, `updated_at`) VALUES
+(8, 'Test Event QR', 'Event pour tester les QR codes', '2025-12-14 10:00:00', '2025-12-15 18:00:00', 'Test Location', 6, 'yassinebenmustapha05@gmail.com', 'upcoming', '2025-12-13 14:51:43', '2025-12-13 14:51:43'),
+(9, 'mimouuuu', 'Describe your event', '2025-12-24 11:14:00', '2025-12-28 11:14:00', 'bardo', 18, 'ferielayari19@gmail.com', 'upcoming', '2025-12-14 10:14:36', '2025-12-14 10:14:36'),
+(10, 'Cyber Arena Championship', 'Describe your event', '2025-12-14 12:00:00', '2025-12-14 14:00:00', 'bardo', 18, 'ferielayari19@gmail.com', 'upcoming', '2025-12-14 10:58:40', '2025-12-14 10:58:40'),
+(11, 'Retro Gaming2', 'Describe your event', '2025-12-21 12:50:00', '2025-12-22 12:50:00', 'bardo', 18, 'misstagada1231230@gmail.com', 'upcoming', '2025-12-14 11:50:54', '2025-12-14 11:50:54'),
+(12, 'Retro Gaming2222', 'Describe your event', '2025-12-17 14:17:00', '2025-12-18 14:17:00', 'bardo', 19, 'ferielayari19@gmail.com', 'upcoming', '2025-12-14 13:17:43', '2025-12-14 13:17:43');
+
 -- --------------------------------------------------------
 
 --
--- Table structure for table `event_statistics`
+-- Structure de la table `event_statistics`
 --
 
 CREATE TABLE `event_statistics` (
@@ -288,10 +310,20 @@ CREATE TABLE `event_statistics` (
   `last_updated` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Déchargement des données de la table `event_statistics`
+--
+
+INSERT INTO `event_statistics` (`id_statistic`, `id_evenement`, `creator_id`, `event_title`, `event_location`, `event_status`, `event_start`, `event_end`, `total_participants`, `total_tickets`, `active_tickets`, `used_tickets`, `cancelled_tickets`, `total_comments`, `average_rating`, `five_stars`, `four_stars`, `three_stars`, `two_stars`, `one_star`, `total_likes`, `total_dislikes`, `reported_comments`, `last_updated`) VALUES
+(11, 10, 18, 'Cyber Arena Championship', 'bardo', 'upcoming', '2025-12-14 12:00:00', '2025-12-14 14:00:00', 1, 1, 1, 0, 0, 1, 3.00, 0, 0, 1, 0, 0, 0, 0, 0, '2025-12-14 10:59:03'),
+(12, 10, 18, 'Cyber Arena Championship', 'bardo', 'upcoming', '2025-12-14 12:00:00', '2025-12-14 14:00:00', 1, 1, 1, 0, 0, 1, 5.00, 1, 0, 0, 0, 0, 0, 0, 0, '2025-12-14 10:59:07'),
+(13, 10, 18, 'Cyber Arena Championship', 'bardo', 'upcoming', '2025-12-14 12:00:00', '2025-12-14 14:00:00', 1, 1, 2, 0, 0, 2, 4.00, 1, 0, 1, 0, 0, 0, 0, 0, '2025-12-14 13:07:23'),
+(14, 12, 19, 'Retro Gaming2222', 'bardo', 'upcoming', '2025-12-17 14:17:00', '2025-12-18 14:17:00', 1, 1, 1, 0, 0, 1, 4.00, 0, 1, 0, 0, 0, 0, 0, 0, '2025-12-14 13:18:22');
+
 -- --------------------------------------------------------
 
 --
--- Table structure for table `participation`
+-- Structure de la table `participation`
 --
 
 CREATE TABLE `participation` (
@@ -303,10 +335,22 @@ CREATE TABLE `participation` (
   `date_participation` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Déchargement des données de la table `participation`
+--
+
+INSERT INTO `participation` (`id_participation`, `id_evenement`, `user_id`, `nom_participant`, `email_participant`, `date_participation`) VALUES
+(8, 8, 6, 'Test User', 'yassinebenmustapha05@gmail.com', '2025-12-13 15:51:52'),
+(9, 8, 11, 'zzea', 'refgtreter@nasba.com', '2025-12-13 15:52:34'),
+(11, 9, 18, 'fifi', 'ferielayari19@gmail.com', '2025-12-14 11:14:40'),
+(12, 10, 18, 'fifi', 'ferielayari19@gmail.com', '2025-12-14 11:58:50'),
+(13, 11, 18, 'Feriel', 'misstagada1231230@gmail.com', '2025-12-14 12:50:59'),
+(14, 12, 19, 'fifi', 'ferielayari19@gmail.com', '2025-12-14 14:18:00');
+
 -- --------------------------------------------------------
 
 --
--- Table structure for table `password_resets`
+-- Structure de la table `password_resets`
 --
 
 CREATE TABLE `password_resets` (
@@ -318,7 +362,7 @@ CREATE TABLE `password_resets` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `password_resets`
+-- Déchargement des données de la table `password_resets`
 --
 
 INSERT INTO `password_resets` (`id`, `user_id`, `token`, `expires_at`, `created_at`) VALUES
@@ -327,7 +371,7 @@ INSERT INTO `password_resets` (`id`, `user_id`, `token`, `expires_at`, `created_
 -- --------------------------------------------------------
 
 --
--- Table structure for table `produit`
+-- Structure de la table `produit`
 --
 
 CREATE TABLE `produit` (
@@ -343,7 +387,7 @@ CREATE TABLE `produit` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `produit`
+-- Déchargement des données de la table `produit`
 --
 
 INSERT INTO `produit` (`produit_id`, `name`, `description`, `price`, `stock`, `category`, `brand`, `created_at`, `updated_at`) VALUES
@@ -354,7 +398,7 @@ INSERT INTO `produit` (`produit_id`, `name`, `description`, `price`, `stock`, `c
 -- --------------------------------------------------------
 
 --
--- Table structure for table `purchase`
+-- Structure de la table `purchase`
 --
 
 CREATE TABLE `purchase` (
@@ -371,7 +415,7 @@ CREATE TABLE `purchase` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `reclamation`
+-- Structure de la table `reclamation`
 --
 
 CREATE TABLE `reclamation` (
@@ -388,7 +432,7 @@ CREATE TABLE `reclamation` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `reponse`
+-- Structure de la table `reponse`
 --
 
 CREATE TABLE `reponse` (
@@ -403,7 +447,7 @@ CREATE TABLE `reponse` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `skins`
+-- Structure de la table `skins`
 --
 
 CREATE TABLE `skins` (
@@ -420,7 +464,7 @@ CREATE TABLE `skins` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `skins`
+-- Déchargement des données de la table `skins`
 --
 
 INSERT INTO `skins` (`skin_id`, `owner_id`, `name`, `price`, `created_at`, `image`, `description`, `category`, `is_listed`, `is_deleted`) VALUES
@@ -449,12 +493,13 @@ INSERT INTO `skins` (`skin_id`, `owner_id`, `name`, `price`, `created_at`, `imag
 (73, 17, 'reaver phanthom', 50.00, '2025-12-13 15:05:28', 'images/skins/skin_693d80b834594.jpg', 'best skin', 'valorant', 1, 0),
 (74, 17, 'dragon lore', 1200.00, '2025-12-13 15:05:59', 'images/skins/skin_693d80d723698.jpg', 'the dragon lore', 'cs2', 1, 0),
 (75, 11, 'test', 500.00, '2025-12-13 15:42:14', 'images/skins/skin_693d8956879b7.png', 'hiiiii', 'custom', 0, 0),
-(76, 11, 'Miss', 500.00, '2025-12-13 15:51:18', 'images/skins/skin_693d8b76c3240.png', 'hiii', 'custom', 0, 0);
+(76, 11, 'Miss', 500.00, '2025-12-13 15:51:18', 'images/skins/skin_693d8b76c3240.png', 'hiii', 'custom', 0, 0),
+(77, 19, 'traaaade', 80.00, '2025-12-14 13:20:22', 'images/skins/skin_693eb9968a841.png', 'hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh', 'valorant', 1, 0);
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `subscribers`
+-- Structure de la table `subscribers`
 --
 
 CREATE TABLE `subscribers` (
@@ -466,7 +511,7 @@ CREATE TABLE `subscribers` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `subscribers`
+-- Déchargement des données de la table `subscribers`
 --
 
 INSERT INTO `subscribers` (`id`, `email`, `category_id`, `created_at`, `categories`) VALUES
@@ -475,7 +520,7 @@ INSERT INTO `subscribers` (`id`, `email`, `category_id`, `created_at`, `categori
 -- --------------------------------------------------------
 
 --
--- Table structure for table `tickets`
+-- Structure de la table `tickets`
 --
 
 CREATE TABLE `tickets` (
@@ -490,10 +535,22 @@ CREATE TABLE `tickets` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Déchargement des données de la table `tickets`
+--
+
+INSERT INTO `tickets` (`id_ticket`, `id_participation`, `id_evenement`, `user_id`, `token`, `qr_code_path`, `status`, `created_at`, `updated_at`) VALUES
+(2, 8, 8, NULL, 'TKT-1F3AE50C8F', 'qrcodes/ticket_8_8_1765637521.png', 'active', '2025-12-13 14:52:01', '2025-12-13 14:52:01'),
+(3, 9, 8, NULL, 'TKT-C67E942E16', 'qrcodes/ticket_9_8_1765637554.png', 'active', '2025-12-13 14:52:34', '2025-12-13 14:52:34'),
+(5, 11, 9, NULL, 'TKT-B0B49475B5', 'qrcodes/ticket_11_9_1765707280.png', 'active', '2025-12-14 10:14:40', '2025-12-14 10:14:40'),
+(6, 12, 10, NULL, 'TKT-28781C466C', 'qrcodes/ticket_12_10_1765709930.png', 'active', '2025-12-14 10:58:50', '2025-12-14 10:58:50'),
+(7, 13, 11, NULL, 'TKT-C3BFB2A75B', 'qrcodes/ticket_13_11_1765713059.png', 'active', '2025-12-14 11:50:59', '2025-12-14 11:50:59'),
+(8, 14, 12, NULL, 'TKT-08FA292907', 'qrcodes/ticket_14_12_1765718280.png', 'active', '2025-12-14 13:18:01', '2025-12-14 13:18:01');
+
 -- --------------------------------------------------------
 
 --
--- Table structure for table `trade`
+-- Structure de la table `trade`
 --
 
 CREATE TABLE `trade` (
@@ -506,7 +563,7 @@ CREATE TABLE `trade` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `trade`
+-- Déchargement des données de la table `trade`
 --
 
 INSERT INTO `trade` (`trade_id`, `buyer_id`, `seller_id`, `skin_id`, `trade_date`, `trade_type`) VALUES
@@ -531,7 +588,7 @@ INSERT INTO `trade` (`trade_id`, `buyer_id`, `seller_id`, `skin_id`, `trade_date
 -- --------------------------------------------------------
 
 --
--- Table structure for table `trade_conversations`
+-- Structure de la table `trade_conversations`
 --
 
 CREATE TABLE `trade_conversations` (
@@ -548,7 +605,7 @@ CREATE TABLE `trade_conversations` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `trade_conversations`
+-- Déchargement des données de la table `trade_conversations`
 --
 
 INSERT INTO `trade_conversations` (`id`, `skin_id`, `sender_id`, `receiver_id`, `message`, `image_path`, `negotiation_id`, `is_deleted`, `updated_at`, `created_at`) VALUES
@@ -561,7 +618,7 @@ INSERT INTO `trade_conversations` (`id`, `skin_id`, `sender_id`, `receiver_id`, 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `trade_history`
+-- Structure de la table `trade_history`
 --
 
 CREATE TABLE `trade_history` (
@@ -578,11 +635,10 @@ CREATE TABLE `trade_history` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `trade_history`
+-- Déchargement des données de la table `trade_history`
 --
 
 INSERT INTO `trade_history` (`id`, `user_id`, `skin_id`, `action`, `skin_name`, `skin_price`, `skin_category`, `negotiation_id`, `created_at`, `visible_in_trading`) VALUES
-(6, 7, 4, 'created', 'zaeaze', 7878.00, 'dsqd', NULL, '2025-11-18 15:21:07', 1),
 (31, 8, 30, 'created', 'erz', 454.00, 'custom', NULL, '2025-11-21 23:44:28', 1),
 (40, 11, 33, 'created', 'sqdqs', 568.00, 'custom', NULL, '2025-11-26 15:16:56', 1),
 (41, 11, 32, 'bought', 'ddfsdf', 5785.00, 'custom', NULL, '2025-11-26 15:17:03', 1),
@@ -631,12 +687,13 @@ INSERT INTO `trade_history` (`id`, `user_id`, `skin_id`, `action`, `skin_name`, 
 (211, 4, 75, 'trade', 'test', 500.00, 'custom', 'neg_ok_693d89ca3fbe2', '2025-12-13 15:44:10', 1),
 (212, 4, 76, 'created', 'Miss', 500.00, 'custom', NULL, '2025-12-13 15:51:18', 1),
 (213, 11, 76, 'trade', 'Miss', 500.00, 'custom', 'neg_ok_693d8c4f66355', '2025-12-13 15:54:55', 1),
-(214, 4, 76, 'trade', 'Miss', 500.00, 'custom', 'neg_ok_693d8c4f66355', '2025-12-13 15:54:55', 1);
+(214, 4, 76, 'trade', 'Miss', 500.00, 'custom', 'neg_ok_693d8c4f66355', '2025-12-13 15:54:55', 1),
+(215, 19, 77, 'created', 'traaaade', 80.00, 'valorant', NULL, '2025-12-14 13:20:22', 1);
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `users`
+-- Structure de la table `users`
 --
 
 CREATE TABLE `users` (
@@ -653,14 +710,13 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `users`
+-- Déchargement des données de la table `users`
 --
 
 INSERT INTO `users` (`id`, `username`, `email`, `google_id`, `dob`, `password`, `gender`, `role`, `status`, `image`) VALUES
 (4, 'MissTagada', 'dhrifmeriem1231230@gmail.com', NULL, '2005-12-10', '$2y$10$sKVc5L7xU9BC0MJNIGqVUuJDckzrsh4ZPGUfKSLyUWtW8.TwQspUK', 'Female', 'Admin', 'active', 'uploads/profiles/profile_693d89167d28a.png'),
 (5, 'Lou', 'lou@gmail.com', NULL, '2005-10-15', '$2y$10$tD4qViTauGoJXlaSVlG72egrt.RX74tUCMi.U8tauQZtECPT8H6Ra', 'Male', 'Gamer', 'active', NULL),
 (6, 'SkrrtTn', 'yassinebenmustapha05@gmail.com', '104603800901647082984', '2005-09-17', '$2y$10$TEb29MhesF/CSkw.n/D8u.kmcOD.kGnJqvs/FTXj1rB6fr1LwOI4C', 'Male', 'Admin', 'active', NULL),
-(7, 'Fifi', 'ferielayari19@gmail.com', NULL, '2005-07-27', '$2y$10$Bwl8JszmGDaIZudfmvlUTOnlOw/REOqL7pTqsVv2WxyeDdm49/ary', 'Female', 'Gamer', 'active', NULL),
 (8, 'kayokin', 'killerbeeftw1@gmail.com', NULL, '2025-11-27', '$2y$10$teF4Kc1GV9Zk1/Jk955bQOd8L2aJCFyMd4LSey0ttsYGXpi6PiBjy', 'Male', 'Gamer', 'active', 'uploads/profiles/profile_6920f9098caad.PNG'),
 (9, 'bo9', 'vgsdqsdqsbfvvbvcb@gmail.com', NULL, '2025-11-03', '$2y$10$LNzHa2MQEd3wZuVfg41/TeNKkX0fD8XgqF5z0AZq/1pPW3zNrGUeO', 'Male', 'Admin', 'active', 'uploads/profiles/profile_69280bf20f01f.png'),
 (10, 'ezra', 'ezra@gmail.com', NULL, '2025-11-05', '$2y$10$JH4Hqkn5A.U8gCPWvWzrTepgGrh3CRKIHAA7hj9xC0n80qLs5v4Qq', 'Male', 'Gamer', 'active', NULL),
@@ -671,14 +727,15 @@ INSERT INTO `users` (`id`, `username`, `email`, `google_id`, `dob`, `password`, 
 (15, 'zeaze', 'vgsdqsdqsezbfvvbvcb@gmail.com', NULL, '2025-12-04', '$2y$10$LMJTsyy9YxQFou8CiK8uTuDfuaJrvt73I3LEa5BuPFAOZ3XpZSzp2', 'Male', 'Gamer', 'pending', NULL),
 (16, 'bombaklat', 'bombaklat404@gmail.com', '102069229130088650245', '0000-00-00', '$2y$10$Vz.4HLYMj00tyvBBAdIBUOiDmjI7cIH60USjIr7gJnkTmvsNVYJvK', NULL, 'Gamer', 'active', NULL),
 (17, 'amalhl', 'hlamal224@gmail.com', '109635839546018261696', '2001-10-15', '$2y$10$Cz/VZUYb9kQMuQiTejJyru824qjgHuV6sxQ2J8iJx53hVWPaKneqq', NULL, 'Gamer', 'active', 'uploads/profiles/profile_693d80e6e0aac.jpg'),
-(18, 'Feriel', 'misstagada1231230@gmail.com', NULL, '2004-05-17', '$2y$10$bsvhdp58U3RlXREFm8mTHuDE0bk2ADwJw6F4nx7JhPjp.hxEiLMY6', 'Male', 'Gamer', 'active', 'uploads/profiles/profile_693d8206e77b6.jpg');
+(18, 'Feriel', 'misstagada1231230@gmail.com', NULL, '2004-05-17', '$2y$10$bsvhdp58U3RlXREFm8mTHuDE0bk2ADwJw6F4nx7JhPjp.hxEiLMY6', 'Male', 'Gamer', 'active', 'uploads/profiles/profile_693d8206e77b6.jpg'),
+(19, 'fifi', 'ferielayari19@gmail.com', NULL, '2005-07-28', '$2y$10$5XwL42uRDnOqeohjfv7BUOg7C7OLFA7IchQC46I/a5uJv7sfP.QP6', 'Female', 'admin', 'active', 'uploads/profiles/profile_693ebada28905.jpg');
 
 --
--- Indexes for dumped tables
+-- Index pour les tables déchargées
 --
 
 --
--- Indexes for table `article`
+-- Index pour la table `article`
 --
 ALTER TABLE `article`
   ADD PRIMARY KEY (`idArticle`),
@@ -686,7 +743,7 @@ ALTER TABLE `article`
   ADD KEY `idx_article_categorie` (`idCategorie`);
 
 --
--- Indexes for table `article_history`
+-- Index pour la table `article_history`
 --
 ALTER TABLE `article_history`
   ADD PRIMARY KEY (`id_history`),
@@ -696,21 +753,21 @@ ALTER TABLE `article_history`
   ADD KEY `fk_article_history_categorie` (`idCategorie`);
 
 --
--- Indexes for table `categorie`
+-- Index pour la table `categorie`
 --
 ALTER TABLE `categorie`
   ADD PRIMARY KEY (`idCategorie`),
   ADD KEY `fk_categorie_created_by` (`created_by`);
 
 --
--- Indexes for table `charity_votes`
+-- Index pour la table `charity_votes`
 --
 ALTER TABLE `charity_votes`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `uniq_user` (`user_id`);
 
 --
--- Indexes for table `comment`
+-- Index pour la table `comment`
 --
 ALTER TABLE `comment`
   ADD PRIMARY KEY (`id_comment`),
@@ -722,7 +779,7 @@ ALTER TABLE `comment`
   ADD KEY `idx_reported` (`is_reported`);
 
 --
--- Indexes for table `comments`
+-- Index pour la table `comments`
 --
 ALTER TABLE `comments`
   ADD PRIMARY KEY (`idComment`),
@@ -730,7 +787,7 @@ ALTER TABLE `comments`
   ADD KEY `fk_comments_users` (`user_id`);
 
 --
--- Indexes for table `comment_interaction`
+-- Index pour la table `comment_interaction`
 --
 ALTER TABLE `comment_interaction`
   ADD PRIMARY KEY (`id_interaction`),
@@ -740,7 +797,7 @@ ALTER TABLE `comment_interaction`
   ADD KEY `idx_user_email` (`user_email`);
 
 --
--- Indexes for table `email_verifications`
+-- Index pour la table `email_verifications`
 --
 ALTER TABLE `email_verifications`
   ADD PRIMARY KEY (`id`),
@@ -748,7 +805,7 @@ ALTER TABLE `email_verifications`
   ADD KEY `user_id` (`user_id`);
 
 --
--- Indexes for table `evenement`
+-- Index pour la table `evenement`
 --
 ALTER TABLE `evenement`
   ADD PRIMARY KEY (`id_evenement`),
@@ -758,7 +815,7 @@ ALTER TABLE `evenement`
   ADD KEY `idx_createur_email` (`createur_email`);
 
 --
--- Indexes for table `event_statistics`
+-- Index pour la table `event_statistics`
 --
 ALTER TABLE `event_statistics`
   ADD PRIMARY KEY (`id_statistic`),
@@ -768,7 +825,7 @@ ALTER TABLE `event_statistics`
   ADD KEY `idx_creator_id` (`creator_id`);
 
 --
--- Indexes for table `participation`
+-- Index pour la table `participation`
 --
 ALTER TABLE `participation`
   ADD PRIMARY KEY (`id_participation`),
@@ -778,7 +835,7 @@ ALTER TABLE `participation`
   ADD KEY `idx_email_participant` (`email_participant`);
 
 --
--- Indexes for table `password_resets`
+-- Index pour la table `password_resets`
 --
 ALTER TABLE `password_resets`
   ADD PRIMARY KEY (`id`),
@@ -786,13 +843,13 @@ ALTER TABLE `password_resets`
   ADD KEY `user_id` (`user_id`);
 
 --
--- Indexes for table `produit`
+-- Index pour la table `produit`
 --
 ALTER TABLE `produit`
   ADD PRIMARY KEY (`produit_id`);
 
 --
--- Indexes for table `purchase`
+-- Index pour la table `purchase`
 --
 ALTER TABLE `purchase`
   ADD PRIMARY KEY (`purchase_id`),
@@ -802,14 +859,14 @@ ALTER TABLE `purchase`
   ADD KEY `idx_purchase_date` (`purchaseDate`);
 
 --
--- Indexes for table `reclamation`
+-- Index pour la table `reclamation`
 --
 ALTER TABLE `reclamation`
   ADD PRIMARY KEY (`id_reclamation`),
   ADD KEY `idx_reclamation_user` (`id_utilisateur`);
 
 --
--- Indexes for table `reponse`
+-- Index pour la table `reponse`
 --
 ALTER TABLE `reponse`
   ADD PRIMARY KEY (`id_reponse`),
@@ -817,14 +874,14 @@ ALTER TABLE `reponse`
   ADD KEY `idx_reponse_reclamation` (`id_reclamation`);
 
 --
--- Indexes for table `skins`
+-- Index pour la table `skins`
 --
 ALTER TABLE `skins`
   ADD PRIMARY KEY (`skin_id`),
   ADD KEY `idx_skins_owner` (`owner_id`);
 
 --
--- Indexes for table `subscribers`
+-- Index pour la table `subscribers`
 --
 ALTER TABLE `subscribers`
   ADD PRIMARY KEY (`id`),
@@ -832,7 +889,7 @@ ALTER TABLE `subscribers`
   ADD KEY `category_id` (`category_id`);
 
 --
--- Indexes for table `tickets`
+-- Index pour la table `tickets`
 --
 ALTER TABLE `tickets`
   ADD PRIMARY KEY (`id_ticket`),
@@ -845,7 +902,7 @@ ALTER TABLE `tickets`
   ADD KEY `idx_user_id` (`user_id`);
 
 --
--- Indexes for table `trade`
+-- Index pour la table `trade`
 --
 ALTER TABLE `trade`
   ADD PRIMARY KEY (`trade_id`),
@@ -854,7 +911,7 @@ ALTER TABLE `trade`
   ADD KEY `idx_trade_seller` (`seller_id`);
 
 --
--- Indexes for table `trade_conversations`
+-- Index pour la table `trade_conversations`
 --
 ALTER TABLE `trade_conversations`
   ADD PRIMARY KEY (`id`),
@@ -865,7 +922,7 @@ ALTER TABLE `trade_conversations`
   ADD KEY `idx_negotiation_id` (`negotiation_id`);
 
 --
--- Indexes for table `trade_history`
+-- Index pour la table `trade_history`
 --
 ALTER TABLE `trade_history`
   ADD PRIMARY KEY (`id`),
@@ -876,7 +933,7 @@ ALTER TABLE `trade_history`
   ADD KEY `idx_negotiation_id` (`negotiation_id`);
 
 --
--- Indexes for table `users`
+-- Index pour la table `users`
 --
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
@@ -887,160 +944,160 @@ ALTER TABLE `users`
   ADD KEY `idx_google_id` (`google_id`);
 
 --
--- AUTO_INCREMENT for dumped tables
+-- AUTO_INCREMENT pour les tables déchargées
 --
 
 --
--- AUTO_INCREMENT for table `article`
+-- AUTO_INCREMENT pour la table `article`
 --
 ALTER TABLE `article`
   MODIFY `idArticle` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 
 --
--- AUTO_INCREMENT for table `article_history`
+-- AUTO_INCREMENT pour la table `article_history`
 --
 ALTER TABLE `article_history`
   MODIFY `id_history` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
--- AUTO_INCREMENT for table `categorie`
+-- AUTO_INCREMENT pour la table `categorie`
 --
 ALTER TABLE `categorie`
   MODIFY `idCategorie` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
--- AUTO_INCREMENT for table `charity_votes`
+-- AUTO_INCREMENT pour la table `charity_votes`
 --
 ALTER TABLE `charity_votes`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `comment`
+-- AUTO_INCREMENT pour la table `comment`
 --
 ALTER TABLE `comment`
-  MODIFY `id_comment` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_comment` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
--- AUTO_INCREMENT for table `comments`
+-- AUTO_INCREMENT pour la table `comments`
 --
 ALTER TABLE `comments`
   MODIFY `idComment` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
--- AUTO_INCREMENT for table `comment_interaction`
+-- AUTO_INCREMENT pour la table `comment_interaction`
 --
 ALTER TABLE `comment_interaction`
   MODIFY `id_interaction` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `email_verifications`
+-- AUTO_INCREMENT pour la table `email_verifications`
 --
 ALTER TABLE `email_verifications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
--- AUTO_INCREMENT for table `evenement`
+-- AUTO_INCREMENT pour la table `evenement`
 --
 ALTER TABLE `evenement`
-  MODIFY `id_evenement` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id_evenement` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
--- AUTO_INCREMENT for table `event_statistics`
+-- AUTO_INCREMENT pour la table `event_statistics`
 --
 ALTER TABLE `event_statistics`
-  MODIFY `id_statistic` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id_statistic` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
--- AUTO_INCREMENT for table `participation`
+-- AUTO_INCREMENT pour la table `participation`
 --
 ALTER TABLE `participation`
-  MODIFY `id_participation` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id_participation` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
--- AUTO_INCREMENT for table `password_resets`
+-- AUTO_INCREMENT pour la table `password_resets`
 --
 ALTER TABLE `password_resets`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
--- AUTO_INCREMENT for table `produit`
+-- AUTO_INCREMENT pour la table `produit`
 --
 ALTER TABLE `produit`
   MODIFY `produit_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
--- AUTO_INCREMENT for table `purchase`
+-- AUTO_INCREMENT pour la table `purchase`
 --
 ALTER TABLE `purchase`
   MODIFY `purchase_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `reclamation`
+-- AUTO_INCREMENT pour la table `reclamation`
 --
 ALTER TABLE `reclamation`
   MODIFY `id_reclamation` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `reponse`
+-- AUTO_INCREMENT pour la table `reponse`
 --
 ALTER TABLE `reponse`
   MODIFY `id_reponse` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `skins`
+-- AUTO_INCREMENT pour la table `skins`
 --
 ALTER TABLE `skins`
-  MODIFY `skin_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=77;
+  MODIFY `skin_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=78;
 
 --
--- AUTO_INCREMENT for table `subscribers`
+-- AUTO_INCREMENT pour la table `subscribers`
 --
 ALTER TABLE `subscribers`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
--- AUTO_INCREMENT for table `tickets`
+-- AUTO_INCREMENT pour la table `tickets`
 --
 ALTER TABLE `tickets`
-  MODIFY `id_ticket` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_ticket` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
--- AUTO_INCREMENT for table `trade`
+-- AUTO_INCREMENT pour la table `trade`
 --
 ALTER TABLE `trade`
   MODIFY `trade_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
--- AUTO_INCREMENT for table `trade_conversations`
+-- AUTO_INCREMENT pour la table `trade_conversations`
 --
 ALTER TABLE `trade_conversations`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=121;
 
 --
--- AUTO_INCREMENT for table `trade_history`
+-- AUTO_INCREMENT pour la table `trade_history`
 --
 ALTER TABLE `trade_history`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=215;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=216;
 
 --
--- AUTO_INCREMENT for table `users`
+-- AUTO_INCREMENT pour la table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
--- Constraints for dumped tables
+-- Contraintes pour les tables déchargées
 --
 
 --
--- Constraints for table `article`
+-- Contraintes pour la table `article`
 --
 ALTER TABLE `article`
   ADD CONSTRAINT `fk_article_categorie` FOREIGN KEY (`idCategorie`) REFERENCES `categorie` (`idCategorie`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_article_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE CASCADE;
 
 --
--- Constraints for table `article_history`
+-- Contraintes pour la table `article_history`
 --
 ALTER TABLE `article_history`
   ADD CONSTRAINT `article_history_ibfk_2` FOREIGN KEY (`edited_by`) REFERENCES `users` (`id`) ON DELETE CASCADE,
@@ -1048,21 +1105,14 @@ ALTER TABLE `article_history`
   ADD CONSTRAINT `fk_article_history_categorie` FOREIGN KEY (`idCategorie`) REFERENCES `categorie` (`idCategorie`) ON DELETE SET NULL;
 
 --
--- Constraints for table `categorie`
+-- Contraintes pour la table `categorie`
 --
 ALTER TABLE `categorie`
   ADD CONSTRAINT `fk_categorie_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_categorie_user` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
 --
--- Constraints for table `comment`
---
-ALTER TABLE `comment`
-  ADD CONSTRAINT `fk_comment_evenement` FOREIGN KEY (`id_evenement`) REFERENCES `evenement` (`id_evenement`) ON DELETE CASCADE,
-  ADD CONSTRAINT `fk_comment_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `comments`
+-- Contraintes pour la table `comments`
 --
 ALTER TABLE `comments`
   ADD CONSTRAINT `comments_ibfk_1` FOREIGN KEY (`article_id`) REFERENCES `article` (`idArticle`) ON DELETE CASCADE,
@@ -1071,7 +1121,7 @@ ALTER TABLE `comments`
   ADD CONSTRAINT `fk_comments_users` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
--- Constraints for table `comment_interaction`
+-- Contraintes pour la table `comment_interaction`
 --
 ALTER TABLE `comment_interaction`
   ADD CONSTRAINT `fk_comment_interaction_comment` FOREIGN KEY (`id_comment`) REFERENCES `comment` (`id_comment`) ON DELETE CASCADE,
@@ -1080,72 +1130,72 @@ ALTER TABLE `comment_interaction`
   ADD CONSTRAINT `fk_interaction_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
--- Constraints for table `email_verifications`
+-- Contraintes pour la table `email_verifications`
 --
 ALTER TABLE `email_verifications`
   ADD CONSTRAINT `email_verifications_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
--- Constraints for table `evenement`
+-- Contraintes pour la table `evenement`
 --
 ALTER TABLE `evenement`
   ADD CONSTRAINT `fk_evenement_createur` FOREIGN KEY (`createur_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
 --
--- Constraints for table `event_statistics`
+-- Contraintes pour la table `event_statistics`
 --
 ALTER TABLE `event_statistics`
   ADD CONSTRAINT `fk_event_statistics_createur` FOREIGN KEY (`creator_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_event_statistics_evenement` FOREIGN KEY (`id_evenement`) REFERENCES `evenement` (`id_evenement`) ON DELETE CASCADE;
 
 --
--- Constraints for table `participation`
+-- Contraintes pour la table `participation`
 --
 ALTER TABLE `participation`
   ADD CONSTRAINT `fk_participation_evenement` FOREIGN KEY (`id_evenement`) REFERENCES `evenement` (`id_evenement`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_participation_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
--- Constraints for table `password_resets`
+-- Contraintes pour la table `password_resets`
 --
 ALTER TABLE `password_resets`
   ADD CONSTRAINT `password_resets_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
--- Constraints for table `purchase`
+-- Contraintes pour la table `purchase`
 --
 ALTER TABLE `purchase`
   ADD CONSTRAINT `purchase_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `purchase_ibfk_2` FOREIGN KEY (`produit_id`) REFERENCES `produit` (`produit_id`) ON DELETE CASCADE;
 
 --
--- Constraints for table `reclamation`
+-- Contraintes pour la table `reclamation`
 --
 ALTER TABLE `reclamation`
   ADD CONSTRAINT `reclamation_ibfk_1` FOREIGN KEY (`id_utilisateur`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
--- Constraints for table `reponse`
+-- Contraintes pour la table `reponse`
 --
 ALTER TABLE `reponse`
   ADD CONSTRAINT `reponse_ibfk_1` FOREIGN KEY (`id_reclamation`) REFERENCES `reclamation` (`id_reclamation`) ON DELETE CASCADE,
   ADD CONSTRAINT `reponse_ibfk_2` FOREIGN KEY (`id_admin`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
--- Constraints for table `skins`
+-- Contraintes pour la table `skins`
 --
 ALTER TABLE `skins`
   ADD CONSTRAINT `skins_ibfk_1` FOREIGN KEY (`owner_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
--- Constraints for table `subscribers`
+-- Contraintes pour la table `subscribers`
 --
 ALTER TABLE `subscribers`
   ADD CONSTRAINT `fk_subscribers_categorie` FOREIGN KEY (`category_id`) REFERENCES `categorie` (`idCategorie`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_subscribers_user` FOREIGN KEY (`email`) REFERENCES `users` (`email`) ON DELETE CASCADE;
 
 --
--- Constraints for table `tickets`
+-- Contraintes pour la table `tickets`
 --
 ALTER TABLE `tickets`
   ADD CONSTRAINT `fk_tickets_evenement` FOREIGN KEY (`id_evenement`) REFERENCES `evenement` (`id_evenement`) ON DELETE CASCADE,
@@ -1153,21 +1203,21 @@ ALTER TABLE `tickets`
   ADD CONSTRAINT `fk_tickets_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
--- Constraints for table `trade`
+-- Contraintes pour la table `trade`
 --
 ALTER TABLE `trade`
   ADD CONSTRAINT `trade_ibfk_1` FOREIGN KEY (`buyer_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `trade_ibfk_3` FOREIGN KEY (`skin_id`) REFERENCES `skins` (`skin_id`) ON DELETE CASCADE;
 
 --
--- Constraints for table `trade_conversations`
+-- Contraintes pour la table `trade_conversations`
 --
 ALTER TABLE `trade_conversations`
   ADD CONSTRAINT `trade_conversations_ibfk_1` FOREIGN KEY (`skin_id`) REFERENCES `skins` (`skin_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `trade_conversations_ibfk_2` FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
--- Constraints for table `trade_history`
+-- Contraintes pour la table `trade_history`
 --
 ALTER TABLE `trade_history`
   ADD CONSTRAINT `trade_history_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
