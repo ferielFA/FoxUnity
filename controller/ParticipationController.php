@@ -195,8 +195,8 @@ class ParticipationController {
                     new DateTime($row['date_debut']),
                     new DateTime($row['date_fin']),
                     $row['lieu'],
-                    $row['creator_id'],
-                    $row['createur_email'],
+                    $row['creator_id'] ?? null,
+                    $row['createur_email'] ?? null,
                     $row['statut']
                 );
             }

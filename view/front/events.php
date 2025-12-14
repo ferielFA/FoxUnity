@@ -10,13 +10,18 @@ $participationController = new ParticipationController();
 $isLoggedIn = UserController::isLoggedIn();
 $currentUser = UserController::getCurrentUser();
 
+$userImage = null;
+if ($currentUser && $currentUser->getImage()) {
+    $userImage = '../../view/' . $currentUser->getImage();
+}
+
 $message = '';
 $showParticipationForm = false;
 $showCreateEventForm = false;
 $selectedEvent = null;
 $showMyEvents = isset($_GET['view']) && $_GET['view'] === 'my';
 $showHistory = isset($_GET['view']) && $_GET['view'] === 'history';
-$currentUserEmail = $isLoggedIn ? $currentUser->getEmail() : (isset($_GET['email']) ? htmlspecialchars($_GET['email']) : '');
+$currentUserEmail = ($isLoggedIn && $currentUser) ? $currentUser->getEmail() : (isset($_GET['email']) ? htmlspecialchars($_GET['email']) : '');
 
 // Handle create event form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -25,8 +30,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     error_log("POST data: " . print_r($_POST, true));
     
     if ($_POST['action'] === 'create_event') {
-        $creatorId = $isLoggedIn ? $currentUser->getId() : null;
-        $creatorEmail = $isLoggedIn ? $currentUser->getEmail() : htmlspecialchars($_POST['createur_email']);
+        $creatorId = ($isLoggedIn && $currentUser) ? $currentUser->getId() : null;
+        $creatorEmail = ($isLoggedIn && $currentUser) ? $currentUser->getEmail() : htmlspecialchars($_POST['createur_email']);
         
         $evenement = new Evenement(
             null,
@@ -42,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         if ($eventController->creer($evenement)) {
             $message = '<div class="alert success"><i class="fas fa-check-circle"></i> Event created successfully!</div>';
-            $redirectEmail = $isLoggedIn ? $currentUser->getEmail() : $_POST['createur_email'];
+            $redirectEmail = ($isLoggedIn && $currentUser) ? $currentUser->getEmail() : $_POST['createur_email'];
             header("Location: events.php?view=my&email=" . urlencode($redirectEmail) . "&created=1");
             exit;
         } else {
@@ -65,9 +70,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if ($isAlreadyRegistered) {
             $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> You are already registered for this event!</div>';
         } else {
-            $participantId = $isLoggedIn ? $currentUser->getId() : null;
-            $participantName = $isLoggedIn ? $currentUser->getUsername() : htmlspecialchars($_POST['nom_participant']);
-            $participantEmail = $isLoggedIn ? $currentUser->getEmail() : htmlspecialchars($_POST['email_participant']);
+            $participantId = ($isLoggedIn && $currentUser) ? $currentUser->getId() : null;
+            $participantName = ($isLoggedIn && $currentUser) ? $currentUser->getUsername() : htmlspecialchars($_POST['nom_participant']);
+            $participantEmail = ($isLoggedIn && $currentUser) ? $currentUser->getEmail() : htmlspecialchars($_POST['email_participant']);
             
             $participation = new Participation(
                 null,
@@ -96,7 +101,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 // Handle "Join Event" button click
 if (isset($_GET['join']) && is_numeric($_GET['join'])) {
     $selectedEvent = $eventController->lireParId((int)$_GET['join']);
-    $showParticipationForm = $selectedEvent !== null;
+    
+    // If user is logged in, automatically register them without showing form
+    if ($isLoggedIn && $currentUser && $selectedEvent) {
+        // Check if already registered
+        $isAlreadyRegistered = $participationController->verifierInscription(
+            $currentUser->getEmail(), 
+            (int)$_GET['join']
+        );
+        
+        if ($isAlreadyRegistered) {
+            $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> You are already registered for this event!</div>';
+        } else {
+            // Auto-register the logged-in user
+            $participation = new Participation(
+                null,
+                (int)$_GET['join'],
+                $currentUser->getId(),
+                $currentUser->getUsername(),
+                $currentUser->getEmail(),
+                new DateTime()
+            );
+            
+            $result = $participationController->inscrire($participation);
+            
+            if ($result) {
+                $message = '<div class="alert success"><i class="fas fa-check-circle"></i> Registration confirmed! Welcome aboard!</div>';
+                header("Location: events.php?success=1");
+                exit;
+            } else {
+                $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> Error occurred during registration.</div>';
+            }
+        }
+    } else {
+        // Show form only if user is not logged in
+        $showParticipationForm = $selectedEvent !== null;
+    }
 }
 
 // Handle "Create Event" button click
@@ -107,25 +147,27 @@ if (isset($_GET['create'])) {
 // Get events based on filter
 if ($showHistory) {
     // Show events user has participated in
-    if (!$currentUserEmail && !$isLoggedIn) {
-        $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> Please login or provide your email to view your participation history.</div>';
+    if (!$isLoggedIn) {
+        $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> Please login to view your participation history.</div>';
         $evenements = [];
     } else {
-        $identifier = $isLoggedIn ? $currentUser->getId() : $currentUserEmail;
-        $participatedEvents = $participationController->getParticipatedEvents($identifier);
-        $evenements = array_map(function($event) use ($participationController) {
-            $nbParticipants = count($participationController->lireParEvenement($event->getIdEvenement()));
-            return ['evenement' => $event, 'nb_participants' => $nbParticipants];
-        }, $participatedEvents);
+        $identifier = ($currentUser) ? $currentUser->getId() : null;
+        if ($identifier) {
+            $participatedEvents = $participationController->getParticipatedEvents($identifier);
+            $evenements = array_map(function($event) use ($participationController) {
+                $nbParticipants = count($participationController->lireParEvenement($event->getIdEvenement()));
+                return ['evenement' => $event, 'nb_participants' => $nbParticipants];
+            }, $participatedEvents);
+        } else {
+            $evenements = [];
+        }
     }
 } elseif ($showMyEvents) {
-    if ($isLoggedIn) {
+    if ($isLoggedIn && $currentUser) {
         // Use user ID for logged-in users
         $evenements = $eventController->lireParCreateurId($currentUser->getId());
-    } elseif (!empty($currentUserEmail)) {
-        // Fallback to email for non-logged-in users
-        $evenements = $eventController->lireParCreateur($currentUserEmail);
     } else {
+        $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> Please login to view your events.</div>';
         $evenements = [];
     }
 } else {
@@ -165,6 +207,156 @@ unset($eventItem); // Break reference
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        /* User Dropdown Menu Styles */
+        .user-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .username-display {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            padding: 5px 10px;
+            border-radius: 8px;
+        }
+
+        .username-display:hover {
+            background: rgba(245, 194, 66, 0.1);
+        }
+
+        .username-display img {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #f5c242;
+        }
+
+        .username-display span {
+            color: #f5c242;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .username-display i.fa-chevron-down {
+            font-size: 12px;
+            color: #f5c242;
+            transition: transform 0.3s ease;
+        }
+
+        .username-display i.fa-user-circle {
+            font-size: 24px;
+            color: #f5c242;
+        }
+
+        .user-dropdown.active .username-display i.fa-chevron-down {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 10px;
+            background: rgba(20, 20, 20, 0.98);
+            border: 2px solid rgba(245, 194, 66, 0.3);
+            border-radius: 12px;
+            min-width: 200px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .user-dropdown.active .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-item {
+            padding: 12px 15px;
+            color: #fff;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(245, 194, 66, 0.1);
+            border-left-color: #f5c242;
+        }
+
+        .dropdown-item i {
+            font-size: 16px;
+            color: #f5c242;
+            width: 20px;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: rgba(245, 194, 66, 0.2);
+            margin: 5px 0;
+        }
+
+        .dropdown-item.logout {
+            color: #ff4444;
+        }
+
+        .dropdown-item.logout i {
+            color: #ff4444;
+        }
+
+        .dropdown-item.logout:hover {
+            background: rgba(255, 68, 68, 0.1);
+            border-left-color: #ff4444;
+        }
+
+        .cart-icon {
+            color: #f5c242 !important;
+            position: relative;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .cart-icon:hover {
+            color: #f39c12 !important;
+            transform: translateY(-2px);
+        }
+        
+        .cart-icon i {
+            color: #f5c242;
+            font-size: 18px;
+        }
+        
+        .cart-count {
+            background: linear-gradient(135deg, #f5c242, #f39c12);
+            color: #000;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: 700;
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            min-width: 18px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(245, 194, 66, 0.4);
+        }
+
         /* View Toggle Buttons */
         .view-toggle {
             display: flex;
@@ -620,8 +812,12 @@ unset($eventItem); // Break reference
         }
 
         .events-container {
-            display: grid;
+            display: <?php echo $showHistory ? 'flex' : 'grid'; ?>;
+            <?php if ($showHistory): ?>
+            flex-direction: column;
+            <?php else: ?>
             grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            <?php endif; ?>
             gap: 25px;
             max-width: 1400px;
             margin: 0 auto;
@@ -856,8 +1052,63 @@ unset($eventItem); // Break reference
                 <i class="fas fa-language"></i>
                 <span id="currentLang">FR</span>
             </button>
-            <a href="Login.php" class="login-register-link" data-lang-en="Login / Register" data-lang-fr="Connexion / S'inscrire">
-                <i class="fas fa-user"></i> <span>Login / Register</span>
+            
+            <div class="user-dropdown" id="userDropdown">
+                <div class="username-display">
+                    <?php if ($isLoggedIn && $currentUser): ?>
+                        <?php if ($userImage): ?>
+                            <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Profile">
+                        <?php else: ?>
+                            <i class="fas fa-user-circle"></i>
+                        <?php endif; ?>
+                        <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
+                    <?php else: ?>
+                        <i class="fas fa-user-circle"></i>
+                        <span>Guest</span>
+                    <?php endif; ?>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                
+                <div class="dropdown-menu">
+                    <?php if ($isLoggedIn && $currentUser): ?>
+                    <a href="profile.php" class="dropdown-item">
+                        <i class="fas fa-user"></i>
+                        <span>My Profile</span>
+                    </a>
+                    
+                    <a href="?view=history" class="dropdown-item">
+                        <i class="fas fa-history"></i>
+                        <span>Events History</span>
+                    </a>
+                    
+                    <?php 
+                    $userRole = strtolower($currentUser->getRole());
+                    if ($userRole === 'admin' || $userRole === 'superadmin'): 
+                    ?>
+                    <a href="../back/dashboard.php" class="dropdown-item">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <?php endif; ?>
+                    
+                    <div class="dropdown-divider"></div>
+                    
+                    <a href="logout.php" class="dropdown-item logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </a>
+                    <?php else: ?>
+                    <a href="login.php" class="dropdown-item">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>Login/Register</span>
+                    </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+            
+            <a href="panier.php" class="cart-icon">
+                <i class="fas fa-shopping-cart"></i> Cart
+                <span class="cart-count">0</span>
             </a>
         </div>
     </header>
@@ -873,54 +1124,74 @@ unset($eventItem); // Break reference
                     <p style="color: #cfd3d8; font-size: 0.95rem;" data-lang-en="Fill in the details below to create an event" data-lang-fr="Remplissez les détails ci-dessous pour créer un événement">Fill in the details below to create an event</p>
                 </div>
 
-                <form method="POST" action="" id="createEventForm" novalidate>
-                    <input type="hidden" name="action" value="create_event">
+                <?php if ($isLoggedIn): ?>
+                    <div style="background: rgba(245,194,66,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #f5c242;">
+                        <p style="color: #f5c242; margin: 0;">
+                            <i class="fas fa-user-circle"></i> 
+                            <span data-lang-en="Creating as: <?= htmlspecialchars($currentUser->getUsername()) ?>" data-lang-fr="Création en tant que: <?= htmlspecialchars($currentUser->getUsername()) ?>">
+                                Création en tant que: <strong><?= htmlspecialchars($currentUser->getUsername()) ?></strong>
+                            </span>
+                        </p>
+                    </div>
                     
-                    <div class="form-group">
-                        <label for="titre" data-lang-en="Event Title *" data-lang-fr="Titre de l'Événement *">Event Title *</label>
-                        <input type="text" id="titre" name="titre" placeholder="Enter event title" data-lang-en="Enter event title" data-lang-fr="Entrez le titre de l'événement">
-                        <div class="error-message" id="error-titre"></div>
-                    </div>
+                    <form method="POST" action="" id="createEventForm" novalidate>
+                        <input type="hidden" name="action" value="create_event">
+                        
+                        <div class="form-group">
+                            <label for="titre" data-lang-en="Event Title *" data-lang-fr="Titre de l'Événement *">Event Title *</label>
+                            <input type="text" id="titre" name="titre" placeholder="Enter event title" data-lang-en="Enter event title" data-lang-fr="Entrez le titre de l'événement">
+                            <div class="error-message" id="error-titre"></div>
+                        </div>
 
-                    <div class="form-group">
-                        <label for="description" data-lang-en="Description *" data-lang-fr="Description *">Description *</label>
-                        <textarea id="description" name="description" placeholder="Describe your event" data-lang-en="Describe your event" data-lang-fr="Décrivez votre événement" rows="4" style="width:100%; padding:14px 18px; background:rgba(255,255,255,0.05); border:2px solid rgba(255,255,255,0.1); border-radius:10px; color:#fff; font-size:1rem; font-family:'Poppins',sans-serif; resize:vertical;"></textarea>
-                        <div class="error-message" id="error-description"></div>
-                    </div>
+                        <div class="form-group">
+                            <label for="description" data-lang-en="Description *" data-lang-fr="Description *">Description *</label>
+                            <textarea id="description" name="description" placeholder="Describe your event" data-lang-en="Describe your event" data-lang-fr="Décrivez votre événement" rows="4" style="width:100%; padding:14px 18px; background:rgba(255,255,255,0.05); border:2px solid rgba(255,255,255,0.1); border-radius:10px; color:#fff; font-size:1rem; font-family:'Poppins',sans-serif; resize:vertical;"></textarea>
+                            <div class="error-message" id="error-description"></div>
+                        </div>
 
-                    <div class="form-group">
-                        <label for="date_debut" data-lang-en="Start Date & Time *" data-lang-fr="Date & Heure de Début *">Start Date & Time *</label>
-                        <input type="datetime-local" id="date_debut" name="date_debut">
-                        <div class="error-message" id="error-date_debut"></div>
-                    </div>
+                        <div class="form-group">
+                            <label for="date_debut" data-lang-en="Start Date & Time *" data-lang-fr="Date & Heure de Début *">Start Date & Time *</label>
+                            <input type="datetime-local" id="date_debut" name="date_debut">
+                            <div class="error-message" id="error-date_debut"></div>
+                        </div>
 
-                    <div class="form-group">
-                        <label for="date_fin" data-lang-en="End Date & Time *" data-lang-fr="Date & Heure de Fin *">End Date & Time *</label>
-                        <input type="datetime-local" id="date_fin" name="date_fin">
-                        <div class="error-message" id="error-date_fin"></div>
-                    </div>
+                        <div class="form-group">
+                            <label for="date_fin" data-lang-en="End Date & Time *" data-lang-fr="Date & Heure de Fin *">End Date & Time *</label>
+                            <input type="datetime-local" id="date_fin" name="date_fin">
+                            <div class="error-message" id="error-date_fin"></div>
+                        </div>
 
-                    <div class="form-group">
-                        <label for="lieu" data-lang-en="Location *" data-lang-fr="Lieu *">Location *</label>
-                        <input type="text" id="lieu" name="lieu" placeholder="Event location" data-lang-en="Event location" data-lang-fr="Lieu de l'événement">
-                        <div class="error-message" id="error-lieu"></div>
-                    </div>
+                        <div class="form-group">
+                            <label for="lieu" data-lang-en="Location *" data-lang-fr="Lieu *">Location *</label>
+                            <input type="text" id="lieu" name="lieu" placeholder="Event location" data-lang-en="Event location" data-lang-fr="Lieu de l'événement">
+                            <div class="error-message" id="error-lieu"></div>
+                        </div>
 
-                    <div class="form-group">
-                        <label for="createur_email" data-lang-en="Your Email (Creator) *" data-lang-fr="Votre Email (Créateur) *">Your Email (Creator) *</label>
-                        <input type="email" id="createur_email" name="createur_email" placeholder="your.email@example.com" data-lang-en="your.email@example.com" data-lang-fr="votre.email@exemple.com">
-                        <div class="error-message" id="error-createur_email"></div>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="submit" class="btn-submit" data-lang-en="Create Event" data-lang-fr="Créer l'Événement">
-                            <i class="fas fa-check-circle"></i> <span>Create Event</span>
-                        </button>
-                        <a href="events.php" class="btn-cancel" style="text-decoration:none; display:flex; align-items:center; justify-content:center;" data-lang-en="Cancel" data-lang-fr="Annuler">
+                        <div class="form-actions">
+                            <button type="submit" class="btn-submit" data-lang-en="Create Event" data-lang-fr="Créer l'Événement">
+                                <i class="fas fa-check-circle"></i> <span>Create Event</span>
+                            </button>
+                            <a href="events.php" class="btn-cancel" style="text-decoration:none; display:flex; align-items:center; justify-content:center;" data-lang-en="Cancel" data-lang-fr="Annuler">
+                                <i class="fas fa-times-circle"></i> <span>Cancel</span>
+                            </a>
+                        </div>
+                    </form>
+                <?php else: ?>
+                    <div style="text-align: center; padding: 40px 20px;">
+                        <i class="fas fa-lock" style="font-size: 3rem; color: #f5c242; margin-bottom: 15px;"></i>
+                        <h4 style="color: #fff; margin-bottom: 10px;" data-lang-en="Login Required" data-lang-fr="Connexion Requise">Connexion Requise</h4>
+                        <p style="color: #cfd3d8; margin-bottom: 20px;" data-lang-en="Please login to create events" data-lang-fr="Veuillez vous connecter pour créer des événements">
+                            Veuillez vous connecter pour créer des événements
+                        </p>
+                        <a href="Login.php?redirect=events.php?create=1" class="btn-submit" style="display: inline-block; text-decoration: none;" data-lang-en="Login / Register" data-lang-fr="Connexion / S'inscrire">
+                            <i class="fas fa-sign-in-alt"></i> <span>Connexion / S'inscrire</span>
+                        </a>
+                        <br><br>
+                        <a href="events.php" class="btn-cancel" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;" data-lang-en="Cancel" data-lang-fr="Annuler">
                             <i class="fas fa-times-circle"></i> <span>Cancel</span>
                         </a>
                     </div>
-                </form>
+                <?php endif; ?>
             </div>
         </div>
         <?php endif; ?>
@@ -999,11 +1270,6 @@ unset($eventItem); // Break reference
                             <i class="fas fa-user-circle"></i> <span>My Events</span>
                         </a>
                     <?php endif; ?>
-                    <?php if (!$showHistory): ?>
-                        <a href="#" onclick="showHistory(); return false;" class="btn-view-all" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);" data-lang-en="Participation History" data-lang-fr="Historique">
-                            <i class="fas fa-history"></i> <span>Participation History</span>
-                        </a>
-                    <?php endif; ?>
                 </div>
             </div>
 
@@ -1045,8 +1311,10 @@ unset($eventItem); // Break reference
             <!-- List View -->
             <div class="events-container" id="eventsContainer">
                 <?php 
+                // Show all events (upcoming, ongoing, and completed) unless viewing "My Events"
                 $displayedEvents = $showMyEvents ? $evenements : array_filter($evenements, function($item) {
-                    return $item['evenement']->getStatut() === 'upcoming';
+                    // Show upcoming, ongoing, and completed events (hide only cancelled)
+                    return $item['evenement']->getStatut() !== 'cancelled';
                 });
                 
                 if (empty($displayedEvents)): ?>
@@ -1377,25 +1645,13 @@ unset($eventItem); // Break reference
                     Validator.clearError('lieu');
                 }
                 
-                // Validate Creator Email
-                const createurEmail = document.getElementById('createur_email').value;
-                if (Validator.isEmpty(createurEmail)) {
-                    Validator.showError('createur_email', 'L\'email est obligatoire');
-                    isValid = false;
-                } else if (!Validator.isValidEmail(createurEmail)) {
-                    Validator.showError('createur_email', 'Format d\'email invalide (ex: exemple@domaine.com)');
-                    isValid = false;
-                } else {
-                    Validator.clearError('createur_email');
-                }
-                
                 if (isValid) {
                     this.submit();
                 }
             });
             
             // Real-time validation
-            ['titre', 'description', 'date_debut', 'date_fin', 'lieu', 'createur_email'].forEach(fieldId => {
+            ['titre', 'description', 'date_debut', 'date_fin', 'lieu'].forEach(fieldId => {
                 const field = document.getElementById(fieldId);
                 if (field) {
                     field.addEventListener('blur', function() {
@@ -1469,36 +1725,49 @@ unset($eventItem); // Break reference
     </script>
 
     <script>
-        // Function to prompt for email and redirect to My Events
+        // Function to redirect to My Events (requires login)
         function showMyEvents() {
-            const email = prompt('Enter your email to view your events:');
-            if (email && email.trim() !== '') {
-                // Basic email validation
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (emailRegex.test(email)) {
-                    window.location.href = '?view=my&email=' + encodeURIComponent(email);
-                } else {
-                    alert('Please enter a valid email address');
+            <?php if ($isLoggedIn): ?>
+                window.location.href = '?view=my';
+            <?php else: ?>
+                if (confirm('You need to login to view your events. Redirect to login page?')) {
+                    window.location.href = 'Login.php?redirect=events.php?view=my';
                 }
-            }
+            <?php endif; ?>
         }
 
-        // Function to prompt for email and redirect to History
+        // Function to redirect to History (requires login)
         function showHistory() {
-            const email = prompt('Enter your email to view your participation history:');
-            if (email && email.trim() !== '') {
-                // Basic email validation
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (emailRegex.test(email)) {
-                    window.location.href = '?view=history&email=' + encodeURIComponent(email);
-                } else {
-                    alert('Please enter a valid email address');
+            <?php if ($isLoggedIn): ?>
+                window.location.href = '?view=history';
+            <?php else: ?>
+                if (confirm('You need to login to view your participation history. Redirect to login page?')) {
+                    window.location.href = 'Login.php?redirect=events.php?view=history';
                 }
-            }
+            <?php endif; ?>
         }
     </script>
 
     <script src="lang-toggle.js"></script>
+    
+    <script>
+        // User dropdown toggle
+        const userDropdown = document.getElementById('userDropdown');
+        if (userDropdown) {
+            const usernameDisplay = userDropdown.querySelector('.username-display');
+            usernameDisplay.addEventListener('click', function(e) {
+                e.stopPropagation();
+                userDropdown.classList.toggle('active');
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!userDropdown.contains(e.target)) {
+                    userDropdown.classList.remove('active');
+                }
+            });
+        }
+    </script>
 
     <script>
         // Calendar functionality

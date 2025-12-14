@@ -1,13 +1,24 @@
 <?php
-session_start();
 require_once __DIR__ . '/../../controller/TicketController.php';
+require_once __DIR__ . '/../../controller/UserController.php';
 
 $ticketController = new TicketController();
 
-// Security: Require email in session or POST
-$userEmail = $_SESSION['user_email'] ?? $_POST['email'] ?? null;
+// Get current logged-in user
+$isLoggedIn = UserController::isLoggedIn();
+$currentUser = UserController::getCurrentUser();
 
-// Handle email submission for ticket access
+// Get user email from logged-in user or session/POST
+$userEmail = null;
+if ($isLoggedIn) {
+    $userEmail = $currentUser->getEmail();
+} elseif (isset($_SESSION['user_email'])) {
+    $userEmail = $_SESSION['user_email'];
+} elseif (isset($_POST['email'])) {
+    $userEmail = $_POST['email'];
+}
+
+// Handle email submission for ticket access (for non-logged-in users)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['access_email'])) {
     $_SESSION['user_email'] = filter_var($_POST['access_email'], FILTER_VALIDATE_EMAIL);
     $userEmail = $_SESSION['user_email'];
@@ -26,6 +37,15 @@ if (isset($_GET['logout'])) {
 $tickets = [];
 if ($userEmail) {
     $tickets = $ticketController->getTicketsByEmail($userEmail);
+}
+
+// Helper function to get correct QR code path
+function getQRCodeDisplayPath($qrPath) {
+    if (empty($qrPath)) return null;
+    // If path already starts with /, it's absolute
+    if ($qrPath[0] === '/') return $qrPath;
+    // If it's a relative path like "qrcodes/xxx.png", it should work from current location
+    return $qrPath;
 }
 ?>
 <!DOCTYPE html>
@@ -609,36 +629,31 @@ if ($userEmail) {
         </div>
 
         <?php if (!$userEmail): ?>
-            <!-- Email Access Form -->
+            <!-- Login Required Message -->
             <div class="email-access-card">
-                <h2 data-lang-en="Access Your Tickets" data-lang-fr="Accédez à vos Tickets">Access Your Tickets</h2>
-                <p data-lang-en="Enter the email address you used to register for events" data-lang-fr="Entrez l'adresse e-mail que vous avez utilisée pour vous inscrire aux événements">
-                    Enter the email address you used to register for events
+                <i class="fas fa-lock" style="font-size: 4rem; color: #f5c242; margin-bottom: 20px;"></i>
+                <h2 data-lang-en="Login Required" data-lang-fr="Connexion Requise">Login Required</h2>
+                <p data-lang-en="Please login to view your tickets" data-lang-fr="Veuillez vous connecter pour voir vos tickets">
+                    Please login to view your tickets
                 </p>
-                <form method="POST" action="">
+                <a href="Login.php" class="btn-access" style="text-decoration: none;">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span data-lang-en="Login / Register" data-lang-fr="Connexion / S'inscrire">Login / Register</span>
+                </a>
+                <p style="margin-top: 20px; color: #cfd3d8; font-size: 0.9rem;">
+                    <span data-lang-en="Or enter your email to access tickets" data-lang-fr="Ou entrez votre e-mail pour accéder aux tickets">Or enter your email to access tickets</span>
+                </p>
+                <form method="POST" action="" style="margin-top: 15px;">
                     <div class="form-group-ticket">
-                        <label for="access_email" data-lang-en="Email Address" data-lang-fr="Adresse E-mail">Email Address</label>
                         <input type="email" id="access_email" name="access_email" placeholder="your.email@example.com" required>
                     </div>
-                    <button type="submit" class="btn-access">
+                    <button type="submit" class="btn-access" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">
                         <i class="fas fa-ticket-alt"></i>
                         <span data-lang-en="View My Tickets" data-lang-fr="Voir Mes Tickets">View My Tickets</span>
                     </button>
                 </form>
             </div>
         <?php else: ?>
-            <!-- User Info Bar -->
-            <div class="user-info-bar">
-                <div class="email-display">
-                    <i class="fas fa-user-circle"></i>
-                    <span><?= htmlspecialchars($userEmail) ?></span>
-                </div>
-                <a href="?logout" class="btn-logout">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span data-lang-en="Change Email" data-lang-fr="Changer E-mail">Change Email</span>
-                </a>
-            </div>
-
             <!-- Tickets List -->
             <?php if (empty($tickets)): ?>
                 <div class="empty-tickets">
@@ -705,14 +720,23 @@ if ($userEmail) {
                                 </div>
                             </div>
 
-                            <?php if ($ticket->getQrCodePath()): ?>
+                            <?php if ($ticket->getQrCodePath()): 
+                                $qrPath = getQRCodeDisplayPath($ticket->getQrCodePath());
+                            ?>
                             <div class="qr-code-section">
-                                <img src="<?= htmlspecialchars($ticket->getQrCodePath()) ?>" alt="QR Code">
+                                <img src="<?= htmlspecialchars($qrPath) ?>" alt="QR Code" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2NjYyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTgiIGZpbGw9IiM2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5RUiBOb3QgQXZhaWxhYmxlPC90ZXh0Pjwvc3ZnPg=='; this.style.opacity='0.5';">
                                 <div class="qr-label" data-lang-en="Scan at Entrance" data-lang-fr="Scanner à l'Entrée">Scan at Entrance</div>
                                 <a href="../../controller/generate_ticket_image.php?id=<?= $ticket->getIdTicket() ?>" download class="btn-download-ticket">
                                     <i class="fas fa-download"></i>
                                     <span data-lang-en="Download Ticket" data-lang-fr="Télécharger Ticket">Download Ticket</span>
                                 </a>
+                            </div>
+                            <?php else: ?>
+                            <div class="qr-code-section">
+                                <div class="qr-placeholder">
+                                    <i class="fas fa-qrcode" style="font-size: 4rem; color: rgba(245, 194, 66, 0.3);"></i>
+                                    <p style="color: #969696; margin-top: 10px;">QR Code not available</p>
+                                </div>
                             </div>
                             <?php endif; ?>
                         </div>

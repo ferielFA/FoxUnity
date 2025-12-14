@@ -148,13 +148,24 @@ class CommentController {
      */
     public function getEventRatingStats(int $eventId): array {
         try {
-            $sql = "SELECT * FROM event_rating_stats WHERE id_evenement = :id_evenement";
+            // Calculate stats directly from comment table for real-time accuracy
+            $sql = "SELECT 
+                        COUNT(*) as total_comments,
+                        COALESCE(AVG(rating), 0) as average_rating,
+                        SUM(CASE WHEN rating = 5 THEN 1 ELSE 0 END) as five_stars,
+                        SUM(CASE WHEN rating = 4 THEN 1 ELSE 0 END) as four_stars,
+                        SUM(CASE WHEN rating = 3 THEN 1 ELSE 0 END) as three_stars,
+                        SUM(CASE WHEN rating = 2 THEN 1 ELSE 0 END) as two_stars,
+                        SUM(CASE WHEN rating = 1 THEN 1 ELSE 0 END) as one_star
+                    FROM comment 
+                    WHERE id_evenement = :id_evenement";
+            
             $stmt = $this->db->prepare($sql);
             $stmt->execute([':id_evenement' => $eventId]);
             
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            if (!$row) {
+            if (!$row || $row['total_comments'] == 0) {
                 return [
                     'average' => 0.0,
                     'total' => 0,

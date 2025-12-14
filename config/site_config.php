@@ -10,7 +10,7 @@
 // define('SERVER_IP', $_SERVER['SERVER_ADDR'] ?? '10.139.97.30'); // Default to detected IP
 
 // Option 2: Or set it manually if auto-detection doesn't work
-define('SERVER_IP', '172.16.5.91'); // Replace with your actual IP
+define('SERVER_IP', '192.168.100.83'); // Replace with your actual IP
 
 // Base URL for the site
 define('BASE_URL', 'http://' . SERVER_IP . '/pw/projet_web');

@@ -692,6 +692,11 @@ if ($currentUser->getImage()) {
                         <span>My Profile</span>
                     </a>
                     
+                    <a href="events.php?view=history" class="dropdown-item">
+                        <i class="fas fa-history"></i>
+                        <span>Events History</span>
+                    </a>
+                    
                     <?php 
                     $userRole = strtolower($currentUser->getRole());
                     if ($userRole === 'admin' || $userRole === 'superadmin'): 

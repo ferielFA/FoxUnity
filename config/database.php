@@ -2,7 +2,7 @@
 
 class Database {
     private static $host = 'localhost';
-    private static $dbname = 'integration';
+    private static $dbname = 'foxunity0';
     private static $username = 'root';
     private static $password = '';
     private static $connection = null;

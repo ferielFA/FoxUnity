@@ -41,26 +41,34 @@ $ratingStats = $commentController->getEventRatingStats($eventId);
 
 // Handle participation form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'participate') {
-    $participantId = $isLoggedIn ? $currentUser->getId() : null;
-    $participantName = $isLoggedIn ? $currentUser->getUsername() : htmlspecialchars($_POST['nom_participant']);
-    $participantEmail = $isLoggedIn ? $currentUser->getEmail() : htmlspecialchars($_POST['email_participant']);
+    // Check if already registered
+    $emailToCheck = $isLoggedIn ? $currentUser->getEmail() : htmlspecialchars($_POST['email_participant']);
+    $isAlreadyRegistered = $participationController->verifierInscription($emailToCheck, $eventId);
     
-    $participation = new Participation(
-        null,
-        $eventId,
-        $participantId,
-        $participantName,
-        $participantEmail,
-        new DateTime()
-    );
-    
-    if ($participationController->inscrire($participation)) {
-        $message = '<div class="alert success"><i class="fas fa-check-circle"></i> Registration confirmed! Welcome aboard!</div>';
-        // Refresh participants list
-        $participants = $participationController->lireParEvenement($eventId);
-        $nbParticipants = count($participants);
+    if ($isAlreadyRegistered) {
+        $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> You are already registered for this event!</div>';
     } else {
-        $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> Already registered or error occurred.</div>';
+        $participantId = $isLoggedIn ? $currentUser->getId() : null;
+        $participantName = $isLoggedIn ? $currentUser->getUsername() : htmlspecialchars($_POST['nom_participant']);
+        $participantEmail = $isLoggedIn ? $currentUser->getEmail() : htmlspecialchars($_POST['email_participant']);
+        
+        $participation = new Participation(
+            null,
+            $eventId,
+            $participantId,
+            $participantName,
+            $participantEmail,
+            new DateTime()
+        );
+        
+        if ($participationController->inscrire($participation)) {
+            $message = '<div class="alert success"><i class="fas fa-check-circle"></i> Registration confirmed! Welcome aboard!</div>';
+            // Refresh participants list
+            $participants = $participationController->lireParEvenement($eventId);
+            $nbParticipants = count($participants);
+        } else {
+            $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> Error occurred during registration.</div>';
+        }
     }
 }
 
@@ -905,17 +913,19 @@ $statuts = [
                                 <form method="POST" id="participationForm" novalidate>
                                     <input type="hidden" name="action" value="participate">
                                     
-                                    <div class="form-group">
-                                        <label for="nom_participant" data-lang-en="Your Name *" data-lang-fr="Votre Nom *">Your Name *</label>
-                                        <input type="text" id="nom_participant" name="nom_participant" placeholder="Enter your full name" data-lang-en="Enter your full name" data-lang-fr="Entrez votre nom complet">
-                                        <div class="error-message" id="error-nom_participant"></div>
-                                    </div>
+                                    <?php if (!$isLoggedIn): ?>
+                                        <div class="form-group">
+                                            <label for="nom_participant" data-lang-en="Your Name *" data-lang-fr="Votre Nom *">Your Name *</label>
+                                            <input type="text" id="nom_participant" name="nom_participant" placeholder="Enter your full name" data-lang-en="Enter your full name" data-lang-fr="Entrez votre nom complet" required>
+                                            <div class="error-message" id="error-nom_participant"></div>
+                                        </div>
 
-                                    <div class="form-group">
-                                        <label for="email_participant" data-lang-en="Your Email *" data-lang-fr="Votre Email *">Your Email *</label>
-                                        <input type="text" id="email_participant" name="email_participant" placeholder="your.email@example.com" data-lang-en="your.email@example.com" data-lang-fr="votre.email@exemple.com">
-                                        <div class="error-message" id="error-email_participant"></div>
-                                    </div>
+                                        <div class="form-group">
+                                            <label for="email_participant" data-lang-en="Your Email *" data-lang-fr="Votre Email *">Your Email *</label>
+                                            <input type="text" id="email_participant" name="email_participant" placeholder="your.email@example.com" data-lang-en="your.email@example.com" data-lang-fr="votre.email@exemple.com" required>
+                                            <div class="error-message" id="error-email_participant"></div>
+                                        </div>
+                                    <?php endif; ?>
                                     
                                     <button type="submit" class="btn-join-detail" data-lang-en="Join This Event" data-lang-fr="Rejoindre cet Événement">
                                         <i class="fas fa-user-plus"></i> <span>Join This Event</span>
@@ -959,8 +969,7 @@ $statuts = [
                                 }
                                 ?>
                             </div>
-                            <div class="rating-count" data-lang-en="<?= $ratingStats['total'] ?> reviews" data-lang-fr="<?= $ratingStats['total'] ?> avis"><?= $ratingStats['total'] ?> avis</div>
-                        </div>
+                    <div class="rating-count" id="totalReviewsCount" data-lang-en="<?= $ratingStats['total'] ?> reviews" data-lang-fr="<?= $ratingStats['total'] ?> avis"><?= $ratingStats['total'] ?> avis</div>
 
                         <div class="rating-bars">
                             <?php foreach ([5, 4, 3, 2, 1] as $stars): ?>
@@ -986,51 +995,59 @@ $statuts = [
                             <i class="fas fa-pen"></i> <span>Partagez votre expérience</span>
                         </h3>
                         
-                        <form method="POST" action="" id="commentForm" novalidate>
-                            <input type="hidden" name="action" value="add_comment">
+                        <?php if ($isLoggedIn): ?>
+                            <div style="background: rgba(245,194,66,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #f5c242;">
+                                <p style="color: #f5c242; margin: 0;">
+                                    <i class="fas fa-user-circle"></i> 
+                                    <span data-lang-en="Posting as: <?= htmlspecialchars($currentUser->getUsername()) ?>" data-lang-fr="Publier en tant que: <?= htmlspecialchars($currentUser->getUsername()) ?>">
+                                        Publier en tant que: <strong><?= htmlspecialchars($currentUser->getUsername()) ?></strong>
+                                    </span>
+                                </p>
+                            </div>
                             
-                            <div class="form-group">
-                                <label for="user_name_comment" data-lang-en="Your Name *" data-lang-fr="Votre nom *">Votre nom *</label>
-                                <input type="text" id="user_name_comment" name="user_name" placeholder="Nom complet" data-lang-en="Full name" data-lang-fr="Nom complet" required>
-                                <div class="error-message" id="error-user_name_comment"></div>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="user_email_comment" data-lang-en="Your Email *" data-lang-fr="Votre email *">Votre email *</label>
-                                <input type="email" id="user_email_comment" name="user_email" placeholder="votre.email@exemple.com" data-lang-en="your.email@example.com" data-lang-fr="votre.email@exemple.com" required>
-                                <div class="error-message" id="error-user_email_comment"></div>
-                            </div>
-
-                            <div class="form-group">
-                                <label data-lang-en="Rating *" data-lang-fr="Note *">Note *</label>
-                                <div class="star-rating-input" id="starRating">
-                                    <i class="fas fa-star star" data-rating="1"></i>
-                                    <i class="fas fa-star star" data-rating="2"></i>
-                                    <i class="fas fa-star star" data-rating="3"></i>
-                                    <i class="fas fa-star star" data-rating="4"></i>
-                                    <i class="fas fa-star star" data-rating="5"></i>
+                            <form method="POST" action="" id="commentForm" novalidate>
+                                <input type="hidden" name="action" value="add_comment">
+                                
+                                <div class="form-group">
+                                    <label data-lang-en="Rating *" data-lang-fr="Note *">Note *</label>
+                                    <div class="star-rating-input" id="starRating">
+                                        <i class="fas fa-star star" data-rating="1"></i>
+                                        <i class="fas fa-star star" data-rating="2"></i>
+                                        <i class="fas fa-star star" data-rating="3"></i>
+                                        <i class="fas fa-star star" data-rating="4"></i>
+                                        <i class="fas fa-star star" data-rating="5"></i>
+                                    </div>
+                                    <input type="hidden" id="rating" name="rating" value="5">
+                                    <div class="error-message" id="error-rating"></div>
                                 </div>
-                                <input type="hidden" id="rating" name="rating" value="5">
-                                <div class="error-message" id="error-rating"></div>
-                            </div>
 
-                            <div class="form-group">
-                                <label for="comment_content" data-lang-en="Your Review *" data-lang-fr="Votre avis *">Votre avis *</label>
-                                <textarea id="comment_content" name="comment_content" placeholder="Partagez votre expérience sur cet événement..." data-lang-en="Share your experience about this event..." data-lang-fr="Partagez votre expérience sur cet événement..." required></textarea>
-                                <div class="error-message" id="error-comment_content"></div>
-                            </div>
+                                <div class="form-group">
+                                    <label for="comment_content" data-lang-en="Your Review *" data-lang-fr="Votre avis *">Votre avis *</label>
+                                    <textarea id="comment_content" name="comment_content" placeholder="Partagez votre expérience sur cet événement..." data-lang-en="Share your experience about this event..." data-lang-fr="Partagez votre expérience sur cet événement..." required></textarea>
+                                    <div class="error-message" id="error-comment_content"></div>
+                                </div>
 
-                            <button type="submit" class="btn-submit-comment" data-lang-en="Publish My Review" data-lang-fr="Publier mon avis">
-                                <i class="fas fa-paper-plane"></i> <span>Publier mon avis</span>
-                            </button>
-                        </form>
+                                <button type="submit" class="btn-submit-comment" data-lang-en="Publish My Review" data-lang-fr="Publier mon avis">
+                                    <i class="fas fa-paper-plane"></i> <span>Publier mon avis</span>
+                                </button>
+                            </form>
+                        <?php else: ?>
+                            <div style="text-align: center; padding: 40px 20px;">
+                                <i class="fas fa-lock" style="font-size: 3rem; color: #f5c242; margin-bottom: 15px;"></i>
+                                <h4 style="color: #fff; margin-bottom: 10px;" data-lang-en="Login Required" data-lang-fr="Connexion Requise">Connexion Requise</h4>
+                                <p style="color: #cfd3d8; margin-bottom: 20px;" data-lang-en="Please login to share your review and rating" data-lang-fr="Veuillez vous connecter pour partager votre avis et note">
+                                    Veuillez vous connecter pour partager votre avis et note
+                                </p>
+                                <a href="Login.php" class="btn-submit-comment" style="display: inline-block; text-decoration: none;" data-lang-en="Login / Register" data-lang-fr="Connexion / S'inscrire">
+                                    <i class="fas fa-sign-in-alt"></i> <span>Connexion / S'inscrire</span>
+                                </a>
+                            </div>
+                        <?php endif; ?>
                     </div>
 
                     <!-- Comments List -->
                     <h3 style="color: #fff; margin-bottom: 25px; font-size: 1.3rem;" data-lang-en="All Reviews (<?= count($comments) ?>)" data-lang-fr="Tous les avis (<?= count($comments) ?>)">
-                        <i class="fas fa-list"></i> <span>Tous les avis (<?= count($comments) ?>)</span>
-                    </h3>
-
+                    <i class="fas fa-list"></i> <span>Tous les avis (<span id="commentCount"><?= count($comments) ?></span>)</span>
                     <?php if (empty($comments)): ?>
                         <div class="empty-comments">
                             <i class="fas fa-comment-slash"></i>
@@ -1282,6 +1299,25 @@ $statuts = [
             }
         }
 
+        // Update comment count dynamically
+        function updateCommentCount() {
+            const commentCount = document.getElementById('commentCount');
+            if (commentCount) {
+                const currentCount = parseInt(commentCount.textContent) || 0;
+                const newCount = currentCount + 1;
+                commentCount.textContent = newCount;
+                
+                // Update rating count if visible
+                const totalReviewsCount = document.getElementById('totalReviewsCount');
+                if (totalReviewsCount) {
+                    const lang = document.documentElement.lang || 'fr';
+                    totalReviewsCount.textContent = newCount + (lang === 'en' ? ' reviews' : ' avis');
+                    totalReviewsCount.setAttribute('data-lang-en', newCount + ' reviews');
+                    totalReviewsCount.setAttribute('data-lang-fr', newCount + ' avis');
+                }
+            }
+        }
+
         // Comment Form Validation
         const commentForm = document.getElementById('commentForm');
         if (commentForm) {
@@ -1289,30 +1325,6 @@ $statuts = [
                 e.preventDefault();
                 
                 let isValid = true;
-                
-                // Validate Name
-                const userName = document.getElementById('user_name_comment').value;
-                if (Validator.isEmpty(userName)) {
-                    Validator.showError('user_name_comment', 'Le nom est obligatoire');
-                    isValid = false;
-                } else if (!Validator.isValidLength(userName, 2, 100)) {
-                    Validator.showError('user_name_comment', 'Le nom doit contenir entre 2 et 100 caractères');
-                    isValid = false;
-                } else {
-                    Validator.clearError('user_name_comment');
-                }
-                
-                // Validate Email
-                const userEmail = document.getElementById('user_email_comment').value;
-                if (Validator.isEmpty(userEmail)) {
-                    Validator.showError('user_email_comment', 'L\'email est obligatoire');
-                    isValid = false;
-                } else if (!Validator.isValidEmail(userEmail)) {
-                    Validator.showError('user_email_comment', 'Format d\'email invalide');
-                    isValid = false;
-                } else {
-                    Validator.clearError('user_email_comment');
-                }
                 
                 // Validate Rating
                 const rating = parseInt(ratingInput.value);
@@ -1324,24 +1336,28 @@ $statuts = [
                 }
                 
                 // Validate Comment Content
-                const commentContent = document.getElementById('comment_content').value;
-                if (Validator.isEmpty(commentContent)) {
-                    Validator.showError('comment_content', 'Le commentaire est obligatoire');
-                    isValid = false;
-                } else if (!Validator.isValidLength(commentContent, 10, 1000)) {
-                    Validator.showError('comment_content', 'Le commentaire doit contenir entre 10 et 1000 caractères');
-                    isValid = false;
-                } else {
-                    Validator.clearError('comment_content');
+                const commentContent = document.getElementById('comment_content');
+                if (commentContent) {
+                    if (Validator.isEmpty(commentContent.value)) {
+                        Validator.showError('comment_content', 'Le commentaire est obligatoire');
+                        isValid = false;
+                    } else if (!Validator.isValidLength(commentContent.value, 10, 1000)) {
+                        Validator.showError('comment_content', 'Le commentaire doit contenir entre 10 et 1000 caractères');
+                        isValid = false;
+                    } else {
+                        Validator.clearError('comment_content');
+                    }
                 }
                 
                 if (isValid) {
+                    // Update count immediately on successful submission
+                    updateCommentCount();
                     this.submit();
                 }
             });
             
             // Real-time validation
-            ['user_name_comment', 'user_email_comment', 'comment_content'].forEach(fieldId => {
+            ['comment_content'].forEach(fieldId => {
                 const field = document.getElementById(fieldId);
                 if (field) {
                     field.addEventListener('input', function() {
