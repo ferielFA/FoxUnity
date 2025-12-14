@@ -6,7 +6,7 @@ class GoogleConfig {
     // ⚠️ REMPLACE CES VALEURS PAR TES CREDENTIALS GOOGLE!
     const CLIENT_ID = '778961297198-vfihacd445g3jd07ctpen904qe29jc09.apps.googleusercontent.com';
     const CLIENT_SECRET = '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';
-    const REDIRECT_URI = 'http://localhost/projet_web/view/front/google-callback.php';
+    const REDIRECT_URI = 'http://localhost/pw/projet_web/view/front/google-callback.php';
     
     private static $client = null;
     

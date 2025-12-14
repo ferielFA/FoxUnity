@@ -349,7 +349,7 @@ if ($currentUser && $currentUser->getImage()) {
         
         <nav class="site-nav">
             <a href="index.php">Home</a>
-            <a href="events.html">Events</a>
+            <a href="events.php">Events</a>
             <a href="shop.html">Shop</a>
             <a href="trading.php">Trading</a>
             <a href="news.html">News</a>
@@ -379,6 +379,11 @@ if ($currentUser && $currentUser->getImage()) {
                     <a href="profile.php" class="dropdown-item">
                         <i class="fas fa-user"></i>
                         <span>My Profile</span>
+                    </a>
+                    
+                    <a href="events.php?view=history" class="dropdown-item">
+                        <i class="fas fa-history"></i>
+                        <span>Events History</span>
                     </a>
                     
                     <?php 

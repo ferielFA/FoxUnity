@@ -666,9 +666,9 @@ if ($currentUser->getImage()) {
         
         <nav class="site-nav">
             <a href="index.php">Home</a>
-            <a href="events.html">Events</a>
+            <a href="events.php">Events</a>
             <a href="shop.html">Shop</a>
-            <a href="trading.html">Trading</a>
+            <a href="trading.php">Trading</a>
             <a href="news.html">News</a>
             <a href="reclamation.html">Complaints</a>
             <a href="about.php">About Us</a>
@@ -692,6 +692,11 @@ if ($currentUser->getImage()) {
                         <span>My Profile</span>
                     </a>
                     
+                    <a href="events.php?view=history" class="dropdown-item">
+                        <i class="fas fa-history"></i>
+                        <span>Events History</span>
+                    </a>
+                    
                     <?php 
                     $userRole = strtolower($currentUser->getRole());
                     if ($userRole === 'admin' || $userRole === 'superadmin'): 
@@ -711,7 +716,7 @@ if ($currentUser->getImage()) {
                 </div>
             </div>
             
-            <a href="panier.html" class="cart-icon">
+            <a href="panier.php" class="cart-icon">
                 <i class="fas fa-shopping-cart"></i> Cart
                 <span class="cart-count">0</span>
             </a>
