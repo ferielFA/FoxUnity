@@ -1,0 +1,75 @@
+NOTES IMPORTANTES - Système de sécurité trottinette électrique
+================================================================
+
+CONFIGURATION LCD:
+------------------
+Selon votre schéma ISIS, le LCD utilise:
+- RS = RD0
+- RW = RD1  
+- E = RD2
+- D4-D7 = RB4-RB7
+
+MikroC utilise par défaut PORTD complet pour le LCD (D0-D7 sur RD0-RD7).
+
+SOLUTIONS:
+1. Reconfigurer les pins LCD dans MikroC (Project > Edit Project > LCD pins)
+2. Utiliser des fonctions LCD personnalisées
+3. Modifier le schéma pour utiliser PORTD standard
+
+CONFIGURATION BUZZER:
+--------------------
+Selon le schéma, le buzzer est sur RB0, mais RB0 est aussi le bouton d'interruption.
+
+SOLUTION:
+- Utiliser un transistor pour isoler le buzzer
+- Ou connecter le buzzer sur un autre pin (ex: RC3, RC4, etc.)
+- Dans le code, activer le buzzer via ce pin séparé
+
+CALIBRATION CAPTEURS:
+--------------------
+Les valeurs de seuil doivent être calibrées selon vos composants réels:
+
+1. Capteur distance (RA1):
+   - Actuellement: obstacle si ADC > 512 (50%)
+   - À calibrer selon votre capteur réel
+   - Formule distance: distance_cm = f(valeur_ADC)
+
+2. Accéléromètre (RA0):
+   - Actuellement: vitesse = (ADC * 100) / 1023
+   - À ajuster selon la plage d'inclinaison réelle
+   - Peut nécessiter un offset (valeur neutre)
+
+PWM MOTEUR:
+-----------
+Le code utilise un PWM logiciel simple. Pour un meilleur contrôle:
+- Utiliser le module CCP1 du PIC (sur RC2)
+- Ou utiliser Timer0/Timer1 pour générer le PWM
+- Fréquence PWM recommandée: 1-5 kHz
+
+LED JAUNE:
+----------
+Selon le cahier des charges, une LED jaune doit clignoter en mode charge.
+Cette LED n'est pas présente sur le schéma fourni.
+
+SOLUTION:
+- Ajouter une LED jaune sur un pin libre (ex: RC3, RC4, etc.)
+- Ou utiliser une LED RGB
+- Modifier le code pour contrôler cette LED
+
+AMÉLIORATIONS POSSIBLES:
+------------------------
+1. Utiliser Timer0 pour le clignotement LED jaune (comme demandé)
+2. Utiliser Timer1 pour la mesure de distance périodique
+3. Implémenter l'historique des alertes (séance future)
+4. Ajouter une gestion de batterie plus réaliste
+5. Optimiser le PWM avec le module CCP
+
+TEST ET DÉBOGAGE:
+-----------------
+1. Tester chaque fonctionnalité séparément
+2. Vérifier les valeurs ADC avec un oscilloscope/logic analyzer
+3. Ajuster les délais selon la fréquence d'horloge
+4. Vérifier que les interruptions fonctionnent correctement
+
+
+

@@ -1,0 +1,291 @@
+/*
+ * Système de sécurité pour trottinette électrique
+ * PIC16F877 - MikroC
+ * Séances 2, 3 et 4
+ * 
+ * Connexions selon schéma ISIS:
+ * - LCD: RS=RD0, RW=RD1, E=RD2, D4=RB4, D5=RB5, D6=RB6, D7=RB7
+ * - RA0/AN0: Accéléromètre (potentiomètre RV1)
+ * - RA1/AN1: Capteur distance (potentiomètre RV2)
+ * - RB0: Bouton sécurité (interruption) + Buzzer
+ * - RB4: Bouton charge (interruption)
+ * - RB7: Bouton historique (interruption)
+ * - RC0: Moteur DC
+ * - RC1: LED verte
+ * - RC2: LED rouge
+ */
+
+// Variables globales (accessibles dans interrupt())
+char system_active = 1;          // État du système de sécurité (1=ON, 0=OFF)
+char charge_mode = 0;            // Mode charge (1=actif, 0=inactif)
+char charge_complete = 0;        // Charge terminée
+unsigned int vitesse = 0;        // Vitesse en pourcentage (0-100)
+unsigned int distance_adc = 0;   // Valeur ADC distance
+unsigned int obstacle_detected = 0;  // Flag obstacle détecté
+unsigned int obstacle_timer = 0;    // Timer pour obstacle (3 secondes)
+unsigned int charge_timer = 0;       // Timer pour charge (5 secondes)
+
+// Prototype fonction interruption
+void interrupt();
+
+// Configuration du microcontrôleur
+void main() {
+    // Configuration des ports
+    TRISA = 0x03;        // RA0 et RA1 en entrée (analogique), autres en sortie
+    TRISB = 0x91;        // RB0, RB4, RB7 en entrée (interruptions), autres en sortie
+    TRISC = 0x00;        // PORTC en sortie (moteur, LEDs)
+    TRISD = 0x00;        // PORTD en sortie (LCD contrôle)
+    
+    // Initialisation ports
+    PORTA = 0x00;
+    PORTB = 0x00;
+    PORTC = 0x00;
+    PORTD = 0x00;
+    
+    // Configuration ADC
+    ADCON1 = 0x80;       // Tous les canaux analogiques, Vref = VDD
+    ADCON0 = 0x01;       // ADC activé, canal AN0, Fosc/8
+    
+    // Configuration des interruptions
+    INTCON = 0x90;       // GIE=1, RBIE=1 (interruption sur changement PORTB)
+    OPTION_REG = 0x80;   // Pull-ups activés sur PORTB
+    
+    // Configuration LCD selon schéma (4 bits: D4-D7 sur RB4-RB7, RS/RW/E sur RD0-RD2)
+    // Note: MikroC utilise par défaut PORTD pour LCD, il faudra peut-être utiliser
+    // des fonctions personnalisées ou reconfigurer les pins LCD
+    // Pour l'instant, on utilise la configuration standard MikroC
+    Lcd_Init();
+    Lcd_Cmd(_LCD_CLEAR);
+    Lcd_Cmd(_LCD_CURSOR_OFF);
+    
+    // ========== SÉANCE 2 : ÉTAT DE REPOS ==========
+    // Phase d'initialisation
+    Lcd_Out(1, 1, "Initialisation...");
+    
+    // LED verte clignote 3 fois
+    PORTC.RC1 = 0;  // LED verte sur RC1
+    Delay_ms(500);
+    char i;
+    for(i = 0; i < 3; i++) {
+        PORTC.RC1 = 1;
+        Delay_ms(300);
+        PORTC.RC1 = 0;
+        Delay_ms(300);
+    }
+    
+    Delay_ms(1000);
+    
+    // Affichage état opérationnel
+    Lcd_Cmd(_LCD_CLEAR);
+    if(system_active) {
+        Lcd_Out(1, 1, "Securite Critique");
+        Lcd_Out(2, 1, "ON");
+        PORTC.RC1 = 1;  // LED verte allumée (système actif)
+    } else {
+        Lcd_Out(1, 1, "Securite Critique");
+        Lcd_Out(2, 1, "OFF");
+        PORTC.RC1 = 0;  // LED verte éteinte
+    }
+    
+    // ========== BOUCLE PRINCIPALE ==========
+    while(1) {
+        // ========== SÉANCE 4 : GESTION MODE CHARGE ==========
+        if(charge_mode) {
+            // Mode charge actif
+            if(!charge_complete) {
+                // Affichage mode charge
+                Lcd_Cmd(_LCD_CLEAR);
+                Lcd_Out(1, 1, "Mode CHARGE");
+                Lcd_Out(2, 1, "actif");
+                
+                // LED jaune clignote (selon cahier des charges, LED jaune clignote via Timer0)
+                // Pour l'instant, on simule avec un clignotement logiciel
+                PORTC.RC1 = 0;  // LED verte éteinte
+                PORTC.RC2 = 0;  // LED rouge éteinte
+                // Note: LED jaune non présente sur schéma, on peut utiliser une LED existante
+                // ou ajouter une LED sur un pin libre
+                
+                // Incrémenter timer charge
+                charge_timer++;
+                if(charge_timer >= 50) {  // 50 * 100ms = 5 secondes
+                    charge_complete = 1;
+                    charge_timer = 0;
+                }
+            }
+            
+            if(charge_complete) {
+                // Charge terminée
+                Lcd_Cmd(_LCD_CLEAR);
+                Lcd_Out(1, 1, "Charge terminee");
+                Lcd_Out(2, 1, "Batterie pleine");
+                PORTC.RC1 = 1;  // LED verte fixe
+                PORTC.RC2 = 0;  // LED rouge éteinte
+            }
+            
+            // Si RB4 revient à 0, sortir du mode charge
+            if(PORTB.RB4 == 0) {
+                charge_mode = 0;
+                charge_complete = 0;
+                charge_timer = 0;
+                Lcd_Cmd(_LCD_CLEAR);
+                if(system_active) {
+                    Lcd_Out(1, 1, "Securite Critique");
+                    Lcd_Out(2, 1, "ON");
+                    PORTC.RC1 = 1;  // LED verte allumée
+                } else {
+                    Lcd_Out(1, 1, "Securite Critique");
+                    Lcd_Out(2, 1, "OFF");
+                    PORTC.RC1 = 0;  // LED verte éteinte
+                }
+            }
+            
+            Delay_ms(100);
+            continue;  // Ignorer le reste si en mode charge
+        }
+        
+        // ========== SÉANCE 3 : DÉTECTION OBSTACLE ==========
+        if(system_active && !obstacle_detected && !charge_mode) {
+            // Lecture capteur de distance (RA1/AN1) toutes les 100ms
+            ADCON0 = 0x05;  // Sélectionner AN1, ADC activé
+            Delay_ms(10);   // Temps d'acquisition
+            ADCON0.GO_DONE = 1;   // Démarrer conversion
+            while(ADCON0.GO_DONE); // Attendre fin conversion
+            
+            distance_adc = (ADRESH << 8) | ADRESL;  // Lire résultat 10 bits (0-1023)
+            
+            // Conversion approximative: valeur ADC élevée = obstacle proche
+            // Si valeur ADC > 512 (50% de 1023), obstacle à moins de 50cm
+            // Note: Cette valeur doit être calibrée selon votre capteur réel
+            if(distance_adc > 512) {  // Obstacle proche (moins de 50cm)
+                obstacle_detected = 1;
+                obstacle_timer = 0;
+                
+                // Arrêt moteur immédiat
+                PORTC.RC0 = 0;  // Moteur arrêté
+                
+                // Activation buzzer et LED rouge
+                // Note: Buzzer sur RB0 selon schéma, mais RB0 est aussi le bouton
+                // Il faudra peut-être utiliser un autre pin ou un transistor
+                PORTC.RC2 = 1;  // LED rouge allumée
+                
+                // Affichage sur LCD
+                Lcd_Cmd(_LCD_CLEAR);
+                Lcd_Out(1, 1, "Obstacle detecte!");
+                Lcd_Out(2, 1, "Freinage");
+            }
+        }
+        
+        // Gestion timer obstacle (3 secondes)
+        if(obstacle_detected) {
+            obstacle_timer++;
+            if(obstacle_timer >= 30) {  // 30 * 100ms = 3 secondes
+                obstacle_detected = 0;
+                obstacle_timer = 0;
+                
+                // Désactivation alarme
+                PORTB.RB0 = 0;  // Buzzer désactivé
+                PORTC.RC2 = 0;  // LED rouge éteinte
+                
+                // Retour affichage normal
+                Lcd_Cmd(_LCD_CLEAR);
+                if(system_active) {
+                    Lcd_Out(1, 1, "Securite Critique");
+                    Lcd_Out(2, 1, "ON");
+                } else {
+                    Lcd_Out(1, 1, "Securite Critique");
+                    Lcd_Out(2, 1, "OFF");
+                }
+            }
+        }
+        
+        // ========== SÉANCE 3 : ACCÉLÉRATION/FREINAGE PAR INCLINAISON ==========
+        if(system_active && !obstacle_detected && !charge_mode) {
+            // Lecture accéléromètre (RA0/AN0)
+            ADCON0 = 0x01;  // Sélectionner AN0, ADC activé
+            Delay_ms(10);   // Temps d'acquisition
+            ADCON0.GO_DONE = 1;   // Démarrer conversion
+            while(ADCON0.GO_DONE); // Attendre fin conversion
+            
+            unsigned int accel_value = (ADRESH << 8) | ADRESL;  // Lire résultat 10 bits (0-1023)
+            vitesse = (accel_value * 100) / 1023;  // Convertir en pourcentage (0-100%)
+            
+            // Contrôle moteur via PWM logiciel sur RC0
+            // Inclinaison avant (valeur élevée) → vitesse élevée
+            // Inclinaison arrière (valeur faible) → vitesse faible ou freinage
+            
+            // PWM logiciel simple (une période par boucle)
+            if(vitesse > 5) {  // Seuil minimum pour éviter vibrations
+                // Générer PWM : rapport cyclique = vitesse%
+                // Période totale ~1ms (1000us)
+                PORTC.RC0 = 1;
+                Delay_us(vitesse * 10);  // Temps ON proportionnel à vitesse
+                PORTC.RC0 = 0;
+                Delay_us((100 - vitesse) * 10);  // Temps OFF
+            } else {
+                PORTC.RC0 = 0;  // Moteur arrêté si vitesse trop faible
+            }
+            
+            // Affichage vitesse sur LCD
+            Lcd_Cmd(_LCD_CLEAR);
+            Lcd_Out(1, 1, "Vitesse :");
+            char vitesse_str[6];
+            IntToStr(vitesse, vitesse_str);
+            // IntToStr ajoute des espaces, on nettoie
+            Ltrim(vitesse_str);
+            Lcd_Out(1, 10, vitesse_str);
+            Lcd_Out(1, 13, "%");
+        }
+        
+        Delay_ms(100);  // Délai principal de la boucle (100ms pour détection obstacle)
+    }
+}
+
+// ========== SÉANCE 4 : GESTION DES INTERRUPTIONS ==========
+void interrupt() {
+    // Interruption sur changement PORTB (RB0, RB4, RB7)
+    if(INTCON.RBIF) {
+        // Délai anti-rebond minimal
+        Delay_ms(50);
+        
+        // RB0 : Activation/désactivation système de sécurité
+        if(PORTB.RB0 == 1) {
+            system_active = !system_active;
+            
+            Lcd_Cmd(_LCD_CLEAR);
+            if(system_active) {
+                Lcd_Out(1, 1, "Securite Critique");
+                Lcd_Out(2, 1, "ON");
+                PORTC.RC1 = 1;  // LED verte allumée
+            } else {
+                Lcd_Out(1, 1, "Securite Critique");
+                Lcd_Out(2, 1, "OFF");
+                PORTC.RC1 = 0;  // LED verte éteinte
+                // Arrêter moteur si système désactivé
+                PORTC.RC0 = 0;
+            }
+        }
+        
+        // RB4 : Mode charge
+        if(PORTB.RB4 == 1) {
+            if(!charge_mode) {
+                charge_mode = 1;
+                charge_complete = 0;
+                charge_timer = 0;
+                // Arrêter moteur en mode charge
+                PORTC.RC0 = 0;
+            }
+        }
+        
+        // RB7 : Consultation historique
+        if(PORTB.RB7 == 1) {
+            Lcd_Cmd(_LCD_CLEAR);
+            Lcd_Out(1, 1, "Historique");
+            Lcd_Out(2, 1, "Alerte");
+            // Note: L'affichage sera géré dans la boucle principale
+            // Ici on met juste un flag si nécessaire
+        }
+        
+        INTCON.RBIF = 0;  // Effacer le flag d'interruption
+    }
+}
+
