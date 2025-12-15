@@ -385,9 +385,9 @@ $showTradeHistory = isset($_GET['section']) && $_GET['section'] === 'trades';
     <a href="users.php">Users</a>
     <a href="#">Shop</a>
     <a href="tradingb.php" class="<?= $showTradeHistory ? 'active' : '' ?>">Trade History</a>
-    <a href="#">Events</a>
+    <a href="eventsb.php">Events</a>
     <a href="news_admin.php">News</a>
-    <a href="#">Support</a>
+    <a href="reclamback.php">Support</a>
     <a href="../front/index.php">← Return Homepage</a>
   </div>
 

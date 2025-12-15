@@ -848,8 +848,8 @@ if ($currentUser->getImage()) {
     <a href="#">Shop</a>
     <a href="tradingb.php">Trade History</a>
     <a href="eventsb.php">Events</a>
-    <a href="#">News</a>
-    <a href="#">Support</a>
+    <a href="news_admin.php">News</a>
+    <a href="reclamback.php">Support</a>
     <a href="../front/index.php">← Return Homepage</a>
   </div>
 

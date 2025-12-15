@@ -1043,7 +1043,10 @@ unset($eventItem); // Break reference
             <a href="shop.html" data-lang-en="Shop" data-lang-fr="Boutique">Shop</a>
             <a href="trading.php" data-lang-en="Trading" data-lang-fr="Échange">Trading</a>
             <a href="news.php" data-lang-en="News" data-lang-fr="Actualités">News</a>
-            <a href="reclamation.html" data-lang-en="Support" data-lang-fr="Support">Support</a>
+             <a href="reclamation.php">Support</a>
+    
+             <a href="contact_us.php">New Request</a>
+    <a href="public_reclamations.php"><i class="fas fa-star"></i> Public Evaluations</a>
             <a href="about.php" data-lang-en="About Us" data-lang-fr="À Propos">About Us</a>
         </nav>
         

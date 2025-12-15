@@ -6,10 +6,10 @@ session_start();
 
 // Inclure les contrôleurs
 require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../controllers/reclamationcontroller.php';
-require_once __DIR__ . '/../../controllers/SatisfactionController.php';
-require_once __DIR__ . '/../../models/Reclamation.php';
-require_once __DIR__ . '/../../models/Satisfaction.php';
+require_once __DIR__ . '/../../controller/reclamationcontroller.php';
+require_once __DIR__ . '/../../controller/SatisfactionController.php';
+require_once __DIR__ . '/../../model/Reclamation.php';
+require_once __DIR__ . '/../../model/Satisfaction.php';
 
 $reclamationController = new ReclamationController();
 $satisfactionController = new SatisfactionController();

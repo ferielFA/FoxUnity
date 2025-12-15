@@ -671,7 +671,7 @@ foreach ($evenements as $item) {
     <a href="#">Shop</a>
     <a href="tradingb.php">Trade History</a>
     <a href="eventsb.php" class="active">Events</a>
-    <a href="#">News</a>
+    <a href="news_admin.php">News</a>
     <a href="#">Support</a>
     <a href="../front/index.php">← Return Homepage</a>
   </div>
