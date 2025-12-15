@@ -3,13 +3,26 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 session_start();
+// Inclure UserController pour l'authentification
+require_once __DIR__ . '/../../controller/UserController.php';
 
+$isLoggedIn = UserController::isLoggedIn();
+$currentUser = null;
+
+if ($isLoggedIn) {
+    $currentUser = UserController::getCurrentUser();
+}
+
+$userImage = null;
+if ($currentUser && $currentUser->getImage()) {
+    $userImage = '../../view/' . $currentUser->getImage();
+}
 // Inclure les contrôleurs
 require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../controllers/reclamationcontroller.php';
-require_once __DIR__ . '/../../controllers/ResponseController.php';
-require_once __DIR__ . '/../../controllers/SatisfactionController.php';
-require_once __DIR__ . '/../../models/Satisfaction.php';
+require_once __DIR__ . '/../../controller/reclamationcontroller.php';
+require_once __DIR__ . '/../../controller/ResponseController.php';
+require_once __DIR__ . '/../../controller/SatisfactionController.php';
+require_once __DIR__ . '/../../model/Satisfaction.php';
 
 $reclamationController = new ReclamationController();
 $responseController = new ResponseController();
@@ -812,6 +825,119 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
                 font-size: 28px;
             }
         }
+        /* User Dropdown Menu Styles */
+.user-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.username-display {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    padding: 5px 10px;
+    border-radius: 8px;
+}
+
+.username-display:hover {
+    background: rgba(255, 122, 0, 0.1);
+}
+
+.username-display img {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #ff7a00;
+}
+
+.username-display span {
+    color: #ff7a00;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.username-display i.fa-chevron-down {
+    font-size: 12px;
+    color: #ff7a00;
+    transition: transform 0.3s ease;
+}
+
+.username-display i.fa-user-circle {
+    font-size: 24px;
+    color: #ff7a00;
+}
+
+.user-dropdown.active .username-display i.fa-chevron-down {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 10px;
+    background: rgba(20, 20, 20, 0.98);
+    border: 2px solid rgba(255, 122, 0, 0.3);
+    border-radius: 12px;
+    min-width: 200px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.user-dropdown.active .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dropdown-item {
+    padding: 12px 15px;
+    color: #fff;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+}
+
+.dropdown-item:hover {
+    background: rgba(255, 122, 0, 0.1);
+    border-left-color: #ff7a00;
+}
+
+.dropdown-item i {
+    font-size: 16px;
+    color: #ff7a00;
+    width: 20px;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: rgba(255, 122, 0, 0.2);
+    margin: 5px 0;
+}
+
+.dropdown-item.logout {
+    color: #ff4444;
+}
+
+.dropdown-item.logout i {
+    color: #ff4444;
+}
+
+.dropdown-item.logout:hover {
+    background: rgba(255, 68, 68, 0.1);
+    border-left-color: #ff4444;
+}
     </style>
 </head>
 <body>
@@ -823,29 +949,76 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
         </div>
         
         <nav class="site-nav">
-            <a href="indexf.html">Home</a>
-            <a href="events.html">Events</a>
-            <a href="shop.html">Shop</a>
-            <a href="trading.html">Trading</a>
-            <a href="news.html">News</a>
+            <a href="index.php">Home</a>
+            <a href="events.php">Events</a>
+            <a href="shop.php">Shop</a>
+            <a href="trading.php">Trading</a>
+            <a href="news.php">News</a>
             <a href="reclamation.php">Support</a>
             <a href="contact_us.php">New Request</a>
             <a href="public_reclamations.php" class="active"><i class="fas fa-star"></i> Public Evaluations</a>
-            <a href="about.html">About Us</a>
+            <a href="about.php">About Us</a>
         </nav>
         
         <div class="header-right">
-            <a href="login.html" class="login-register-link">
-                <i class="fas fa-user"></i> Login / Register
-            </a>
-            <a href="profile.html" class="profile-icon">
+    <div class="user-dropdown" id="userDropdown">
+        <div class="username-display">
+            <?php if ($isLoggedIn && $currentUser): ?>
+                <?php if ($userImage): ?>
+                    <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Profile">
+                <?php else: ?>
+                    <i class="fas fa-user-circle"></i>
+                <?php endif; ?>
+                <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
+            <?php else: ?>
                 <i class="fas fa-user-circle"></i>
-            </a>
-            <a href="panier.html" class="cart-icon">
-                <i class="fas fa-shopping-cart"></i> Cart
-                <span class="cart-count">0</span>
-            </a>
+                <span>Guest</span>
+            <?php endif; ?>
+            <i class="fas fa-chevron-down"></i>
         </div>
+        
+        <div class="dropdown-menu">
+            <?php if ($isLoggedIn && $currentUser): ?>
+            <a href="profile.php" class="dropdown-item">
+                <i class="fas fa-user"></i>
+                <span>My Profile</span>
+            </a>
+            
+            <a href="tradehis.php" class="dropdown-item">
+                <i class="fas fa-history"></i>
+                <span>History</span>
+            </a>
+            
+            <?php 
+            $userRole = strtolower($currentUser->getRole());
+            if ($userRole === 'admin' || $userRole === 'superadmin'): 
+            ?>
+            <a href="../back/dashboard.php" class="dropdown-item">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Dashboard</span>
+            </a>
+            <?php endif; ?>
+            
+            <div class="dropdown-divider"></div>
+            
+            <a href="logout.php" class="dropdown-item logout">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+            <?php else: ?>
+            <a href="login.php" class="dropdown-item">
+                <i class="fas fa-sign-in-alt"></i>
+                <span>Login/Register</span>
+            </a>
+            <?php endif; ?>
+        </div>
+    </div>
+    
+    <a href="panier.php" class="cart-icon">
+        <i class="fas fa-shopping-cart"></i> Cart
+        <span class="cart-count">0</span>
+    </a>
+</div>
     </header>
 
     <div class="container">
@@ -1334,6 +1507,38 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
             // Application initiale
             applyFiltersAndSort();
         })();
+        // Dropdown Menu Toggle
+document.addEventListener('DOMContentLoaded', function() {
+    const userDropdown = document.getElementById('userDropdown');
+    
+    if (userDropdown) {
+        const usernameDisplay = userDropdown.querySelector('.username-display');
+        
+        usernameDisplay.addEventListener('click', function(e) {
+            e.stopPropagation();
+            userDropdown.classList.toggle('active');
+        });
+        
+        document.addEventListener('click', function(e) {
+            if (!userDropdown.contains(e.target)) {
+                userDropdown.classList.remove('active');
+            }
+        });
+        
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                userDropdown.classList.remove('active');
+            }
+        });
+    }
+    
+    // Code existant pour le cart...
+    const cart = JSON.parse(localStorage.getItem('cart')) || [];
+    const cartCount = document.querySelector('.cart-count');
+    if (cartCount) {
+        cartCount.textContent = cart.length;
+    }
+});
     </script>
 
     <footer class="site-footer">

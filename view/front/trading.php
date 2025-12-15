@@ -562,10 +562,13 @@ $currentUser = $viewData['currentUser'];
       <a href="shop.html">Shop</a>
       <a href="trading.php" class="active">Trading</a>
       <a href="news.php">News</a>
-      <a href="reclamation.html">Support</a>
+      <a href="reclamation.php">Support</a>
+    <a href="contact_us.php">New Request</a>
+    <a href="public_reclamations.php"><i class="fas fa-star"></i> Public Evaluations</a>
       <a href="about.php">About Us</a>
     </nav>
 
+  
     <div class="header-right">
       <div class="user-dropdown" id="userDropdown">
         <div class="username-display">

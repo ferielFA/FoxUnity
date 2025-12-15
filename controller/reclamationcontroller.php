@@ -1,6 +1,6 @@
 <?php 
 require_once __DIR__ . '/../config/config.php';
-require_once __DIR__ . '/../models/Reclamation.php';
+require_once __DIR__ . '/../model/Reclamation.php';
 
 class ReclamationController {
     public function updateReclamation($reclamation) {   

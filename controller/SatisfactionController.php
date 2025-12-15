@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../models/Satisfaction.php';
+require_once __DIR__ . '/../model/Satisfaction.php';
 
 class SatisfactionController {
     

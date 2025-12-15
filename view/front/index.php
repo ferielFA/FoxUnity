@@ -411,6 +411,11 @@ if ($currentUser && $currentUser->getImage()) {
                 font-size: 150px;
             }
         }
+        /* Navigation star icon */
+.site-nav a i.fa-star {
+    margin-right: 5px;
+    color: #ffd700;
+}
     </style>
 </head>
 <body>
@@ -434,14 +439,16 @@ if ($currentUser && $currentUser->getImage()) {
         </div>
         
         <nav class="site-nav">
-            <a href="index.php" class="active">Home</a>
-            <a href="events.php">Events</a>
-            <a href="shop.html">Shop</a>
-            <a href="trading.php">Trading</a>
-            <a href="news.php">News</a>
-            <a href="reclamation.html">Support</a>
-      <a href="about.php">About Us</a>
-        </nav>
+    <a href="index.php" class="active">Home</a>
+    <a href="events.php">Events</a>
+    <a href="shop.html">Shop</a>
+    <a href="trading.php">Trading</a>
+    <a href="news.php">News</a>
+    <a href="reclamation.php">Support</a>
+    <a href="contact_us.php">New Request</a>
+    <a href="public_reclamations.php"><i class="fas fa-star"></i> Public Evaluations</a>
+    <a href="about.php">About Us</a>
+</nav>
         
         <div class="header-right">
             <div class="user-dropdown" id="userDropdown">

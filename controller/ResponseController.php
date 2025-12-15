@@ -1,6 +1,6 @@
 <?php 
 require_once __DIR__ . '/../config/config.php';
-require_once __DIR__ . '/../models/Response.php';
+require_once __DIR__ . '/../model/Response.php';
 
 class ResponseController {
     
