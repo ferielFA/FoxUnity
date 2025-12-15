@@ -1,0 +1,15 @@
+# Autoriser l'accès aux fichiers uploadés
+Options -Indexes
+
+# Autoriser les images et vidéos
+<FilesMatch "\.(jpg|jpeg|png|gif|webp|bmp|svg|ico|mp4|mov|avi|webm|mkv|flv|wmv|mp3|wav|ogg)$">
+    Require all granted
+</FilesMatch>
+
+# Bloquer l'exécution de scripts (sécurité)
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|phps|cgi|pl|py|asp|aspx|sh|bash|perl|exe|com|js|html|htm)$">
+    Require all denied
+</FilesMatch>
+
+# Désactiver l'exécution de scripts dans ce répertoire
+Options -ExecCGI

@@ -1,0 +1,22 @@
+{
+	"folders": [
+		{
+			"path": "../.git"
+		},
+		{
+			"path": "../.vscode"
+		},
+		{
+			"path": "../config"
+		},
+		{
+			"path": "../controllers"
+		},
+		{
+			"path": "."
+		},
+		{
+			"path": "../view"
+		}
+	]
+}
