@@ -1,0 +1,22 @@
+{
+	"folders": [
+		{
+			"path": "../.vscode"
+		},
+		{
+			"path": "../config"
+		},
+		{
+			"path": "."
+		},
+		{
+			"path": "../foxunity"
+		},
+		{
+			"path": "../models"
+		},
+		{
+			"path": "../view"
+		}
+	]
+}

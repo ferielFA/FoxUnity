@@ -6,7 +6,7 @@ class Config {
         if (self::$pdo === null) {
             try {
                 self::$pdo = new PDO(
-                    'mysql:host=localhost;dbname=foxunity;charset=utf8',
+                    'mysql:host=localhost;dbname=foxunity0;charset=utf8',
                     'root',
                     ''
                 );

@@ -8,20 +8,22 @@ class ReclamationController {
         $db = Config::getConnexion();
         $query = $db->prepare(
             'UPDATE reclamations SET
-                full_name = :full_name,
+                id_utilisateur = :id_utilisateur,
                 email = :email,
-                subject = :subject,
-                message = :message,
-                statut = :statut
+                sujet = :sujet,
+                description = :description,
+                statut = :statut,
+                categorie = :categorie
             WHERE id_reclamation = :id_reclamation'
         );
         
         $result = $query->execute([
-            'full_name' => $reclamation->getFullName(),
+            'id_utilisateur' => $reclamation->getIdUtilisateur(),
             'email' => $reclamation->getEmail(),
-            'subject' => $reclamation->getSubject(),
-            'message' => $reclamation->getMessage(),
+            'sujet' => $reclamation->getSujet(),
+            'description' => $reclamation->getDescription(),
             'statut' => $reclamation->getStatut(),
+            'categorie' => $reclamation->getCategorie() ?? 'Other',
             'id_reclamation' => $reclamation->getIdReclamation()
         ]);
         
@@ -32,26 +34,93 @@ class ReclamationController {
     }
 }
     public function addReclamation($reclamation) {
-        $sql = "INSERT INTO reclamations (full_name, email, subject, message, date_creation, statut) 
-                VALUES (:full_name, :email, :subject, :message, :date_creation, :statut)";
+        // Construire la requête SQL dynamiquement selon les valeurs NULL
+        $fields = [];
+        $values = [];
+        $params = [];
+        
+        // Colonnes obligatoires
+        $fields[] = 'email';
+        $params['email'] = $reclamation->getEmail();
+        
+        $fields[] = 'sujet';
+        $params['sujet'] = $reclamation->getSujet();
+        
+        $fields[] = 'description';
+        $params['description'] = $reclamation->getDescription();
+        
+        // Colonnes optionnelles
+        $idUtilisateur = $reclamation->getIdUtilisateur();
+        // id_utilisateur : peut être NULL pour les utilisateurs non connectés
+        if ($idUtilisateur !== null) {
+        $fields[] = 'id_utilisateur';
+            $params['id_utilisateur'] = $idUtilisateur;
+        }
+        
+        $dateCreation = $reclamation->getDateCreation();
+        if ($dateCreation !== null) {
+            $fields[] = 'date_creation';
+            $params['date_creation'] = $dateCreation;
+        }
+        
+        $statut = $reclamation->getStatut();
+        // Toujours inclure le statut, utiliser 'nouveau' par défaut si null
+        $fields[] = 'statut';
+        $params['statut'] = $statut !== null ? $statut : 'nouveau';
+        
+        // Ajouter la catégorie
+        $categorie = $reclamation->getCategorie();
+        $fields[] = 'categorie';
+        $params['categorie'] = $categorie !== null && $categorie !== '' ? $categorie : 'Other';
+        
+        // Ajouter la pièce jointe si elle existe
+        $pieceJointe = $reclamation->getPieceJointe();
+        if ($pieceJointe !== null && $pieceJointe !== '') {
+            $fields[] = 'piece_jointe';
+            $params['piece_jointe'] = $pieceJointe;
+        }
+        
+        $sql = "INSERT INTO reclamations (" . implode(', ', $fields) . ") 
+                VALUES (:" . implode(', :', $fields) . ")";
+        
         $db = Config::getConnexion();
         try {
-            $query = $db->prepare($sql);
-            $result = $query->execute([
-                'full_name' => $reclamation->getFullName(),
-                'email' => $reclamation->getEmail(),
-                'subject' => $reclamation->getSubject(),
-                'message' => $reclamation->getMessage(),
-                'date_creation' => $reclamation->getDateCreation(),
-                'statut' => $reclamation->getStatut()
-            ]);
-            
-            if ($result) {
-                return $db->lastInsertId();
-            } else {
-                error_log("❌ Erreur lors de l'insertion PDO");
+            // Vérifier que la connexion est établie
+            if (!$db) {
+                error_log("❌ Erreur: Connexion à la base de données échouée");
                 return false;
             }
+            
+            // Log pour débogage
+            error_log("SQL: " . $sql);
+            error_log("Params: " . print_r($params, true));
+            
+            $query = $db->prepare($sql);
+            if (!$query) {
+                $errorInfo = $db->errorInfo();
+                error_log("❌ Erreur lors de la préparation de la requête: " . implode(", ", $errorInfo));
+                return false;
+            }
+            
+            $result = $query->execute($params);
+            
+            if ($result) {
+                $insertId = $db->lastInsertId();
+                error_log("✓ Insertion réussie, ID: " . $insertId);
+                return $insertId;
+            } else {
+                $errorInfo = $query->errorInfo();
+                error_log("❌ Erreur lors de l'insertion PDO: " . implode(", ", $errorInfo));
+                error_log("❌ SQL: " . $sql);
+                error_log("❌ Params: " . print_r($params, true));
+                return false;
+            }
+        } catch (PDOException $e) {
+            error_log('❌ Erreur addReclamation PDO: ' . $e->getMessage());
+            error_log('❌ Code erreur: ' . $e->getCode());
+            error_log('❌ SQL: ' . $sql);
+            error_log('❌ Params: ' . print_r($params, true));
+            return false;
         } catch (Exception $e) {
             error_log('❌ Erreur addReclamation: ' . $e->getMessage());
             return false;
@@ -97,14 +166,90 @@ class ReclamationController {
         }
     }
 
-    public function getAllReclamations() {
-        $sql = "SELECT * FROM reclamations ORDER BY date_creation DESC";
+    public function getAllReclamations($statusFilter = null, $dateFilter = null, $categorieFilter = null) {
+        $sql = "SELECT * FROM reclamations WHERE 1=1";
+        $params = [];
+        
+        // Filtre par statut
+        if ($statusFilter && $statusFilter !== 'all') {
+            $sql .= " AND statut = :statut";
+            $params['statut'] = $statusFilter;
+        }
+        
+        // Filtre par date
+        if ($dateFilter && $dateFilter !== 'all') {
+            $today = date('Y-m-d');
+            switch ($dateFilter) {
+                case 'today':
+                    $sql .= " AND DATE(date_creation) = :date_filter";
+                    $params['date_filter'] = $today;
+                    break;
+                case 'week':
+                    $sql .= " AND date_creation >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+                    break;
+                case 'month':
+                    $sql .= " AND date_creation >= DATE_SUB(NOW(), INTERVAL 1 MONTH)";
+                    break;
+            }
+        }
+        
+        // Filtre par catégorie
+        if ($categorieFilter && $categorieFilter !== 'all') {
+            $sql .= " AND categorie = :categorie";
+            $params['categorie'] = $categorieFilter;
+        }
+        
+        // Tri automatique : d'abord par statut (nouveau, en_cours, resolu), puis par date décroissante
+        $sql .= " ORDER BY 
+            CASE statut 
+                WHEN 'nouveau' THEN 1 
+                WHEN 'en_cours' THEN 2 
+                WHEN 'resolu' THEN 3 
+                ELSE 4 
+            END ASC, 
+            date_creation DESC";
+        
         $db = Config::getConnexion();
         try {
-            $query = $db->query($sql);
+            $query = $db->prepare($sql);
+            $query->execute($params);
             return $query->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
             error_log('❌ Erreur getAllReclamations: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    // Obtenir les statistiques par catégorie
+    public function getStatsByCategory() {
+        $db = Config::getConnexion();
+        try {
+            // Vérifier d'abord si la colonne categorie existe
+            $checkColumn = $db->query("SHOW COLUMNS FROM reclamations LIKE 'categorie'");
+            if ($checkColumn->rowCount() == 0) {
+                error_log('⚠️ La colonne categorie n\'existe pas. Exécutez le script SQL: .vscode/database/add_categorie_to_reclamations.sql');
+                return [];
+            }
+            
+            $query = $db->query('SELECT categorie, COUNT(*) as count FROM reclamations WHERE categorie IS NOT NULL GROUP BY categorie ORDER BY count DESC');
+            $results = $query->fetchAll(PDO::FETCH_ASSOC);
+            
+            $stats = [];
+            foreach ($results as $row) {
+                $category = $row['categorie'] ?? 'Other';
+                $stats[$category] = (int)$row['count'];
+            }
+            
+            return $stats;
+        } catch (PDOException $e) {
+            error_log('❌ Erreur getStatsByCategory PDO: ' . $e->getMessage());
+            // Si c'est une erreur de colonne inexistante, retourner un tableau vide
+            if (strpos($e->getMessage(), "Unknown column") !== false || strpos($e->getMessage(), "doesn't exist") !== false) {
+                error_log('⚠️ La colonne categorie n\'existe pas. Exécutez le script SQL: .vscode/database/add_categorie_to_reclamations.sql');
+            }
+            return [];
+        } catch (Exception $e) {
+            error_log('❌ Erreur getStatsByCategory: ' . $e->getMessage());
             return [];
         }
     }

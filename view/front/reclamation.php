@@ -5,9 +5,11 @@ ini_set('display_errors', 1);
 session_start();
 
 // Inclure les contrôleurs
-require_once __DIR__ . '/../../controllers/ReclamationController.php';
+require_once __DIR__ . '/../../controllers/reclamationcontroller.php';
+require_once __DIR__ . '/../../controllers/ResponseController.php';
 
 $reclamationController = new ReclamationController();
+$responseController = new ResponseController();
 $userReclamations = [];
 $successMessage = '';
 $errorMessage = '';
@@ -19,45 +21,34 @@ if (isset($_POST['email']) && !empty($_POST['email'])) {
     $userReclamations = $reclamationController->getReclamationsByEmail($_SESSION['user_email']);
 }
 
-// Traitement du formulaire
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['full_name'])) {
-    $reclamation = new Reclamation(
-        $_POST['full_name'],
-        $_POST['email'],
-        $_POST['subject'],
-        $_POST['message']
-    );
-    
-    $result = $reclamationController->addReclamation($reclamation);
-    if ($result) {
-        $successMessage = "Message sent successfully! We'll get back to you soon.";
-        // Sauvegarder l'email en session pour récupérer les réclamations
-        $_SESSION['user_email'] = $_POST['email'];
-        // Recharger les réclamations
-        $userReclamations = $reclamationController->getReclamationsByEmail($_POST['email']);
-    } else {
-        $errorMessage = "Something went wrong. Please try again.";
-    }
+// Récupérer les réponses pour chaque réclamation
+foreach ($userReclamations as &$reclamation) {
+    $reclamation['responses'] = $responseController->getResponsesByReclamationId($reclamation['id_reclamation']);
 }
+unset($reclamation);
+
 
 // Traitement de la suppression
 if (isset($_GET['delete_id'])) {
     $result = $reclamationController->deleteReclamation($_GET['delete_id']);
     if ($result) {
-        $successMessage = "Request deleted successfully!";
-        // Recharger les réclamations si email en session
-        if (isset($_SESSION['user_email']) && !empty($_SESSION['user_email'])) {
-            $userReclamations = $reclamationController->getReclamationsByEmail($_SESSION['user_email']);
-        } elseif (isset($_POST['email']) && !empty($_POST['email'])) {
-            $userReclamations = $reclamationController->getReclamationsByEmail($_POST['email']);
-        }
+        $_SESSION['success_message'] = "Request deleted successfully!";
     } else {
-        $errorMessage = "Error deleting request.";
+        $_SESSION['error_message'] = "Error deleting request.";
     }
     // Rediriger pour éviter la resoumission
-    $redirectUrl = str_replace("?delete_id=" . $_GET['delete_id'], "", $_SERVER['REQUEST_URI']);
-    header("Location: " . $redirectUrl);
+    header("Location: reclamation.php");
     exit;
+}
+
+// Récupérer les messages de session
+if (isset($_SESSION['success_message'])) {
+    $successMessage = $_SESSION['success_message'];
+    unset($_SESSION['success_message']);
+}
+if (isset($_SESSION['error_message'])) {
+    $errorMessage = $_SESSION['error_message'];
+    unset($_SESSION['error_message']);
 }
 
 // Traitement pour récupérer une réclamation par ID (pour View et Edit via AJAX)
@@ -65,6 +56,8 @@ if (isset($_GET['view_id']) && isset($_GET['ajax'])) {
     header('Content-Type: application/json');
     $selectedReclamation = $reclamationController->getReclamationById($_GET['view_id']);
     if ($selectedReclamation) {
+        // Récupérer les réponses pour cette réclamation
+        $selectedReclamation['responses'] = $responseController->getResponsesByReclamationId($_GET['view_id']);
         echo json_encode($selectedReclamation);
     } else {
         echo json_encode(['error' => 'Reclamation not found']);
@@ -75,26 +68,25 @@ if (isset($_GET['view_id']) && isset($_GET['ajax'])) {
 // Traitement pour l'édition d'une réclamation
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
     $reclamation = new Reclamation(
-        $_POST['full_name'],
-        $_POST['email'],
-        $_POST['subject'],
-        $_POST['message'],
-        $_POST['statut'] ?? 'nouveau'
+        $_POST['email'] ?? '',
+        $_POST['sujet'] ?? $_POST['subject'] ?? '',
+        $_POST['description'] ?? $_POST['message'] ?? '',
+        null, // id_utilisateur
+        $_POST['statut'] ?? 'nouveau',
+        'Other' // categorie par défaut
     );
     $reclamation->setIdReclamation($_POST['edit_id']);
     
     $result = $reclamationController->updateReclamation($reclamation);
     if ($result) {
-        $successMessage = "Request updated successfully!";
-        // Recharger les réclamations
-        if (isset($_SESSION['user_email']) && !empty($_SESSION['user_email'])) {
-            $userReclamations = $reclamationController->getReclamationsByEmail($_SESSION['user_email']);
-        } elseif (isset($_POST['email']) && !empty($_POST['email'])) {
-            $userReclamations = $reclamationController->getReclamationsByEmail($_POST['email']);
-        }
+        $_SESSION['success_message'] = "Request updated successfully!";
+        $_SESSION['user_email'] = $_POST['email'];
     } else {
-        $errorMessage = "Error updating request. Please try again.";
+        $_SESSION['error_message'] = "Error updating request. Please try again.";
     }
+    // Rediriger pour recharger la page
+    header("Location: reclamation.php");
+    exit;
 }
 
 ?>
@@ -103,12 +95,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FoxUnity - Gaming for Good</title>
+    <title>FoxUnity - Support Center</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
+        
         .cart-icon {
             color: #ff7a00 !important;
             position: relative;
@@ -141,6 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
             box-shadow: 0 2px 8px rgba(255, 122, 0, 0.4);
         }
 
+        
         .support-hero {
             padding: 100px 40px 60px;
             text-align: center;
@@ -189,6 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
             line-height: 1.8;
         }
 
+        
         .quick-links-section {
             padding: 60px 40px;
             max-width: 1200px;
@@ -251,205 +246,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
             line-height: 1.6;
         }
 
-        .my-reclamations-section {
-            padding: 80px 40px;
-            background: linear-gradient(135deg, rgba(10, 10, 10, 0.5) 0%, rgba(255, 122, 0, 0.05) 100%);
-        }
-
-        .my-reclamations-container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .section-header {
-            text-align: center;
-            margin-bottom: 50px;
-        }
-
-        .section-header h2 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 42px;
-            color: #fff;
-            margin-bottom: 15px;
-        }
-
-        .section-header h2 span {
-            color: #ff7a00;
-        }
-
-        .section-header p {
-            color: #aaa;
-            font-size: 18px;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .reclamations-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 25px;
-            margin-bottom: 40px;
-        }
-
-        .reclamation-card {
-            background: linear-gradient(135deg, rgba(20, 20, 20, 0.95) 0%, rgba(10, 10, 10, 0.95) 100%);
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 25px;
-            transition: all 0.3s ease;
-        }
-
-        .reclamation-card:hover {
-            border-color: rgba(255, 122, 0, 0.3);
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(255, 122, 0, 0.2);
-        }
-
-        .reclamation-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 15px;
-        }
-
-        .reclamation-subject {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 18px;
-            color: #fff;
-            margin: 0;
-        }
-
-        .reclamation-status {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .status-nouveau, .status-new {
-            background: rgba(255, 122, 0, 0.2);
-            color: #ff7a00;
-            border: 1px solid rgba(255, 122, 0, 0.4);
-        }
-
-        .status-en_cours, .status-in-progress {
-            background: rgba(255, 193, 7, 0.2);
-            color: #ffc107;
-            border: 1px solid rgba(255, 193, 7, 0.4);
-        }
-
-        .status-resolu, .status-resolved {
-            background: rgba(76, 175, 80, 0.2);
-            color: #4caf50;
-            border: 1px solid rgba(76, 175, 80, 0.4);
-        }
-
-        .reclamation-meta {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 15px;
-            font-size: 14px;
-            color: #aaa;
-        }
-
-        .reclamation-date {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .reclamation-message {
-            color: #ccc;
-            line-height: 1.6;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-
-        .reclamation-message.expanded {
-            max-height: none;
-        }
-
-        .read-more {
-            background: transparent;
-            border: 1px solid rgba(255, 122, 0, 0.3);
-            color: #ff7a00;
-            padding: 8px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            margin-bottom: 15px;
-        }
-
-        .read-more:hover {
-            background: rgba(255, 122, 0, 0.1);
-            border-color: #ff7a00;
-        }
-
-        .reclamation-actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .action-btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            text-decoration: none;
-        }
-
-        .btn-view {
-            background: rgba(23, 162, 184, 0.2);
-            color: #17a2b8;
-            border: 1px solid rgba(23, 162, 184, 0.4);
-        }
-
-        .btn-edit {
-            background: rgba(255, 193, 7, 0.2);
-            color: #ffc107;
-            border: 1px solid rgba(255, 193, 7, 0.4);
-        }
-
-        .btn-delete {
-            background: rgba(220, 53, 69, 0.2);
-            color: #dc3545;
-            border: 1px solid rgba(220, 53, 69, 0.4);
-        }
-
-        .action-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(255, 122, 0, 0.3);
-        }
-
-        .no-reclamations {
-            text-align: center;
-            padding: 60px 20px;
-            color: #666;
-        }
-
-        .no-reclamations i {
-            font-size: 64px;
-            margin-bottom: 20px;
-            color: #ff7a00;
-            opacity: 0.5;
-        }
-
-        .no-reclamations h3 {
-            font-family: 'Orbitron', sans-serif;
-            color: #fff;
-            margin-bottom: 10px;
-        }
-
         .contact-form-section {
             padding: 60px 40px;
             background: linear-gradient(135deg, rgba(10, 10, 10, 0.5) 0%, rgba(255, 122, 0, 0.05) 100%);
@@ -461,12 +257,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 60px;
-        }
-
-        @media (max-width: 968px) {
-            .contact-container {
-                grid-template-columns: 1fr;
-            }
         }
 
         .contact-info {
@@ -545,6 +335,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
             color: #fff;
         }
 
+        
         .contact-form-wrapper {
             background: linear-gradient(135deg, rgba(20, 20, 20, 0.95) 0%, rgba(10, 10, 10, 0.95) 100%);
             border: 2px solid rgba(255, 255, 255, 0.1);
@@ -576,7 +367,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
             font-size: 15px;
             transition: all 0.3s ease;
             font-family: 'Poppins', sans-serif;
-            box-sizing: border-box;
         }
 
         .form-textarea {
@@ -642,33 +432,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
             transform: none;
         }
 
-        .message {
-            padding: 15px 20px;
-            border-radius: 12px;
-            margin-bottom: 25px;
-            display: none;
-            align-items: center;
-            gap: 12px;
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .message.show {
-            display: flex;
-        }
-
-        .success-message {
-            background: rgba(76, 175, 80, 0.2);
-            border: 1px solid rgba(76, 175, 80, 0.4);
-            color: #4caf50;
-        }
-
-        .error-message {
-            background: rgba(220, 53, 69, 0.2);
-            border: 1px solid rgba(220, 53, 69, 0.4);
-            color: #dc3545;
-        }
-
+       
         .faq-section {
             padding: 80px 40px;
             max-width: 1000px;
@@ -702,10 +466,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
 
         .faq-question {
             padding: 25px 30px;
+            cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            cursor: pointer;
+            gap: 20px;
             transition: all 0.3s ease;
         }
 
@@ -714,13 +479,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
         }
 
         .faq-question h3 {
-            font-family: 'Orbitron', sans-serif;
+            font-family: 'Poppins', sans-serif;
             font-size: 18px;
+            font-weight: 600;
             color: #fff;
             margin: 0;
         }
 
         .faq-icon {
+            font-size: 20px;
             color: #ff7a00;
             transition: transform 0.3s ease;
         }
@@ -746,42 +513,349 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
             font-size: 15px;
         }
 
-        .modal {
+        .message {
             display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
             align-items: center;
-            justify-content: center;
+            gap: 10px;
         }
 
-        .modal-content {
+        .message.show {
+            display: flex;
+        }
+
+        .success-message {
+            background: rgba(76, 175, 80, 0.1);
+            border: 2px solid #4caf50;
+            color: #4caf50;
+        }
+
+        .error-message {
+            background: rgba(244, 67, 54, 0.1);
+            border: 2px solid #f44336;
+            color: #f44336;
+        }
+
+        /* Styles pour les réclamations */
+        .my-reclamations-section {
+            padding: 60px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .my-reclamations-container {
+            width: 100%;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .section-header h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 42px;
+            color: #fff;
+            margin-bottom: 15px;
+        }
+
+        .section-header h2 span {
+            color: #ff7a00;
+        }
+
+        .section-header p {
+            color: #aaa;
+            font-size: 16px;
+        }
+
+        .reclamations-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+        }
+
+        .reclamation-card {
             background: linear-gradient(135deg, rgba(20, 20, 20, 0.95) 0%, rgba(10, 10, 10, 0.95) 100%);
             border: 2px solid rgba(255, 255, 255, 0.1);
             border-radius: 20px;
-            padding: 40px;
-            max-width: 600px;
+            padding: 30px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .reclamation-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, #ff7a00, #ff4f00);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .reclamation-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 122, 0, 0.3);
+            box-shadow: 0 15px 40px rgba(255, 122, 0, 0.15);
+        }
+
+        .reclamation-card:hover::before {
+            opacity: 1;
+        }
+
+        .reclamation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            gap: 20px;
+        }
+
+        .reclamation-subject {
+            font-family: 'Poppins', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            color: #fff;
+            margin: 0;
+            flex: 1;
+            line-height: 1.4;
+        }
+
+        .reclamation-status {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        .reclamation-status.status-nouveau,
+        .reclamation-status.status-New {
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.2), rgba(33, 150, 243, 0.1));
+            color: #2196F3;
+            border: 1px solid rgba(33, 150, 243, 0.3);
+        }
+
+        .reclamation-status.status-en_cours,
+        .reclamation-status.status-In\ Progress {
+            background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(255, 193, 7, 0.1));
+            color: #FFC107;
+            border: 1px solid rgba(255, 193, 7, 0.3);
+        }
+
+        .reclamation-status.status-resolu,
+        .reclamation-status.status-Resolved {
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(76, 175, 80, 0.1));
+            color: #4CAF50;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .reclamation-meta {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .reclamation-date {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .reclamation-date i {
+            color: #ff7a00;
+        }
+
+        .reclamation-message {
+            color: #ccc;
+            font-size: 15px;
+            line-height: 1.8;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            border-left: 3px solid rgba(255, 122, 0, 0.3);
+        }
+
+        .reclamation-message.expanded {
+            white-space: pre-wrap;
+        }
+
+        .read-more {
+            background: transparent;
+            border: 2px solid rgba(255, 122, 0, 0.3);
+            color: #ff7a00;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .read-more:hover {
+            background: rgba(255, 122, 0, 0.1);
+            border-color: #ff7a00;
+            transform: translateX(5px);
+        }
+
+        .reclamation-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .action-btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            border: 2px solid transparent;
+        }
+
+        .action-btn i {
+            font-size: 16px;
+        }
+
+        .btn-view {
+            background: rgba(33, 150, 243, 0.1);
+            color: #2196F3;
+            border-color: rgba(33, 150, 243, 0.3);
+        }
+
+        .btn-view:hover {
+            background: rgba(33, 150, 243, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.3);
+        }
+
+        .btn-edit {
+            background: rgba(255, 193, 7, 0.1);
+            color: #FFC107;
+            border-color: rgba(255, 193, 7, 0.3);
+        }
+
+        .btn-edit:hover {
+            background: rgba(255, 193, 7, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 193, 7, 0.3);
+        }
+
+        .btn-delete {
+            background: rgba(244, 67, 54, 0.1);
+            color: #f44336;
+            border-color: rgba(244, 67, 54, 0.3);
+        }
+
+        .btn-delete:hover {
+            background: rgba(244, 67, 54, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(244, 67, 54, 0.3);
+        }
+
+        .no-reclamations {
+            text-align: center;
+            padding: 80px 20px;
+            background: linear-gradient(135deg, rgba(20, 20, 20, 0.95) 0%, rgba(10, 10, 10, 0.95) 100%);
+            border: 2px dashed rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+        }
+
+        .no-reclamations i {
+            font-size: 64px;
+            color: #ff7a00;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .no-reclamations h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+
+        .no-reclamations p {
+            color: #aaa;
+            font-size: 16px;
+        }
+
+        /* Styles pour les modals */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, rgba(20, 20, 20, 0.98) 0%, rgba(10, 10, 10, 0.98) 100%);
+            margin: 5% auto;
+            border: 2px solid rgba(255, 122, 0, 0.3);
+            border-radius: 20px;
             width: 90%;
+            max-width: 600px;
+            box-shadow: 0 20px 60px rgba(255, 122, 0, 0.3);
+            animation: slideDown 0.3s ease;
             max-height: 90vh;
             overflow-y: auto;
-            position: relative;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 25px;
+            padding: 25px 30px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
         }
 
         .modal-header h3 {
             font-family: 'Orbitron', sans-serif;
             font-size: 24px;
             color: #fff;
+            margin: 0;
         }
 
         .modal-header h3 span {
@@ -789,35 +863,126 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
         }
 
         .close-modal {
-            background: none;
+            background: transparent;
             border: none;
-            color: #aaa;
+            color: #fff;
             font-size: 32px;
             cursor: pointer;
-            transition: color 0.3s;
-            line-height: 1;
+            transition: all 0.3s ease;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
         }
 
         .close-modal:hover {
+            background: rgba(255, 122, 0, 0.2);
             color: #ff7a00;
+            transform: rotate(90deg);
         }
 
         .modal-body {
-            color: #ccc;
-            line-height: 1.8;
+            padding: 30px;
+            color: #fff;
         }
 
         .modal-body p {
             margin-bottom: 15px;
+            line-height: 1.8;
+            color: #ccc;
         }
 
         .modal-body strong {
             color: #fff;
+            font-weight: 600;
+        }
+
+        .modal-body .form-group {
+            margin-bottom: 20px;
+        }
+
+        .modal-body .form-label {
+            display: block;
+            color: #fff;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .modal-body .form-input,
+        .modal-body .form-select,
+        .modal-body .form-textarea {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .modal-body .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .modal-body .form-input:focus,
+        .modal-body .form-select:focus,
+        .modal-body .form-textarea:focus {
+            outline: none;
+            border-color: #ff7a00;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 15px rgba(255, 122, 0, 0.2);
+        }
+       
+        @media (max-width: 968px) {
+            .contact-container {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .support-hero h1 {
+                font-size: 36px;
+            }
+
+            .quick-links-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .contact-form-wrapper {
+                padding: 35px 25px;
+            }
+
+            .reclamation-card {
+                padding: 20px;
+            }
+
+            .reclamation-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .reclamation-subject {
+                font-size: 18px;
+            }
+
+            .reclamation-actions {
+                flex-direction: column;
+            }
+
+            .action-btn {
+                width: 100%;
+                justify-content: center;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Animated red bubbles -->
+    
     <div class="bubbles">
         <div class="bubble"></div>
         <div class="bubble"></div>
@@ -829,7 +994,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
         <div class="bubble"></div>
     </div>
 
-    <!-- HEADER -->
+    
     <header class="site-header">
         <div class="logo-section">
             <img src="../images/Nine__1_-removebg-preview.png" alt="FoxUnity Logo" class="site-logo">
@@ -843,8 +1008,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
             <a href="trading.html">Trading</a>
             <a href="news.html">News</a>
             <a href="reclamation.php" class="active">Support</a>
+            <a href="contact_us.php">New Request</a>
+            <a href="public_reclamations.php"><i class="fas fa-star"></i> Public Evaluations</a>
             <a href="about.html">About Us</a>
         </nav>
+        
+        
         
         <div class="header-right">
             <a href="login.html" class="login-register-link">
@@ -872,14 +1041,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
 
         <section class="quick-links-section">
             <div class="quick-links-grid">
-                <div class="quick-link-card" onclick="document.getElementById('contact-form').scrollIntoView({behavior: 'smooth'})">
-                    <div class="quick-link-icon">
-                        <i class="fas fa-envelope"></i>
-                    </div>
-                    <h3>Contact Us</h3>
-                    <p>Send us a message and we'll respond within 2 hours</p>
-                </div>
-
                 <div class="quick-link-card" onclick="document.getElementById('my-reclamations').scrollIntoView({behavior: 'smooth'})">
                     <div class="quick-link-icon">
                         <i class="fas fa-list-alt"></i>
@@ -906,18 +1067,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
                     <p>View and manage all your previous support requests in one place</p>
                 </div>
 
+                <?php if ($successMessage): ?>
+                    <div class="message success-message show" style="margin-bottom: 30px;">
+                        <i class="fas fa-check-circle"></i>
+                        <span><?php echo htmlspecialchars($successMessage); ?></span>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if ($errorMessage): ?>
+                    <div class="message error-message show" style="margin-bottom: 30px;">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span><?php echo htmlspecialchars($errorMessage); ?></span>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Formulaire de recherche par email -->
+                <div style="background: linear-gradient(135deg, rgba(20, 20, 20, 0.95) 0%, rgba(10, 10, 10, 0.95) 100%); border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 15px; padding: 25px; margin-bottom: 30px;">
+                    <form method="POST" action="" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 250px;">
+                            <label class="form-label">Enter your email to view your requests</label>
+                            <input type="email" name="email" class="form-input" placeholder="your.email@example.com" 
+                                   value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : (isset($_SESSION['user_email']) ? htmlspecialchars($_SESSION['user_email']) : ''); ?>" required>
+                        </div>
+                        <button type="submit" class="submit-btn" style="width: auto; padding: 12px 30px;">
+                            <i class="fas fa-search"></i> View Requests
+                        </button>
+                    </form>
+                </div>
+
                 <div class="reclamations-grid" id="reclamations-list">
                     <?php if (empty($userReclamations)): ?>
                         <div class="no-reclamations">
                             <i class="fas fa-inbox"></i>
                             <h3>No Requests Yet</h3>
-                            <p>Submit your first support request using the form below</p>
+                            <p>You haven't submitted any support requests yet. <a href="contact_us.php" style="color: #ff7a00; text-decoration: none; font-weight: 600;">Create your first request</a> to get started.</p>
                         </div>
                     <?php else: ?>
                         <?php foreach ($userReclamations as $reclamation): ?>
                             <div class="reclamation-card">
                                 <div class="reclamation-header">
-                                    <h3 class="reclamation-subject"><?php echo htmlspecialchars($reclamation['subject']); ?></h3>
+                                    <h3 class="reclamation-subject"><?php echo htmlspecialchars($reclamation['sujet'] ?? $reclamation['subject'] ?? 'No Subject'); ?></h3>
                                     <span class="reclamation-status status-<?php echo $reclamation['statut']; ?>">
                                         <?php 
                                         $statusText = [
@@ -934,10 +1123,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
                                         <i class="far fa-calendar"></i>
                                         <?php echo date('M j, Y', strtotime($reclamation['date_creation'])); ?>
                                     </div>
+                                    <?php if (!empty($reclamation['responses']) && count($reclamation['responses']) > 0): ?>
+                                        <div style="display: flex; align-items: center; gap: 5px; color: #ff7a00; font-weight: 600;">
+                                            <i class="fas fa-reply"></i>
+                                            <span><?php echo count($reclamation['responses']); ?> réponse<?php echo count($reclamation['responses']) > 1 ? 's' : ''; ?></span>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="reclamation-message" id="message-<?php echo $reclamation['id_reclamation']; ?>">
                                     <?php 
-                                    $message = htmlspecialchars($reclamation['message']);
+                                    $message = htmlspecialchars($reclamation['description'] ?? $reclamation['message'] ?? 'No message');
                                     echo strlen($message) > 100 ? substr($message, 0, 100) . '...' : $message;
                                     ?>
                                 </div>
@@ -963,120 +1158,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
                 </div>
             </div>
         </section>
-
-        
-        <section class="contact-form-section" id="contact-form">
-            <div class="contact-container">
-               
-                <div class="contact-info">
-                    <div>
-                        <h2>Get In <span>Touch</span></h2>
-                        <p class="contact-info-text">
-                            Have a question, issue, or feedback? Fill out the form and our team will get back to you as soon as possible. 
-                            We typically respond within 2 hours during business hours.
-                        </p>
-                    </div>
-
-                    <div class="contact-method">
-                        <div class="contact-method-icon">
-                            <i class="fas fa-envelope"></i>
-                        </div>
-                        <div class="contact-method-details">
-                            <h4>Email Support</h4>
-                            <p><a href="mailto:support@foxunity.com">support@foxunity.com</a></p>
-                        </div>
-                    </div>
-
-                    <div class="contact-method">
-                        <div class="contact-method-icon">
-                            <i class="fab fa-discord"></i>
-                        </div>
-                        <div class="contact-method-details">
-                            <h4>Discord Community</h4>
-                            <p><a href="#">Join our Discord server</a></p>
-                        </div>
-                    </div>
-
-                    <div class="contact-method">
-                        <div class="contact-method-icon">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <div class="contact-method-details">
-                            <h4>Response Time</h4>
-                            <p>Average response: 2 hours<br>24/7 Support Available</p>
-                        </div>
-                    </div>
-
-                    <div class="contact-method">
-                        <div class="contact-method-icon">
-                            <i class="fas fa-map-marker-alt"></i>
-                        </div>
-                        <div class="contact-method-details">
-                            <h4>Location</h4>
-                            <p>Global Support Team<br>Serving customers worldwide</p>
-                        </div>
-                    </div>
-                </div>
-
-                
-                <div class="contact-form-wrapper">
-                    <?php if ($successMessage): ?>
-                        <div id="success-message" class="message success-message show">
-                            <i class="fas fa-check-circle"></i>
-                            <span><?php echo $successMessage; ?></span>
-                        </div>
-                    <?php endif; ?>
-                    
-                    <?php if ($errorMessage): ?>
-                        <div id="error-message" class="message error-message show">
-                            <i class="fas fa-exclamation-circle"></i>
-                            <span><?php echo $errorMessage; ?></span>
-                        </div>
-                    <?php endif; ?>
-
-                    <form id="support-form" method="POST" action="">
-                        <div class="form-group">
-                            <label class="form-label">Full Name *</label>
-                            <input type="text" name="full_name" class="form-input" placeholder="Enter your full name" required 
-                                   value="<?php echo isset($_POST['full_name']) ? htmlspecialchars($_POST['full_name']) : ''; ?>">
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Email Address *</label>
-                            <input type="email" name="email" class="form-input" placeholder="your.email@example.com" required
-                                   value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Subject *</label>
-                            <select name="subject" class="form-select" required>
-                                <option value="">Select a subject</option>
-                                <option value="Account Issues" <?php echo (isset($_POST['subject']) && $_POST['subject'] == 'Account Issues') ? 'selected' : ''; ?>>Account Issues</option>
-                                <option value="Payment & Billing" <?php echo (isset($_POST['subject']) && $_POST['subject'] == 'Payment & Billing') ? 'selected' : ''; ?>>Payment & Billing</option>
-                                <option value="Technical Support" <?php echo (isset($_POST['subject']) && $_POST['subject'] == 'Technical Support') ? 'selected' : ''; ?>>Technical Support</option>
-                                <option value="Shop & Orders" <?php echo (isset($_POST['subject']) && $_POST['subject'] == 'Shop & Orders') ? 'selected' : ''; ?>>Shop & Orders</option>
-                                <option value="Trading Issues" <?php echo (isset($_POST['subject']) && $_POST['subject'] == 'Trading Issues') ? 'selected' : ''; ?>>Trading Issues</option>
-                                <option value="Events & Tournaments" <?php echo (isset($_POST['subject']) && $_POST['subject'] == 'Events & Tournaments') ? 'selected' : ''; ?>>Events & Tournaments</option>
-                                <option value="Charity & Donations" <?php echo (isset($_POST['subject']) && $_POST['subject'] == 'Charity & Donations') ? 'selected' : ''; ?>>Charity & Donations</option>
-                                <option value="Feedback & Suggestions" <?php echo (isset($_POST['subject']) && $_POST['subject'] == 'Feedback & Suggestions') ? 'selected' : ''; ?>>Feedback & Suggestions</option>
-                                <option value="Other" <?php echo (isset($_POST['subject']) && $_POST['subject'] == 'Other') ? 'selected' : ''; ?>>Other</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Message *</label>
-                            <textarea name="message" class="form-textarea" placeholder="Describe your issue or question in detail..." required><?php echo isset($_POST['message']) ? htmlspecialchars($_POST['message']) : ''; ?></textarea>
-                        </div>
-
-                        <button type="submit" class="submit-btn">
-                            <i class="fas fa-paper-plane"></i>
-                            Send Message
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </section>
-
         
         <section class="faq-section" id="faq-section">
             <h2>Frequently Asked <span>Questions</span></h2>
@@ -1220,9 +1301,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
                 <a href="../back/dashboard.html" class="dashboard-link">
                     <i class="fas fa-tachometer-alt"></i> My Dashboard
                 </a>
-                <a href="../back/reclamback.php" class="dashboard-link" style="margin-top: 10px; display: block;">
-                    <i class="fas fa-headset"></i> Dashboard Support
-                </a>
             </div>
         </div>
         <div class="footer-bottom">
@@ -1309,14 +1387,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
                     };
                     const status = statusText[data.statut] || data.statut;
                     
+                    // Construire le HTML des réponses
+                    let responsesHtml = '';
+                    if (data.responses && Array.isArray(data.responses) && data.responses.length > 0) {
+                        responsesHtml = '<div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid rgba(255, 122, 0, 0.3);">';
+                        responsesHtml += '<h4 style="color: #ff7a00; margin-bottom: 15px;"><i class="fas fa-reply"></i> Réponse de l\'équipe (' + data.responses.length + ')</h4>';
+                        
+                        data.responses.forEach(function(response) {
+                            const responseDate = new Date(response.date_reponse || response.date_creation || new Date());
+                            const formattedResponseDate = responseDate.toLocaleDateString('fr-FR', { 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+                            
+                            responsesHtml += '<div style="background: rgba(255, 122, 0, 0.1); border-left: 3px solid #ff7a00; padding: 15px; margin-bottom: 15px; border-radius: 8px;">';
+                            responsesHtml += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">';
+                            responsesHtml += '<span style="color: #ff7a00; font-weight: 600;"><i class="fas fa-user-shield"></i> Admin</span>';
+                            responsesHtml += '<span style="color: #aaa; font-size: 12px;">' + formattedResponseDate + '</span>';
+                            responsesHtml += '</div>';
+                            responsesHtml += '<div style="color: #fff; line-height: 1.6; white-space: pre-wrap;">' + escapeHtml(response.message || response.response_text || '') + '</div>';
+                            responsesHtml += '</div>';
+                        });
+                        
+                        responsesHtml += '</div>';
+                    }
+                    
                     modalBody.innerHTML = `
-                        <p><strong>Full Name:</strong> ${escapeHtml(data.full_name)}</p>
                         <p><strong>Email:</strong> ${escapeHtml(data.email)}</p>
-                        <p><strong>Subject:</strong> ${escapeHtml(data.subject)}</p>
+                        <p><strong>Subject:</strong> ${escapeHtml(data.sujet || data.subject || 'No Subject')}</p>
                         <p><strong>Status:</strong> <span class="reclamation-status status-${data.statut}">${status}</span></p>
                         <p><strong>Date:</strong> ${formattedDate}</p>
                         <p><strong>Message:</strong></p>
-                        <p style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-top: 10px; white-space: pre-wrap;">${escapeHtml(data.message)}</p>
+                        <p style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-top: 10px; white-space: pre-wrap;">${escapeHtml(data.description || data.message || 'No message')}</p>
+                        ${responsesHtml}
                     `;
                 })
                 .catch(error => {
@@ -1340,7 +1446,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
             modal.style.display = 'block';
             
             // Récupérer les données complètes depuis la base de données via AJAX
-            fetch('?view_id=' + id + '&ajax=1')
+            fetch('reclamation.php?view_id=' + id + '&ajax=1')
                 .then(response => response.json())
                 .then(data => {
                     if (data.error) {
@@ -1352,16 +1458,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
                         <form method="POST" action="">
                             <input type="hidden" name="edit_id" value="${data.id_reclamation}">
                             <div class="form-group">
-                                <label class="form-label">Full Name *</label>
-                                <input type="text" name="full_name" class="form-input" value="${escapeHtml(data.full_name)}" required>
-                            </div>
-                            <div class="form-group">
                                 <label class="form-label">Email Address *</label>
                                 <input type="email" name="email" class="form-input" value="${escapeHtml(data.email)}" required>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Subject *</label>
-                                <input type="text" name="subject" class="form-input" value="${escapeHtml(data.subject)}" required>
+                                <input type="text" name="sujet" class="form-input" value="${escapeHtml(data.sujet || data.subject || '')}" required>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Status</label>
@@ -1373,7 +1475,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Message *</label>
-                                <textarea name="message" class="form-textarea" required>${escapeHtml(data.message)}</textarea>
+                                <textarea name="description" class="form-textarea" required>${escapeHtml(data.description || data.message || '')}</textarea>
                             </div>
                             <div style="display: flex; gap: 10px; margin-top: 20px;">
                                 <button type="button" class="submit-btn" style="background: rgba(255,255,255,0.1);" onclick="closeModal('edit-modal')">Cancel</button>
@@ -1420,14 +1522,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
             });
         });
 
-        // Code existant pour le formulaire
-        document.getElementById('support-form').addEventListener('submit', function(e) {
-            const submitBtn = this.querySelector('.submit-btn');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-            
-            // Le formulaire sera soumis normalement via PHP
-        });
 
         // Code existant pour le panier
         window.addEventListener('load', function() {

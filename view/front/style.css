@@ -796,3 +796,30 @@ body::after {
     grid-template-columns: 1fr;
   }
 }
+
+/* ======== SELECT OPTIONS STYLES ======== */
+/* Style pour les options des select - texte noir sur fond blanc */
+select option {
+  background: #ffffff !important;
+  color: #000000 !important;
+  padding: 8px 12px;
+}
+
+/* Options au survol */
+select option:hover {
+  background: #f0f0f0 !important;
+  color: #000000 !important;
+}
+
+/* Option sélectionnée */
+select option:checked {
+  background: #e0e0e0 !important;
+  color: #000000 !important;
+}
+
+/* Pour les select avec la classe form-select */
+.form-select option {
+  background: #ffffff !important;
+  color: #000000 !important;
+  padding: 10px;
+}

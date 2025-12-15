@@ -1,16 +1,19 @@
 {
 	"folders": [
 		{
-			"path": "../../../../foxunity/.vscode"
+			"path": "../../.vscode"
 		},
 		{
-			"path": "../../../../foxunity/controller"
+			"path": "../../config"
 		},
 		{
-			"path": "../../../../foxunity/model"
+			"path": "../../controllers"
 		},
 		{
-			"path": "../../../../foxunity/view"
+			"path": "../../models"
+		},
+		{
+			"path": ".."
 		}
 	]
 }
