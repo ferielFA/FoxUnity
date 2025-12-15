@@ -24,7 +24,7 @@ class TradeHistoryController {
                 $type = $row['Type'] ?? '';
                 $needsAlter = (strpos($type, "'trade'") === false) || (strpos($type, "'negotiation_refused'") === false);
                 if ($needsAlter) {
-                    $this->db->exec("ALTER TABLE trade_history MODIFY COLUMN action ENUM('created', 'updated', 'deleted', 'buy', 'bought', 'negotiation_refused', 'trade') NOT NULL");
+                    $this->db->exec("ALTER TABLE trade_history MODIFY COLUMN action ENUM('created', 'updated', 'deleted', 'buy', 'bought', 'sold', 'negotiation_refused', 'trade') NOT NULL");
                 }
             }
 
@@ -48,7 +48,7 @@ class TradeHistoryController {
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         user_id INT NOT NULL,
                         skin_id INT NOT NULL,
-                        action ENUM('created', 'updated', 'deleted', 'buy', 'bought', 'negotiation_refused', 'trade') NOT NULL,
+                        action ENUM('created', 'updated', 'deleted', 'buy', 'bought', 'sold', 'negotiation_refused', 'trade') NOT NULL,
                         skin_name VARCHAR(255) NOT NULL,
                         skin_price DECIMAL(10,2) NOT NULL,
                         skin_category VARCHAR(50) NOT NULL,
@@ -274,6 +274,53 @@ class TradeHistoryController {
                 'total_skins' => 0,
                 'total_value' => 0.0
             ];
+        }
+    }
+    public function getUserAnalytics(int $userId): array {
+        try {
+            $this->ensureTradeHistoryTable();
+            
+            // Total Trades (Bought or Sold)
+            $stmt = $this->db->prepare("
+                SELECT COUNT(*) FROM trade 
+                WHERE buyer_id = :user_id_1 OR seller_id = :user_id_2
+            ");
+            $stmt->execute([':user_id_1' => $userId, ':user_id_2' => $userId]);
+            $totalTrades = (int)$stmt->fetchColumn();
+
+            // Total Spent (approximate based on 'bought' action)
+            $stmt = $this->db->prepare("
+                SELECT SUM(s.price) 
+                FROM trade t
+                JOIN skins s ON t.skin_id = s.skin_id
+                WHERE t.buyer_id = :user_id
+            ");
+            $stmt->execute([':user_id' => $userId]);
+            $totalSpent = (float)$stmt->fetchColumn();
+
+            // Favorite Game Category (Most purchased/traded)
+            $stmt = $this->db->prepare("
+                SELECT s.category, COUNT(*) as count 
+                FROM trade t
+                JOIN skins s ON t.skin_id = s.skin_id
+                WHERE t.buyer_id = :user_id_fav1 OR t.seller_id = :user_id_fav2
+                GROUP BY s.category 
+                ORDER BY count DESC 
+                LIMIT 1
+            ");
+            $stmt->execute([':user_id_fav1' => $userId, ':user_id_fav2' => $userId]);
+            $favGame = $stmt->fetch(PDO::FETCH_ASSOC);
+            $favoriteGame = $favGame ? $favGame['category'] : 'None';
+
+            return [
+                'success' => true,
+                'total_trades' => $totalTrades,
+                'total_spent' => $totalSpent,
+                'favorite_game' => ucfirst($favoriteGame)
+            ];
+        } catch (PDOException $e) {
+            error_log("TradeHistoryController::getUserAnalytics error: " . $e->getMessage());
+            return ['success' => false, 'error' => 'Database error: ' . $e->getMessage()];
         }
     }
 }

@@ -1,6 +1,6 @@
 <?php
-
 declare(strict_types=1);
+ob_start();
 
 require_once __DIR__ . '/../../model/config.php';
 require_once __DIR__ . '/../../controller/TradingController.php';
@@ -55,7 +55,9 @@ try {
 
 $jsonResponse = $controller->handlePost();
 if ($jsonResponse !== null) {
-
+    // Clear any previous output (warnings, notices, whitespace) to ensure valid JSON
+    if (ob_get_length()) ob_clean(); 
+    
     header('Content-Type: application/json');
     echo json_encode($jsonResponse);
     exit();
@@ -539,6 +541,219 @@ $currentUser = $viewData['currentUser'];
         transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(46, 213, 115, 0.4);
     }
+    
+    /* Tutorial Modal Styles */
+    .tutorial-modal {
+        position: fixed;
+        inset: 0;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        background: rgba(0,0,0,0.85);
+        z-index: 10005;
+        animation: fadeIn 0.2s ease;
+    }
+    .tutorial-modal.active {
+        display: flex;
+    }
+    .tutorial-content {
+        background: #111;
+        padding: 30px;
+        border-radius: 16px;
+        width: 1400px; /* Even wider */
+        max-width: 95vw;
+        height: 90vh; /* Fixed high height */
+        position: relative;
+        box-shadow: 0 8px 50px rgba(0,0,0,0.8);
+        border: 1px solid #333;
+        display: flex;
+        flex-direction: column;
+    }
+    .close-tutorial {
+        position: absolute;
+        right: 25px;
+        top: 20px;
+        color: #ff7a00;
+        font-size: 32px;
+        cursor: pointer;
+        z-index: 10;
+        transition: transform 0.3s;
+    }
+    .close-tutorial:hover {
+        transform: rotate(90deg);
+    }
+    .carousel-container {
+        position: relative;
+        width: 100%;
+        flex: 1; /* Take all remaining height */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        margin-bottom: 20px;
+        margin-top: 10px;
+    }
+    .carousel-slides {
+        width: 100%;
+        height: 100%;
+        position: relative;
+    }
+    .slide {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0; /* Expanded inset */
+        display: none; /* Default hidden */
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: #111;
+    }
+    .slide.active {
+        display: flex; /* Show when active */
+        z-index: 2;
+    }
+    .slide img {
+        max-width: 90%;
+        max-height: 65%; /* Reduce height further to ensure text space */
+        position: absolute;
+        top: 40%;
+        left: 50%;
+        transform: translate(-50%, -50%); /* Centered in top portion */
+        border-radius: 8px;
+        object-fit: contain;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .slide-caption {
+        position: absolute;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80%;
+        color: #fff;
+        font-size: 22px; 
+        font-weight: 600;
+        text-align: center;
+        line-height: 1.4;
+        background: rgba(0,0,0,0.8); /* Darker background */
+        padding: 20px;
+        border-radius: 12px;
+        border: 2px solid #ff7a00; /* Full border for visibility */
+        z-index: 20; 
+        box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+    }
+    .carousel-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: #ff7a00;
+        color: #000;
+        border: 2px solid #fff;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 24px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        z-index: 100;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+    .carousel-btn:hover {
+        background: #fff;
+        color: #ff7a00;
+        transform: translateY(-50%) scale(1.1);
+    }
+    .prev-btn { left: 10px; }
+    .next-btn { right: 10px; }
+    
+    .carousel-dots {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+    }
+    .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #333;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .dot.active {
+        background: #ff7a00;
+        transform: scale(1.2);
+    }
+    /* TRADE MASTER MODAL STYLES */
+    .trade-master-modal {
+        position: fixed; inset: 0; display: none; justify-content: center; align-items: center;
+        background: rgba(0,0,0,0.9); z-index: 11000; animation: fadeIn 0.3s ease;
+    }
+    .trade-master-modal.active { display: flex; }
+    .trade-master-content {
+        background: linear-gradient(145deg, #1a0b2e 0%, #000000 100%);
+        border: 2px solid #ff7a00;
+        box-shadow: 0 0 50px rgba(255, 122, 0, 0.4);
+        width: 800px; max-width: 95%; min-height: 500px;
+        border-radius: 20px; padding: 30px; position: relative;
+        display: flex; flex-direction: column; align-items: center;
+        color: #fff;
+    }
+    .trade-master-title {
+        font-family: 'Orbitron', sans-serif; font-size: 32px; 
+        background: linear-gradient(to right, #ff7a00, #ff9000);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        margin-bottom: 40px; text-transform: uppercase; letter-spacing: 2px;
+    }
+    .trade-master-options {
+        display: flex; gap: 30px; flex-wrap: wrap; justify-content: center; width: 100%;
+    }
+    .trade-master-btn {
+        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+        padding: 30px; border-radius: 16px; cursor: pointer;
+        width: 300px; text-align: center; transition: all 0.3s ease;
+        display: flex; flex-direction: column; align-items: center; gap: 15px;
+    }
+    .trade-master-btn:hover {
+        background: rgba(255, 122, 0, 0.2); border-color: #ff7a00;
+        transform: translateY(-5px); box-shadow: 0 10px 30px rgba(255, 122, 0, 0.2);
+    }
+    .trade-master-btn i { font-size: 40px; color: #ff7a00; margin-bottom: 10px; }
+    .trade-master-btn h3 { font-size: 20px; color: #fff; margin: 0; }
+    .trade-master-btn p { color: #aaa; font-size: 14px; margin: 0; }
+    
+    .trade-master-result-view { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; }
+    .trade-master-result-view.active { display: flex; }
+    
+    .loading-spinner {
+        border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid #ff7a00;
+        border-radius: 50%; width: 50px; height: 50px;
+        animation: spin 1s linear infinite; margin: 50px auto;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    
+    .analytics-stats {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; margin-bottom: 30px;
+    }
+    .stat-card {
+        background: rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; text-align: center;
+        border: 1px solid rgba(255, 122, 0, 0.3);
+    }
+    .stat-value { font-size: 24px; font-weight: bold; color: #ff7a00; margin-bottom: 5px; }
+    .stat-label { font-size: 12px; color: #aaa; text-transform: uppercase; }
+    
+    .ai-skin-card {
+        background: #111; border: 2px solid #ff7a00; border-radius: 16px;
+        padding: 20px; max-width: 350px; width: 100%; text-align: center;
+        box-shadow: 0 10px 40px rgba(255, 122, 0, 0.3); margin-bottom: 20px;
+    }
+    .ai-reason {
+        background: rgba(46, 213, 115, 0.1); border-left: 3px solid #2ed573;
+        padding: 15px; border-radius: 4px; margin-top: 20px;
+        color: #ddd; font-style: italic; font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -663,10 +878,17 @@ $currentUser = $viewData['currentUser'];
 
     <!-- ALL TRADES SECTION -->
     <section class="trading-section">
+      <div style="text-align: center; margin-bottom: 20px; cursor: pointer; transition: transform 0.3s;" onclick="openTradeMasterModal()" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+        <img src="../images/aias.png" alt="AIAS" style="max-width: 150px; width: 100%; height: auto; margin-bottom: 20px;">
+        <p style="color: #ff7a00; font-size: 12px; margin-top: -15px; font-weight: bold; letter-spacing: 1px;">CLICK TO CONSULT THE TRADE MASTER</p>
+      </div>
       <div style="text-align: center; margin-bottom: 20px;">
         <h2 class="section-title"><span>Available</span> Skins</h2>
         <button id="openModalBtn" style="background: linear-gradient(135deg, #ff7a00, #ff4f00); color: #fff; padding: 12px 30px; border: none; border-radius: 25px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; font-size: 14px; margin-top: 15px;">
           <i class="fas fa-plus-circle"></i> Add Trade
+        </button>
+        <button id="tutorialBtn" style="background: transparent; color: #ff7a00; border: 2px solid #ff7a00; width: 40px; height: 40px; border-radius: 50%; font-weight: 700; cursor: pointer; transition: all 0.3s ease; font-size: 18px; margin-left: 10px; vertical-align: middle;" title="How to trade">
+          <i class="fas fa-question"></i>
         </button>
       </div>
 
@@ -852,6 +1074,128 @@ $currentUser = $viewData['currentUser'];
     </div>
   </div>
 
+  </div>
+
+  <!-- TRADE MASTER MODAL -->
+  <div class="trade-master-modal" id="tradeMasterModal">
+    <div class="trade-master-content">
+      <h2 class="trade-master-title">The Trade Master Speaks</h2>
+      <span class="close-modal" onclick="closeTradeMasterModal()" style="color: #ff7a00;">&times;</span>
+      
+      <!-- Option Selection View -->
+      <div id="tradeMasterOptions" class="trade-master-options">
+        <div class="trade-master-btn" onclick="showTradeMasterAnalytics()">
+          <i class="fas fa-chart-line"></i>
+          <h3>Analyze My Trades</h3>
+          <p>Reveal your spending habits & trading patterns.</p>
+        </div>
+        
+        <div class="trade-master-btn" onclick="showAIPick()">
+          <i class="fas fa-robot"></i>
+          <h3>Pick for Me</h3>
+          <p>Let AI choose your next best investment.</p>
+        </div>
+      </div>
+      
+      <!-- Analytics View -->
+      <div id="tradeMasterAnalytics" class="trade-master-result-view">
+        <h3 style="color: #ff7a00; margin-bottom: 20px;">Your Trading Insight</h3>
+        <div class="analytics-stats">
+          <div class="stat-card">
+            <div class="stat-value" id="statTotalTrades">-</div>
+            <div class="stat-label">Total Trades</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statTotalSpent">$-</div>
+            <div class="stat-label">Approx. Spent</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statFavGame">-</div>
+            <div class="stat-label">Favorite Game</div>
+          </div>
+        </div>
+
+        <button class="success-btn" onclick="resetTradeMasterView()" style="margin-top: auto;">Back</button>
+      </div>
+
+      <!-- AI Pick View -->
+      <div id="tradeMasterAIPick" class="trade-master-result-view">
+        <h3 style="color: #ff7a00; margin-bottom: 20px;">The Trade Master Recommends</h3>
+        <div id="aiLoading" class="loading-spinner" style="display: none;"></div>
+        
+        <div id="aiResultContent" style="display: none; width: 100%; display: flex; flex-direction: column; align-items: center;">
+            <div class="ai-skin-card">
+                <img id="aiSkinImage" src="" alt="Skin" style="width: 100%; height: 200px; object-fit: contain; margin-bottom: 15px;">
+                <h3 id="aiSkinName" style="color: #ff7a00; margin: 0;">Skin Name</h3>
+                <p id="aiSkinPrice" style="color: #fff; font-weight: bold; font-size: 18px; margin: 5px 0;">$0.00</p>
+                <p id="aiSkinGame" style="color: #888; font-size: 12px; margin: 0;">Game</p>
+                <div class="skin-actions" style="justify-content: center; margin-top: 15px;">
+                     <!-- We can clone the buy/chat buttons behavior here if we want, or just link to it -->
+                     <button class="buy-btn" id="aiBuyBtn"><i class="fas fa-shopping-cart"></i> Buy Now</button>
+                     <button class="buy-btn" id="aiChatBtn" style="margin-left: 10px;"><i class="fas fa-comments"></i> Offer Trade</button>
+                </div>
+            </div>
+            <div class="ai-reason" id="aiReason">
+                "Because you like Valorant, this is the best deal."
+            </div>
+        </div>
+        
+        <button class="success-btn" onclick="resetTradeMasterView()" style="margin-top: 30px;">Back</button>
+      </div>
+      
+    </div>
+  </div>
+
+  <!-- TUTORIAL MODAL -->
+  <div class="tutorial-modal" id="tutorialModal">
+    <div class="tutorial-content">
+      <span class="close-tutorial" id="closeTutorialBtn">&times;</span>
+      <h3 style="color: #ff7a00; margin-bottom: 20px; text-align: center;">How to Trade</h3>
+      
+      <div class="carousel-container">
+        <button class="carousel-btn prev-btn" id="prevSlideBtn" type="button">
+            <span>&lt;</span>
+        </button>
+        <div class="carousel-slides">
+          <div class="slide active">
+            <img src="../images/realtuto1.PNG" alt="Step 1" onerror="this.onerror=null; this.parentElement.innerHTML='<p style=\'color:red\'>Image not found: ../images/realtuto1.PNG</p>'">
+            <p class="slide-caption">Click Add Trade to open the form. Fill in the details and submit; the trade will be posted.</p>
+          </div>
+          <div class="slide">
+            <img src="../images/realtuto2.PNG" alt="Step 2" onerror="this.onerror=null; this.parentElement.innerHTML='<p style=\'color:red\'>Image not found: ../images/realtuto2.PNG</p>'">
+            <p class="slide-caption">Open your profile dropdown, then select Trade History to view your past trades and conversations</p>
+          </div>
+          <div class="slide">
+            <img src="../images/tuto3.PNG" alt="Step 3" onerror="this.onerror=null; this.parentElement.innerHTML='<p style=\'color:red\'>Image not found: ../images/tuto3.PNG</p>'">
+            <p class="slide-caption">Here, you can update or delete your trade post, and view a history of all actions you’ve taken in the trade place</p>
+          </div>
+          <div class="slide">
+            <img src="../images/realtuto4.PNG" alt="Step 4" onerror="this.onerror=null; this.parentElement.innerHTML='<p style=\'color:red\'>Image not found: ../images/realtuto4.PNG</p>'">
+            <p class="slide-caption">You can buy the item or make a trade offer to the seller, and negotiate the price directly with them.</p>
+          </div>
+          <div class="slide">
+            <img src="../images/tuto5.PNG" alt="Step 5" onerror="this.onerror=null; this.parentElement.innerHTML='<p style=\'color:red\'>Image not found: ../images/tuto5.PNG</p>'">
+            <p class="slide-caption">As the seller, you can accept or decline the buyer’s offer.</p>
+          </div>
+          <div class="slide">
+            <img src="../images/tuto6.PNG" alt="Step 6" onerror="this.onerror=null; this.parentElement.innerHTML='<p style=\'color:red\'>Image not found: ../images/tuto6.PNG</p>'">
+            <p class="slide-caption">Finally, here you can view the conversation history for accepted and declined trade offers now you’re a ready trader!</p>
+          </div>
+        </div>
+        <button class="carousel-btn next-btn" id="nextSlideBtn" type="button">
+            <span>&gt;</span>
+        </button>
+      </div>
+      
+      <div class="carousel-dots" id="carouselDots">
+        <span class="dot active"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+      </div>
+    </div>
   </div>
 
   <!-- CUSTOM SUCCESS MODAL -->
@@ -1591,6 +1935,269 @@ $currentUser = $viewData['currentUser'];
         });
     });
 
+    // Tutorial Modal Logic
+    const tutorialModal = document.getElementById('tutorialModal');
+    const tutorialBtn = document.getElementById('tutorialBtn');
+    const closeTutorialBtn = document.getElementById('closeTutorialBtn');
+    const slides = document.querySelectorAll('.slide');
+    const dots = document.querySelectorAll('.dot');
+    let currentSlide = 0;
+
+    if (tutorialBtn && tutorialModal && closeTutorialBtn) {
+        console.log('Tutorial elements found');
+        tutorialBtn.addEventListener('click', () => {
+            console.log('Opening tutorial modal');
+            tutorialModal.classList.add('active');
+            showSlide(0);
+        });
+
+        closeTutorialBtn.addEventListener('click', () => {
+            tutorialModal.classList.remove('active');
+        });
+
+        // Close on click outside
+        window.addEventListener('click', (e) => {
+            if (e.target === tutorialModal) {
+                tutorialModal.classList.remove('active');
+            }
+        });
+
+        // Navigation buttons
+        const prevBtn = document.getElementById('prevSlideBtn');
+        const nextBtn = document.getElementById('nextSlideBtn');
+
+        if(prevBtn) {
+            prevBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Prev clicked');
+                currentSlide = (currentSlide - 1 + slides.length) % slides.length;
+                showSlide(currentSlide);
+            });
+        }
+        if(nextBtn) {
+            nextBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Next clicked');
+                currentSlide = (currentSlide + 1) % slides.length;
+                showSlide(currentSlide);
+            });
+        }
+    } else {
+        console.error('Tutorial elements missing: ', {tutorialBtn, tutorialModal, closeTutorialBtn});
+    }
+
+    function showSlide(index) {
+        currentSlide = index;
+        slides.forEach((slide, i) => {
+            slide.classList.toggle('active', i === index);
+        });
+        dots.forEach((dot, i) => {
+            dot.classList.toggle('active', i === index);
+        });
+    }
+
+    /* TRADE MASTER MODAL LOGIC */
+    const tradeMasterModal = document.getElementById('tradeMasterModal');
+    
+    function openTradeMasterModal() {
+        if(tradeMasterModal) {
+            tradeMasterModal.classList.add('active');
+            resetTradeMasterView();
+            
+            // Play voice welcome
+            playVoiceWelcome();
+        }
+    }
+    
+    // Voice welcome function
+    function playVoiceWelcome() {
+        console.log('Attempting to play voice welcome...');
+        fetch('../../api/voice-welcome.php', {
+            method: 'GET',
+            credentials: 'same-origin'
+        })
+        .then(res => res.json())
+        .then(data => {
+            console.log('Voice API response:', data);
+            if (data.success && data.audio) {
+                // Convert base64 to audio and play
+                const audioData = 'data:audio/mp3;base64,' + data.audio;
+                const audio = new Audio(audioData);
+                audio.volume = 0.7; // 70% volume
+                audio.play()
+                    .then(() => console.log('Voice playing successfully'))
+                    .catch(err => console.error('Audio play failed:', err));
+            } else {
+                console.error('Voice API error:', data.error, data);
+            }
+        })
+        .catch(err => {
+            console.error('Voice welcome fetch failed:', err);
+        });
+    }
+    
+    function closeTradeMasterModal() {
+        if(tradeMasterModal) tradeMasterModal.classList.remove('active');
+    }
+    
+    function resetTradeMasterView() {
+        document.getElementById('tradeMasterOptions').style.display = 'flex';
+        document.getElementById('tradeMasterAnalytics').classList.remove('active');
+        document.getElementById('tradeMasterAIPick').classList.remove('active');
+    }
+    
+    function showTradeMasterAnalytics() {
+        document.getElementById('tradeMasterOptions').style.display = 'none';
+        document.getElementById('tradeMasterAnalytics').classList.add('active');
+        
+        // Fetch Data from REST API
+        fetch('../../api/trade-master.php?action=analytics', { 
+            method: 'GET',
+            credentials: 'same-origin' // Include session cookies
+        })
+        .then(res => res.json())
+        .then(response => {
+            if(response.success) {
+                const data = response.data;
+                document.getElementById('statTotalTrades').textContent = data.total_trades;
+                document.getElementById('statTotalSpent').textContent = '$' + data.total_spent.toLocaleString();
+                document.getElementById('statFavGame').textContent = data.favorite_game;
+            } else {
+                alert('Failed to load analytics: ' + (response.error || 'Unknown error'));
+            }
+        })
+        .catch(err => {
+            console.error('Analytics API Error:', err);
+            alert('Failed to connect to analytics API');
+        });
+    }
+    
+    function showAIPick() {
+        document.getElementById('tradeMasterOptions').style.display = 'none';
+        document.getElementById('tradeMasterAIPick').classList.add('active');
+        
+        document.getElementById('aiLoading').style.display = 'block';
+        document.getElementById('aiResultContent').style.display = 'none';
+        
+        // Fetch AI Pick from REST API
+        fetch('../../api/trade-master.php?action=recommend', {
+            method: 'GET',
+            credentials: 'same-origin' // Include session cookies
+        })
+        .then(res => res.json())
+        .then(response => {
+            document.getElementById('aiLoading').style.display = 'none';
+            if(response.success && response.data && response.data.skin) {
+                document.getElementById('aiResultContent').style.display = 'flex';
+                
+                const skin = response.data.skin;
+                const reason = response.data.reason;
+                const imgPath = skin.image ? '../' + skin.image.replace(/^\/+/,'') : '../images/skin1.png'; // Ensure consistent pathing
+                
+                document.getElementById('aiSkinImage').src = imgPath;
+                document.getElementById('aiSkinName').textContent = skin.name;
+                document.getElementById('aiSkinPrice').textContent = '$' + parseFloat(skin.price).toFixed(2);
+                document.getElementById('aiSkinGame').innerHTML = (skin.category || 'Custom').toUpperCase() + 
+                    '<br><span style="color: #aaa; font-size: 11px;">Seller: @' + (skin.username || 'Unknown') + '</span>';
+                
+                // Add description if available
+                const desc = skin.description ? skin.description : 'No description provided.';
+                const descEl = document.getElementById('aiSkinDesc');
+                if(descEl) {
+                    descEl.textContent = desc;
+                } else {
+                    // Create description element if it doesn't exist
+                    const existingGame = document.getElementById('aiSkinGame');
+                    const newDesc = document.createElement('p');
+                    newDesc.id = 'aiSkinDesc';
+                    newDesc.style.color = '#ccc';
+                    newDesc.style.fontSize = '12px';
+                    newDesc.style.margin = '10px 0';
+                    newDesc.style.fontStyle = 'italic';
+                    newDesc.textContent = desc;
+                    existingGame.parentNode.insertBefore(newDesc, existingGame.nextSibling);
+                }
+
+                document.getElementById('aiReason').textContent = `"${reason}"`;
+                
+                // Setup Buy Button for AI Pick
+                const aiBuyBtn = document.getElementById('aiBuyBtn');
+                const aiChatBtn = document.getElementById('aiChatBtn');
+                const isOwner = (skin.username === '<?php echo $currentUser; ?>');
+
+                if (isOwner) {
+                     aiBuyBtn.innerHTML = '<i class="fas fa-user"></i> Your Listing';
+                     aiBuyBtn.style.background = '#444'; // Different color for own item
+                     aiBuyBtn.style.cursor = 'default';
+                     aiBuyBtn.onclick = function(e) { e.preventDefault(); }; // Disable click
+                     
+                     // Hide chat button for owner
+                     aiChatBtn.style.display = 'none';
+                } else {
+                    // Normal Buy Behavior
+                    aiBuyBtn.innerHTML = '<i class="fas fa-shopping-cart"></i> Buy Now';
+                    aiBuyBtn.style.background = '';
+                    aiBuyBtn.style.cursor = 'pointer';
+                    
+                    aiBuyBtn.onclick = function(e) {
+                       e.preventDefault();
+                       const item = {
+                            id: skin.skin_id,
+                            name: skin.name,
+                            price: skin.price,
+                            image: imgPath
+                       };
+                       
+                       const cart = JSON.parse(localStorage.getItem('cart')) || [];
+                       const existingItem = cart.find(cartItem => cartItem.id === skin.skin_id);
+                       
+                       if (existingItem) {
+                            this.innerHTML = '<i class="fas fa-exclamation-circle"></i> In Cart';
+                       } else {
+                            cart.push(item);
+                            localStorage.setItem('cart', JSON.stringify(cart));
+                            updateCartCount(); 
+                            this.innerHTML = '<i class="fas fa-check"></i> Added';
+                       }
+                    };
+
+                    // Normal Chat/Trade Behavior
+                    aiChatBtn.style.display = 'inline-flex';
+                    aiChatBtn.onclick = function(e) {
+                        e.preventDefault();
+                        // openDiscussionModal(skinName, sellerName, skinId, isOwner)
+                        // Close the Trade Master modal first
+                        closeTradeMasterModal();
+                        // Open the discussion modal
+                        openDiscussionModal(skin.name, skin.username, skin.skin_id, false);
+                    };
+                }
+                
+            } else {
+                document.getElementById('aiResultContent').style.display = 'flex';
+                document.getElementById('aiReason').textContent = response.error || "The Trade Master is clouded... No suitable skins found.";
+                document.getElementById('aiSkinName').textContent = "No Skin Found";
+                // Reset image to default or hide it
+                document.getElementById('aiSkinImage').src = '../images/aias.png';
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById('aiLoading').style.display = 'none';
+            alert("The Trade Master encountered an error connecting to the spirit world (server error): " + err.message);
+        });
+    }
+
+    // Close on outside click
+    window.addEventListener('click', (e) => {
+        if (e.target === tradeMasterModal) {
+            closeTradeMasterModal();
+        }
+    });
+
   </script>
 </body>
 </html>
+

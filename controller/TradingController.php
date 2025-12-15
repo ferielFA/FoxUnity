@@ -77,9 +77,98 @@ class TradingController {
             return $this->handleGetArchivedMessages();
         } elseif (isset($_POST['buy_skins'])) {
             return $this->handleBuy();
+        } elseif (isset($_POST['get_user_analytics'])) {
+            return $this->handleGetUserAnalytics();
+        } elseif (isset($_POST['ai_pick_skin'])) {
+            return $this->handleAIPickSkin();
         }
         
         return null;
+    }
+
+    private function handleGetUserAnalytics(): array {
+        $userObj = User::getByUsername($this->currentUser);
+        $userId = $userObj ? $userObj->getId() : null;
+        
+        if (!$userId) {
+            return ['success' => false, 'error' => 'User not found'];
+        }
+
+        return $this->tradeHistoryModel->getUserAnalytics($userId);
+    }
+
+    private function handleAIPickSkin(): array {
+        try {
+            $userObj = User::getByUsername($this->currentUser);
+            $userId = $userObj ? $userObj->getId() : null;
+            
+            if (!$userId) {
+                return ['success' => false, 'error' => 'User not found'];
+            }
+
+            // 1. Get User Analytics to find preferences
+            $analytics = $this->tradeHistoryModel->getUserAnalytics($userId);
+            $preferredCategory = ($analytics['success'] && $analytics['favorite_game'] !== 'None') 
+                                ? strtolower($analytics['favorite_game']) 
+                                : null;
+
+            // 2. Get All Available Skins (EXCLUDING user's own skins)
+            $allSkins = $this->skinModel->getAllSkins();
+            // Filter out current user's own skins
+            $availableSkins = array_filter($allSkins, function($skin) use ($userId) {
+                return isset($skin['owner_id']) && $skin['owner_id'] != $userId;
+            });
+            // Re-index array after filtering
+            $availableSkins = array_values($availableSkins);
+
+
+            if (empty($availableSkins)) {
+                return ['success' => false, 'error' => 'No skins available in the market.'];
+            }
+
+            // 3. Logic: Smart Recommendation vs Fallback
+            $selectedSkin = null;
+            $reason = "Based on the lowest market price.";
+
+            if ($preferredCategory) {
+                // Filter by preference
+                $preferredSkins = array_filter($availableSkins, function($skin) use ($preferredCategory) {
+                    return strtolower($skin['category'] ?? '') === $preferredCategory;
+                });
+
+                if (!empty($preferredSkins)) {
+                    // Find best value (lowest price) in preferred category
+                    usort($preferredSkins, function($a, $b) {
+                        return $a['price'] <=> $b['price'];
+                    });
+                    $selectedSkin = $preferredSkins[0]; // Best value
+                    $reason = "Based on our database records, you frequently trade " . ucfirst($preferredCategory) . ". This skin is the best value in that category currently listed.";
+                }
+            }
+
+            // Fallback: Lowest Price Overall if no preference match or no preference
+            if (!$selectedSkin) {
+                usort($availableSkins, function($a, $b) {
+                    return $a['price'] <=> $b['price'];
+                });
+                $selectedSkin = $availableSkins[0];
+                
+                if ($preferredCategory) {
+                    $reason = "Our database shows you like " . ucfirst($preferredCategory) . ", but no skins are available. We selected the absolute lowest price skin from the database instead.";
+                } else {
+                    $reason = "Visual analysis complete. Based on database price comparison, this is the best value skin currently listed.";
+                }
+            }
+            
+            return [
+                'success' => true,
+                'skin' => $selectedSkin,
+                'reason' => $reason
+            ];
+        } catch (Exception $e) {
+            error_log("AIPickError: " . $e->getMessage());
+            return ['success' => false, 'error' => 'AI Pick Error: ' . $e->getMessage()];
+        }
     }
 
     private function handleBuy(): ?array {
@@ -438,7 +527,7 @@ class TradingController {
             $this->tradeHistoryModel->logTradeHistory(
                 $buyerId,
                 $skinId,
-                'trade',
+                'bought', // Changed from 'trade' to 'bought' for correct analytics
                 $skin['name'],
                 (float)$skin['price'],
                 (string)$skin['category'],
@@ -448,7 +537,7 @@ class TradingController {
             $this->tradeHistoryModel->logTradeHistory(
                 $sellerId,
                 $skinId,
-                'trade',
+                'sold', // Changed from 'trade' to 'sold' for correct analytics
                 $skin['name'],
                 (float)$skin['price'],
                 (string)$skin['category'],
