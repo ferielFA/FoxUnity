@@ -5001,7 +5001,10 @@ unset($reclamation);
                 'email' => isset($r['email']) ? $r['email'] : '',
                 'statut' => isset($r['statut']) ? $r['statut'] : 'nouveau',
                 'date_creation' => isset($r['date_creation']) ? $r['date_creation'] : date('Y-m-d H:i:s'),
-                'categorie' => isset($r['categorie']) ? $r['categorie'] : 'Other'
+                'categorie' => isset($r['categorie']) ? $r['categorie'] : 'Other',
+                // Ces deux champs viennent de la jointure LEFT JOIN satisfactions dans le contrôleur (si présents)
+                'average_rating' => isset($r['average_rating']) ? (float)$r['average_rating'] : null,
+                'rating_count' => isset($r['rating_count']) ? intval($r['rating_count']) : 0,
             ];
         }, $allReclamations);
         echo json_encode($kanbanData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
@@ -5028,15 +5031,41 @@ unset($reclamation);
             card.setAttribute('data-status', reclamation.statut || 'nouveau');
             
             const description = (reclamation.description || '').substring(0, 100);
+            const avgRating = (typeof reclamation.average_rating !== 'undefined' && reclamation.average_rating !== null)
+                ? parseFloat(reclamation.average_rating)
+                : null;
+            const ratingCount = reclamation.rating_count ? parseInt(reclamation.rating_count) : 0;
             const date = new Date(reclamation.date_creation || Date.now());
             const dateStr = date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
             
+            let ratingHtml = '';
+            if (avgRating !== null && !isNaN(avgRating) && ratingCount > 0) {
+                const fullStars = Math.round(avgRating);
+                let stars = '';
+                for (let i = 1; i <= 5; i++) {
+                    stars += `<i class="fas fa-star" style="color:${i <= fullStars ? '#ffb400' : '#444'}; font-size: 12px; margin-right:1px;"></i>`;
+                }
+                ratingHtml = `
+                    <div class="kanban-card-rating" title="Average rating ${avgRating}/5 (${ratingCount} evaluation${ratingCount > 1 ? 's' : ''})">
+                        <span class="kanban-card-rating-value">${avgRating.toFixed(1)}/5</span>
+                        <span class="kanban-card-rating-stars">${stars}</span>
+                    </div>
+                `;
+            } else {
+                ratingHtml = `
+                    <div class="kanban-card-rating kanban-card-rating-empty" title="No evaluations yet">
+                        <span class="kanban-card-rating-value">No rating</span>
+                    </div>
+                `;
+            }
+
             card.innerHTML = `
                 <div class="kanban-card-header">
                     <div>
                         <div class="kanban-card-title">${escapeHtml(reclamation.sujet || 'Sans titre')}</div>
                         <div class="kanban-card-email">${escapeHtml(reclamation.email || '')}</div>
                     </div>
+                    ${ratingHtml}
                 </div>
                 <div class="kanban-card-description">${escapeHtml(description)}${description.length >= 100 ? '...' : ''}</div>
                 <div class="kanban-card-footer">

@@ -4,127 +4,47 @@ require_once __DIR__ . '/../models/Reclamation.php';
 
 class ReclamationController {
     public function updateReclamation($reclamation) {   
-    try {
-        $db = Config::getConnexion();
-        $query = $db->prepare(
-            'UPDATE reclamations SET
-                id_utilisateur = :id_utilisateur,
-                email = :email,
-                sujet = :sujet,
-                description = :description,
-                statut = :statut,
-                categorie = :categorie
-            WHERE id_reclamation = :id_reclamation'
-        );
-        
-        $result = $query->execute([
-            'id_utilisateur' => $reclamation->getIdUtilisateur(),
-            'email' => $reclamation->getEmail(),
-            'sujet' => $reclamation->getSujet(),
-            'description' => $reclamation->getDescription(),
-            'statut' => $reclamation->getStatut(),
-            'categorie' => $reclamation->getCategorie() ?? 'Other',
-            'id_reclamation' => $reclamation->getIdReclamation()
-        ]);
-        
-        return $result;
-    } catch (PDOException $e) {
-        error_log('❌ Erreur updateReclamation: ' . $e->getMessage());
-        return false;
-    }
-}
-    public function addReclamation($reclamation) {
-        // Construire la requête SQL dynamiquement selon les valeurs NULL
-        $fields = [];
-        $values = [];
-        $params = [];
-        
-        // Colonnes obligatoires
-        $fields[] = 'email';
-        $params['email'] = $reclamation->getEmail();
-        
-        $fields[] = 'sujet';
-        $params['sujet'] = $reclamation->getSujet();
-        
-        $fields[] = 'description';
-        $params['description'] = $reclamation->getDescription();
-        
-        // Colonnes optionnelles
-        $idUtilisateur = $reclamation->getIdUtilisateur();
-        // id_utilisateur : peut être NULL pour les utilisateurs non connectés
-        if ($idUtilisateur !== null) {
-        $fields[] = 'id_utilisateur';
-            $params['id_utilisateur'] = $idUtilisateur;
-        }
-        
-        $dateCreation = $reclamation->getDateCreation();
-        if ($dateCreation !== null) {
-            $fields[] = 'date_creation';
-            $params['date_creation'] = $dateCreation;
-        }
-        
-        $statut = $reclamation->getStatut();
-        // Toujours inclure le statut, utiliser 'nouveau' par défaut si null
-        $fields[] = 'statut';
-        $params['statut'] = $statut !== null ? $statut : 'nouveau';
-        
-        // Ajouter la catégorie
-        $categorie = $reclamation->getCategorie();
-        $fields[] = 'categorie';
-        $params['categorie'] = $categorie !== null && $categorie !== '' ? $categorie : 'Other';
-        
-        // Ajouter la pièce jointe si elle existe
-        $pieceJointe = $reclamation->getPieceJointe();
-        if ($pieceJointe !== null && $pieceJointe !== '') {
-            $fields[] = 'piece_jointe';
-            $params['piece_jointe'] = $pieceJointe;
-        }
-        
-        $sql = "INSERT INTO reclamations (" . implode(', ', $fields) . ") 
-                VALUES (:" . implode(', :', $fields) . ")";
-        
-        $db = Config::getConnexion();
         try {
-            // Vérifier que la connexion est établie
-            if (!$db) {
-                error_log("❌ Erreur: Connexion à la base de données échouée");
-                return false;
-            }
+            $db = Config::getConnexion();
+            $query = $db->prepare(
+                'UPDATE reclamations SET
+                    id_utilisateur = :id_utilisateur,
+                    email = :email,
+                    sujet = :sujet,
+                    description = :description,
+                    statut = :statut,
+                    categorie = :categorie
+                WHERE id_reclamation = :id_reclamation'
+            );
             
-            // Log pour débogage
-            error_log("SQL: " . $sql);
-            error_log("Params: " . print_r($params, true));
+            $result = $query->execute([
+                'id_utilisateur' => $reclamation->getIdUtilisateur(),
+                'email' => $reclamation->getEmail(),
+                'sujet' => $reclamation->getSujet(),
+                'description' => $reclamation->getDescription(),
+                'statut' => $reclamation->getStatut(),
+                'categorie' => $reclamation->getCategorie() ?? 'Other',
+                'id_reclamation' => $reclamation->getIdReclamation()
+            ]);
             
-            $query = $db->prepare($sql);
-            if (!$query) {
-                $errorInfo = $db->errorInfo();
-                error_log("❌ Erreur lors de la préparation de la requête: " . implode(", ", $errorInfo));
-                return false;
-            }
-            
-            $result = $query->execute($params);
-            
-            if ($result) {
-                $insertId = $db->lastInsertId();
-                error_log("✓ Insertion réussie, ID: " . $insertId);
-                return $insertId;
-            } else {
-                $errorInfo = $query->errorInfo();
-                error_log("❌ Erreur lors de l'insertion PDO: " . implode(", ", $errorInfo));
-                error_log("❌ SQL: " . $sql);
-                error_log("❌ Params: " . print_r($params, true));
-                return false;
-            }
+            return $result;
         } catch (PDOException $e) {
-            error_log('❌ Erreur addReclamation PDO: ' . $e->getMessage());
-            error_log('❌ Code erreur: ' . $e->getCode());
-            error_log('❌ SQL: ' . $sql);
-            error_log('❌ Params: ' . print_r($params, true));
-            return false;
-        } catch (Exception $e) {
-            error_log('❌ Erreur addReclamation: ' . $e->getMessage());
+            error_log('❌ Erreur updateReclamation: ' . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Ajoute une réclamation en s'appuyant sur la logique du modèle.
+     * On délègue à Reclamation::save() pour rester aligné avec le schéma réel de la base.
+     */
+    public function addReclamation($reclamation) {
+        if (!$reclamation instanceof Reclamation) {
+            error_log('❌ addReclamation: objet invalide passé au contrôleur');
+            return false;
+        }
+
+        return $reclamation->save();
     }
 
     public function deleteReclamation($reclamationId) {
@@ -167,12 +87,19 @@ class ReclamationController {
     }
 
     public function getAllReclamations($statusFilter = null, $dateFilter = null, $categorieFilter = null) {
-        $sql = "SELECT * FROM reclamations WHERE 1=1";
+        // Récupérer les réclamations avec, en plus, la note moyenne et le nombre d'évaluations
+        $sql = "SELECT 
+                    r.*,
+                    AVG(s.rating) AS average_rating,
+                    COUNT(s.id_satisfaction) AS rating_count
+                FROM reclamations r
+                LEFT JOIN satisfactions s ON s.id_reclamation = r.id_reclamation
+                WHERE 1=1";
         $params = [];
         
         // Filtre par statut
         if ($statusFilter && $statusFilter !== 'all') {
-            $sql .= " AND statut = :statut";
+            $sql .= " AND r.statut = :statut";
             $params['statut'] = $statusFilter;
         }
         
@@ -181,33 +108,35 @@ class ReclamationController {
             $today = date('Y-m-d');
             switch ($dateFilter) {
                 case 'today':
-                    $sql .= " AND DATE(date_creation) = :date_filter";
+                    $sql .= " AND DATE(r.date_creation) = :date_filter";
                     $params['date_filter'] = $today;
                     break;
                 case 'week':
-                    $sql .= " AND date_creation >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+                    $sql .= " AND r.date_creation >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
                     break;
                 case 'month':
-                    $sql .= " AND date_creation >= DATE_SUB(NOW(), INTERVAL 1 MONTH)";
+                    $sql .= " AND r.date_creation >= DATE_SUB(NOW(), INTERVAL 1 MONTH)";
                     break;
             }
         }
         
         // Filtre par catégorie
         if ($categorieFilter && $categorieFilter !== 'all') {
-            $sql .= " AND categorie = :categorie";
+            $sql .= " AND r.categorie = :categorie";
             $params['categorie'] = $categorieFilter;
         }
         
-        // Tri automatique : d'abord par statut (nouveau, en_cours, resolu), puis par date décroissante
-        $sql .= " ORDER BY 
-            CASE statut 
-                WHEN 'nouveau' THEN 1 
-                WHEN 'en_cours' THEN 2 
-                WHEN 'resolu' THEN 3 
-                ELSE 4 
-            END ASC, 
-            date_creation DESC";
+        // Regrouper par réclamation pour que les agrégats AVG/COUNT fonctionnent,
+        // puis trier comme avant (par statut puis par date)
+        $sql .= " GROUP BY r.id_reclamation
+                  ORDER BY 
+                    CASE r.statut 
+                        WHEN 'nouveau' THEN 1 
+                        WHEN 'en_cours' THEN 2 
+                        WHEN 'resolu' THEN 3 
+                        ELSE 4 
+                    END ASC, 
+                    r.date_creation DESC";
         
         $db = Config::getConnexion();
         try {

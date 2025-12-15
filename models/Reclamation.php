@@ -79,10 +79,10 @@ class Reclamation {
                 
                 return $result;
             } else {
-                // Insertion
+                // Insertion : on laisse MySQL gérer date_creation (DEFAULT CURRENT_TIMESTAMP)
                 $query = $db->prepare(
-                    'INSERT INTO reclamations (id_utilisateur, email, sujet, description, date_creation, statut, categorie) 
-                     VALUES (:id_utilisateur, :email, :sujet, :description, :date_creation, :statut, :categorie)'
+                    'INSERT INTO reclamations (id_utilisateur, email, sujet, description, statut, piece_jointe, categorie) 
+                     VALUES (:id_utilisateur, :email, :sujet, :description, :statut, :piece_jointe, :categorie)'
                 );
                 
                 $result = $query->execute([
@@ -90,8 +90,8 @@ class Reclamation {
                     'email' => $this->email,
                     'sujet' => $this->sujet,
                     'description' => $this->description,
-                    'date_creation' => $this->date_creation,
                     'statut' => $this->statut,
+                    'piece_jointe' => $this->piece_jointe,
                     'categorie' => $this->categorie ?? 'Other'
                 ]);
                 
@@ -99,6 +99,9 @@ class Reclamation {
                     $this->id_reclamation = $db->lastInsertId();
                     return $this->id_reclamation;
                 }
+                // Log d'erreur détaillé si execute() renvoie false
+                $errorInfo = $query->errorInfo();
+                error_log('❌ Erreur Reclamation::save() execute(): ' . implode(' | ', $errorInfo));
                 return false;
             }
         } catch (PDOException $e) {

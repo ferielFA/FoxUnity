@@ -91,32 +91,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
                 $errorMessage = "All fields must be filled correctly.";
             } else {
                 $result = $reclamationController->addReclamation($reclamation);
-                if ($result && $result !== false && $result > 0) {
-                    $successMessage = "Message sent successfully! We'll get back to you soon.";
-                    $_SESSION['user_email'] = $_POST['email'];
-                    // Réinitialiser les valeurs POST pour éviter la réaffichage
-                    $_POST = array();
-                } else {
-                    // Récupérer les dernières erreurs de la base de données pour le débogage
-                    $debugInfo = "Résultat: " . var_export($result, true);
-                    try {
-                        $db = Config::getConnexion();
-                        if ($db) {
-                            $errorInfo = $db->errorInfo();
-                            $debugInfo .= " | Erreur DB: " . implode(", ", $errorInfo);
-                        }
-                    } catch (Exception $e) {
-                        $debugInfo .= " | Exception: " . $e->getMessage();
-                    }
-                    error_log('Erreur insertion: ' . $debugInfo);
-                    
-                    // En mode développement, afficher plus de détails
-                    if (ini_get('display_errors')) {
-                        $errorMessage = "Erreur lors de l'envoi. Détails: " . htmlspecialchars($debugInfo);
+                    if ($result && $result !== false && $result > 0) {
+                        $successMessage = "Message sent successfully! We'll get back to you soon.";
+                        $_SESSION['user_email'] = $_POST['email'];
+                        // Réinitialiser les valeurs POST pour éviter la réaffichage
+                        $_POST = array();
                     } else {
-                        $errorMessage = "Une erreur s'est produite lors de l'envoi. Veuillez réessayer.";
+                        // Log serveur uniquement, message simple pour l'utilisateur
+                        $debugInfo = "Résultat: " . var_export($result, true);
+                        error_log('Erreur insertion reclamation (contact_us.php): ' . $debugInfo);
+                        $errorMessage = "An error occurred while sending your request. Please try again later.";
                     }
-                }
             }
         }
     } catch (PDOException $e) {
@@ -157,6 +142,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
             <a href="about.html">About Us</a>
         </nav>
         <div class="header-right">
+            <a href="login.html" class="login-register-link">
+                <i class="fas fa-user"></i> Login / Register
+            </a>
             <a href="profile.html" class="profile-icon">
                 <i class="fas fa-user-circle"></i>
             </a>
@@ -227,6 +215,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
                         0 0 20px rgba(255,122,0,0.3),
                         0 0 30px rgba(255,122,0,0.2);
                 }
+
+            /* Message character counter */
+            .message-counter {
+                margin-top: 6px;
+                font-size: 12px;
+                color: #aaaaaa;
+                display: flex;
+                justify-content: flex-end;
+                gap: 6px;
+                align-items: center;
+            }
+
+            .message-counter strong {
+                color: #ffd9b8;
+            }
+
+            .message-counter.warning strong {
+                color: #ffc107;
+            }
+
+            .message-counter.danger strong {
+                color: #ff4f4f;
+            }
                 50% { 
                     text-shadow: 
                         0 0 20px rgba(255,122,0,0.8),
@@ -688,7 +699,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
                             <div class="form-group">
                                 <label class="form-label">Email Address *</label>
                                 <input type="email" name="email" class="form-input" placeholder="your.email@example.com" required
-                                       value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
+                                       value="<?php 
+                                           echo isset($_POST['email']) 
+                                               ? htmlspecialchars($_POST['email']) 
+                                               : (isset($_SESSION['user_email']) ? htmlspecialchars($_SESSION['user_email']) : ''); 
+                                       ?>">
                             </div>
 
                             <div class="form-group">
@@ -710,6 +725,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
                             <div class="form-group">
                                 <label class="form-label">Message *</label>
                                 <textarea name="message" class="form-textarea" placeholder="Describe your issue or question in detail..." required><?php echo isset($_POST['message']) ? htmlspecialchars($_POST['message']) : ''; ?></textarea>
+                                <div id="message-counter" class="message-counter">
+                                    <span>Characters:</span>
+                                    <strong>0 / 1000</strong>
+                                </div>
                             </div>
 
                             <div class="form-group">
@@ -769,18 +788,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
                     return basic.test(email.trim());
                 }
 
-                // File upload preview
+                // File upload preview + validation avancée
                 const fileInput = document.getElementById('attachment');
                 const filePreview = document.getElementById('file-preview');
                 const fileName = document.getElementById('file-name');
                 const fileSize = document.getElementById('file-size');
                 
                 fileInput.addEventListener('change', function(e) {
+                    hideClientError();
                     const file = e.target.files[0];
                     if (file) {
+                        const sizeInMB = file.size / (1024 * 1024);
+                        const type = file.type || '';
+                        const isVideo = type.startsWith('video/');
+                        const isImage = type.startsWith('image/');
+
+                        const maxImageMB = 10;
+                        const maxVideoMB = 50;
+
+                        let maxAllowed = isVideo ? maxVideoMB : maxImageMB;
+
+                        if (!isVideo && !isImage) {
+                            showClientError('Format de fichier non supporté. Veuillez choisir une image ou une vidéo.');
+                            clearFile();
+                            return;
+                        }
+
+                        if (sizeInMB > maxAllowed) {
+                            const limitText = isVideo ? maxVideoMB + 'MB pour les vidéos.' : maxImageMB + 'MB pour les images.';
+                            showClientError('Fichier trop volumineux. Limite: ' + limitText);
+                            clearFile();
+                            return;
+                        }
+
                         fileName.textContent = file.name;
-                        const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
-                        fileSize.textContent = sizeInMB + ' MB';
+                        fileSize.textContent = sizeInMB.toFixed(2) + ' MB';
                         filePreview.style.display = 'block';
                     } else {
                         filePreview.style.display = 'none';
@@ -795,6 +837,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
                 // Make clearFile available globally
                 window.clearFile = clearFile;
                 
+                // Compteur de caractères pour le message
+                const messageElGlobal = form.querySelector('textarea[name="message"]');
+                const messageCounter = document.getElementById('message-counter');
+                const MESSAGE_MAX = 1000;
+
+                function updateMessageCounter() {
+                    if (!messageElGlobal || !messageCounter) return;
+                    const length = (messageElGlobal.value || '').length;
+                    const strongEl = messageCounter.querySelector('strong');
+                    if (strongEl) {
+                        strongEl.textContent = length + ' / ' + MESSAGE_MAX;
+                    }
+
+                    messageCounter.classList.remove('warning', 'danger');
+                    const ratio = length / MESSAGE_MAX;
+                    if (ratio >= 0.9) {
+                        messageCounter.classList.add('danger');
+                    } else if (ratio >= 0.7) {
+                        messageCounter.classList.add('warning');
+                    }
+                }
+
+                if (messageElGlobal) {
+                    messageElGlobal.addEventListener('input', updateMessageCounter);
+                    // Initial update on load
+                    updateMessageCounter();
+                }
+
                 form.addEventListener('submit', function(e){
                     hideClientError();
                     const nameEl = form.querySelector('input[name="full_name"]');
@@ -829,6 +899,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
                         e.preventDefault();
                         showClientError('Le message doit contenir au moins 5 caractères.', messageEl);
                         return;
+                    }
+
+                    if(message.length > MESSAGE_MAX){
+                        e.preventDefault();
+                        showClientError('Le message est trop long. Limite: ' + MESSAGE_MAX + ' caractères.', messageEl);
+                        return;
+                    }
+
+                    // Animation de chargement sur le bouton d'envoi
+                    const submitBtn = form.querySelector('.submit-btn');
+                    if (submitBtn && !submitBtn.disabled) {
+                        submitBtn.disabled = true;
+                        const originalHtml = submitBtn.innerHTML;
+                        submitBtn.setAttribute('data-original', originalHtml);
+                        submitBtn.innerHTML = '<span><i class="fas fa-spinner fa-spin"></i> Sending...</span>';
                     }
                 });
 

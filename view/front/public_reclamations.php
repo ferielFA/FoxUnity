@@ -160,7 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 strpos($errorMsg, "1452") !== false ||
                 strpos($errorMsg, "fk_satisfactions_user") !== false ||
                 (strpos($errorMsg, "FOREIGN KEY") !== false && strpos($errorMsg, "email") !== false)) {
-                $userMessage = '⚠️ Erreur de contrainte Foreign Key détectée. Cliquez ici pour corriger: <a href="http://localhost/foxunity/fix_fk_simple.php" target="_blank" style="color: #ff7a00; text-decoration: underline;">fix_fk_simple.php</a>';
+                $userMessage = '⚠️ Erreur de contrainte Foreign Key détectée. Cliquez ici pour corriger: <a href="http://localhost/foxunity/scripts/fix_satisfaction_foreign_key.php" target="_blank" style="color: #ff7a00; text-decoration: underline;">fix_satisfaction_foreign_key.php</a>';
             } elseif (strpos($errorMsg, "CONSTRAINT_ERROR") !== false) {
                 $userMessage = 'Problème de contrainte UNIQUE. Exécutez: http://localhost/foxunity/fix_satisfactions_table.php';
             } elseif (strpos($errorMsg, "doesn't exist") !== false || strpos($errorMsg, "n'existe pas") !== false || strpos($errorMsg, "TABLE_NOT_FOUND") !== false) {
@@ -191,7 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             strpos($errorMsg, "fk_satisfactions_user") !== false ||
             (strpos($errorMsg, "FOREIGN KEY") !== false && strpos($errorMsg, "email") !== false) ||
             strpos($errorMsg, "Integrity constraint violation") !== false) {
-            $userMessage = '⚠️ Erreur de contrainte Foreign Key détectée. Exécutez ce script pour corriger: http://localhost/foxunity/fix_satisfaction_foreign_key.php';
+            $userMessage = '⚠️ Erreur de contrainte Foreign Key détectée. Exécutez ce script pour corriger: http://localhost/foxunity/scripts/fix_satisfaction_foreign_key.php';
         } elseif (strpos($errorMsg, "Duplicate entry") !== false || 
             strpos($errorMsg, "duplicata") !== false ||
             strpos($errorMsg, "UNIQUE") !== false ||
@@ -221,7 +221,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             strpos($errorMsg, "1452") !== false ||
             strpos($errorMsg, "fk_satisfactions_user") !== false ||
             strpos($errorMsg, "Integrity constraint violation") !== false) {
-            $userMessage = '⚠️ Erreur de contrainte Foreign Key. Exécutez: http://localhost/foxunity/fix_satisfaction_foreign_key.php';
+            $userMessage = '⚠️ Erreur de contrainte Foreign Key. Exécutez: http://localhost/foxunity/scripts/fix_satisfaction_foreign_key.php';
         } elseif (strpos($errorMsg, "CONSTRAINT_ERROR") !== false) {
             $userMessage = 'Problème de contrainte UNIQUE détecté. Veuillez exécuter: http://localhost/foxunity/fix_satisfactions_table.php';
         } elseif (strpos($errorMsg, "TABLE_NOT_FOUND") !== false) {
@@ -242,23 +242,92 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 $allReclamations = $reclamationController->getAllReclamations(null, null, null);
 
 // Récupérer les réponses et toutes les évaluations pour chaque réclamation
+// et calculer les statistiques globales / par catégorie pour l'affichage avancé
+$globalStats = [
+    'total_evaluations' => 0,
+    'total_rating_sum' => 0,
+    'ratings_count' => [1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0],
+    'satisfied_count' => 0, // rating >= 4
+];
+
+$categoryStats = []; // [categorie => ['total_evaluations' => ..., 'rating_sum' => ..., 'satisfied_count' => ...]]
+
 foreach ($allReclamations as &$reclamation) {
     $reclamation['responses'] = $responseController->getResponsesByReclamationId($reclamation['id_reclamation']);
     $reclamation['satisfactions'] = $satisfactionController->getSatisfactionsByReclamationId($reclamation['id_reclamation']);
-    // Calculer la moyenne des évaluations
+
+    $ratingCount = 0;
+    $ratingSum = 0;
+    $hasComment = false;
+
     if (!empty($reclamation['satisfactions'])) {
-        $totalRating = 0;
         foreach ($reclamation['satisfactions'] as $sat) {
-            $totalRating += $sat->getRating();
+            $rating = (int) $sat->getRating();
+            $ratingSum += $rating;
+            $ratingCount++;
+
+            // Stat globale
+            $globalStats['total_evaluations']++;
+            $globalStats['total_rating_sum'] += $rating;
+            if (isset($globalStats['ratings_count'][$rating])) {
+                $globalStats['ratings_count'][$rating]++;
+            }
+            if ($rating >= 4) {
+                $globalStats['satisfied_count']++;
+            }
+
+            // Stat catégorie
+            $catKey = !empty($reclamation['categorie']) ? strtolower($reclamation['categorie']) : 'autre';
+            if (!isset($categoryStats[$catKey])) {
+                $categoryStats[$catKey] = [
+                    'label' => $reclamation['categorie'] ?? 'Autre',
+                    'total_evaluations' => 0,
+                    'rating_sum' => 0,
+                    'satisfied_count' => 0,
+                ];
+            }
+            $categoryStats[$catKey]['total_evaluations']++;
+            $categoryStats[$catKey]['rating_sum'] += $rating;
+            if ($rating >= 4) {
+                $categoryStats[$catKey]['satisfied_count']++;
+            }
+
+            // Détecter s'il existe au moins un commentaire "réel"
+            $comment = trim((string) $sat->getCommentaire());
+            if ($comment !== '') {
+                // Si le commentaire commence par "Évalué par: ", vérifier s'il y a une vraie partie commentaire après " | "
+                if (strpos($comment, 'Évalué par:') === 0) {
+                    $parts = explode(' | ', $comment);
+                    if (isset($parts[1]) && trim($parts[1]) !== '') {
+                        $hasComment = true;
+                    }
+                } else {
+                    $hasComment = true;
+                }
+            }
         }
-        $reclamation['average_rating'] = round($totalRating / count($reclamation['satisfactions']), 1);
-        $reclamation['rating_count'] = count($reclamation['satisfactions']);
+    }
+
+    if ($ratingCount > 0) {
+        $reclamation['average_rating'] = round($ratingSum / $ratingCount, 1);
+        $reclamation['rating_count'] = $ratingCount;
     } else {
         $reclamation['average_rating'] = 0;
         $reclamation['rating_count'] = 0;
     }
+
+    $reclamation['has_comment'] = $hasComment;
 }
 unset($reclamation);
+
+// Calculs finaux pour les stats globales
+$globalStats['average_rating'] = $globalStats['total_evaluations'] > 0
+    ? round($globalStats['total_rating_sum'] / $globalStats['total_evaluations'], 1)
+    : 0;
+
+$globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
+    ? round(($globalStats['satisfied_count'] / $globalStats['total_evaluations']) * 100, 1)
+    : 0;
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -322,6 +391,156 @@ unset($reclamation);
         .header p {
             color: var(--text-gray);
             font-size: 16px;
+        }
+
+        /* Cart dans le header */
+        .cart-icon {
+            color: #ff7a00 !important;
+            position: relative;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .cart-icon:hover {
+            color: #ff9933 !important;
+            transform: translateY(-2px);
+        }
+        
+        .cart-icon i {
+            color: #ff7a00;
+            font-size: 18px;
+        }
+        
+        .cart-count {
+            background: linear-gradient(135deg, #ff7a00, #ff4f00);
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: 700;
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            min-width: 18px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(255, 122, 0, 0.4);
+        }
+
+        /* Bloc de statistiques globales */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stats-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 18px 20px;
+        }
+
+        .stats-card h4 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-gray);
+            margin-bottom: 8px;
+        }
+
+        .stats-main-value {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 4px;
+        }
+
+        .stats-subtext {
+            font-size: 13px;
+            color: var(--text-gray);
+        }
+
+        .rating-distribution {
+            margin-top: 10px;
+        }
+
+        .rating-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+            font-size: 12px;
+            color: var(--text-gray);
+        }
+
+        .rating-row i {
+            color: #ffc107;
+        }
+
+        .progress-bar-container {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 999px;
+            overflow: hidden;
+            height: 6px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ffc107, #ff7a00);
+            width: 0;
+            transition: width 0.5s ease;
+        }
+
+        /* Filtres et tri */
+        .filters-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .filters-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 15px;
+            align-items: center;
+        }
+
+        .filters-bar label {
+            font-size: 13px;
+            color: var(--text-gray);
+        }
+
+        .filters-select,
+        .filters-checkbox {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color);
+            color: var(--text-light);
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        .filters-select {
+            padding-right: 26px;
+        }
+
+        .filters-checkbox input {
+            margin-right: 6px;
+        }
+
+        .filters-select:focus,
+        .filters-checkbox input:focus {
+            outline: none;
+            border-color: var(--primary-color);
         }
         
         .reclamations-list {
@@ -458,12 +677,15 @@ unset($reclamation);
             color: #444;
             cursor: pointer;
             transition: color 0.2s;
+            transform: translateY(0);
+            transition: color 0.2s, transform 0.15s ease;
         }
         
         .star-rating label:hover,
         .star-rating label:hover ~ label,
         .star-rating input[type="radio"]:checked ~ label {
             color: #ffc107;
+            transform: translateY(-2px) scale(1.05);
         }
         
         .star-rating input[type="radio"]:checked ~ label {
@@ -613,6 +835,9 @@ unset($reclamation);
         </nav>
         
         <div class="header-right">
+            <a href="login.html" class="login-register-link">
+                <i class="fas fa-user"></i> Login / Register
+            </a>
             <a href="profile.html" class="profile-icon">
                 <i class="fas fa-user-circle"></i>
             </a>
@@ -628,6 +853,71 @@ unset($reclamation);
             <h1><i class="fas fa-comments"></i> Réclamations Publiques</h1>
             <p>Consultez toutes les réclamations et partagez votre avis avec des étoiles</p>
         </div>
+
+        <?php if ($globalStats['total_evaluations'] > 0): ?>
+            <div class="stats-grid">
+                <div class="stats-card">
+                    <h4>Note moyenne globale</h4>
+                    <div class="stats-main-value">
+                        <?php echo $globalStats['average_rating']; ?>/5
+                    </div>
+                    <div class="stats-subtext">
+                        Basé sur <?php echo $globalStats['total_evaluations']; ?> évaluation<?php echo $globalStats['total_evaluations'] > 1 ? 's' : ''; ?>
+                    </div>
+                </div>
+                <div class="stats-card">
+                    <h4>Clients satisfaits</h4>
+                    <div class="stats-main-value">
+                        <?php echo $globalStats['satisfied_percentage']; ?>%
+                    </div>
+                    <div class="stats-subtext">
+                        Notes de 4★ et 5★
+                    </div>
+                </div>
+                <div class="stats-card">
+                    <h4>Répartition des notes</h4>
+                    <div class="rating-distribution">
+                        <?php
+                        $maxCount = max($globalStats['ratings_count']) ?: 1;
+                        for ($r = 5; $r >= 1; $r--):
+                            $count = $globalStats['ratings_count'][$r];
+                            $percentageRow = $globalStats['total_evaluations'] > 0
+                                ? round(($count / $globalStats['total_evaluations']) * 100)
+                                : 0;
+                            $width = $maxCount > 0 ? ($count / $maxCount) * 100 : 0;
+                        ?>
+                        <div class="rating-row" data-rating-row="<?php echo $r; ?>">
+                            <span><?php echo $r; ?> <i class="fas fa-star"></i></span>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" style="width: <?php echo $width; ?>%;"></div>
+                            </div>
+                            <span><?php echo $percentageRow; ?>%</span>
+                        </div>
+                        <?php endfor; ?>
+                    </div>
+                </div>
+                <?php if (!empty($categoryStats)): ?>
+                    <div class="stats-card">
+                        <h4>Par catégorie</h4>
+                        <div class="stats-subtext">
+                            <?php foreach ($categoryStats as $catKey => $cat): 
+                                $avgCat = $cat['total_evaluations'] > 0
+                                    ? round($cat['rating_sum'] / $cat['total_evaluations'], 1)
+                                    : 0;
+                                $pctCat = $cat['total_evaluations'] > 0
+                                    ? round(($cat['satisfied_count'] / $cat['total_evaluations']) * 100)
+                                    : 0;
+                            ?>
+                                <div style="margin-bottom: 6px;">
+                                    <strong><?php echo htmlspecialchars($cat['label']); ?></strong> :
+                                    <?php echo $avgCat; ?>/5 • <?php echo $pctCat; ?>% satisfaits
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
         
         <?php if (isset($_GET['rated']) && $_GET['rated'] == '1'): ?>
             <div class="alert alert-success">
@@ -643,9 +933,50 @@ unset($reclamation);
                 <p>Les réclamations apparaîtront ici une fois qu'elles auront été créées.</p>
             </div>
         <?php else: ?>
+            <div class="filters-bar">
+                <div class="filters-group">
+                    <label for="sort-by">Trier par :</label>
+                    <select id="sort-by" class="filters-select">
+                        <option value="recent">Plus récentes</option>
+                        <option value="best">Meilleure note</option>
+                        <option value="worst">Pire note</option>
+                    </select>
+                </div>
+                <div class="filters-group">
+                    <label class="filters-checkbox">
+                        <input type="checkbox" id="filter-4plus">
+                        4★ et plus
+                    </label>
+                    <label class="filters-checkbox">
+                        <input type="checkbox" id="filter-comment-only">
+                        Avec commentaire
+                    </label>
+                    <label for="filter-category">Catégorie :</label>
+                    <select id="filter-category" class="filters-select">
+                        <option value="all">Toutes</option>
+                        <?php foreach ($categoryStats as $catKey => $cat): ?>
+                            <option value="<?php echo htmlspecialchars($catKey); ?>">
+                                <?php echo htmlspecialchars($cat['label']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+
             <div class="reclamations-list">
                 <?php foreach ($allReclamations as $reclamation): ?>
-                    <div class="reclamation-card" id="reclamation-<?php echo $reclamation['id_reclamation']; ?>">
+                    <?php
+                        $catKey = !empty($reclamation['categorie']) ? strtolower($reclamation['categorie']) : 'autre';
+                    ?>
+                    <div 
+                        class="reclamation-card" 
+                        id="reclamation-<?php echo $reclamation['id_reclamation']; ?>"
+                        data-average-rating="<?php echo $reclamation['average_rating']; ?>"
+                        data-rating-count="<?php echo $reclamation['rating_count']; ?>"
+                        data-date="<?php echo htmlspecialchars($reclamation['date_creation']); ?>"
+                        data-category="<?php echo htmlspecialchars($catKey); ?>"
+                        data-has-comment="<?php echo !empty($reclamation['has_comment']) ? '1' : '0'; ?>"
+                    >
                         <div class="reclamation-header">
                             <div>
                                 <h3 class="reclamation-title"><?php echo htmlspecialchars($reclamation['sujet'] ?? ''); ?></h3>
@@ -928,6 +1259,81 @@ unset($reclamation);
                 });
             });
         });
+
+        // Tri et filtres sur les réclamations
+        (function() {
+            const list = document.querySelector('.reclamations-list');
+            if (!list) return;
+
+            const cards = Array.from(list.querySelectorAll('.reclamation-card'));
+            const sortSelect = document.getElementById('sort-by');
+            const filter4Plus = document.getElementById('filter-4plus');
+            const filterCommentOnly = document.getElementById('filter-comment-only');
+            const filterCategory = document.getElementById('filter-category');
+
+            function applyFiltersAndSort() {
+                const sortBy = sortSelect ? sortSelect.value : 'recent';
+                const need4Plus = filter4Plus && filter4Plus.checked;
+                const needComment = filterCommentOnly && filterCommentOnly.checked;
+                const category = filterCategory ? filterCategory.value : 'all';
+
+                // Filtrer
+                cards.forEach(card => {
+                    const avg = parseFloat(card.getAttribute('data-average-rating')) || 0;
+                    const count = parseInt(card.getAttribute('data-rating-count') || '0', 10);
+                    const hasComment = card.getAttribute('data-has-comment') === '1';
+                    const catKey = card.getAttribute('data-category') || 'autre';
+
+                    let visible = true;
+
+                    if (need4Plus && !(count > 0 && avg >= 4)) {
+                        visible = false;
+                    }
+                    if (needComment && !hasComment) {
+                        visible = false;
+                    }
+                    if (category !== 'all' && catKey !== category) {
+                        visible = false;
+                    }
+
+                    card.style.display = visible ? '' : 'none';
+                });
+
+                // Trier uniquement les cartes visibles
+                const visibleCards = cards.filter(c => c.style.display !== 'none');
+
+                visibleCards.sort((a, b) => {
+                    const dateA = new Date(a.getAttribute('data-date') || 0).getTime();
+                    const dateB = new Date(b.getAttribute('data-date') || 0).getTime();
+                    const avgA = parseFloat(a.getAttribute('data-average-rating')) || 0;
+                    const avgB = parseFloat(b.getAttribute('data-average-rating')) || 0;
+
+                    if (sortBy === 'best') {
+                        // Meilleure note d'abord, puis plus récentes
+                        if (avgB !== avgA) return avgB - avgA;
+                        return dateB - dateA;
+                    } else if (sortBy === 'worst') {
+                        // Pire note d'abord, puis plus récentes
+                        if (avgA !== avgB) return avgA - avgB;
+                        return dateB - dateA;
+                    } else {
+                        // Par défaut : plus récentes
+                        return dateB - dateA;
+                    }
+                });
+
+                // Réordonner dans le DOM
+                visibleCards.forEach(card => list.appendChild(card));
+            }
+
+            if (sortSelect) sortSelect.addEventListener('change', applyFiltersAndSort);
+            if (filter4Plus) filter4Plus.addEventListener('change', applyFiltersAndSort);
+            if (filterCommentOnly) filterCommentOnly.addEventListener('change', applyFiltersAndSort);
+            if (filterCategory) filterCategory.addEventListener('change', applyFiltersAndSort);
+
+            // Application initiale
+            applyFiltersAndSort();
+        })();
     </script>
 
     <footer class="site-footer">
