@@ -38,6 +38,36 @@ $isAdmin = false;
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
+<?php
+// Construct absolute URL for OG tags
+$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
+$host = $_SERVER['HTTP_HOST'];
+$uri = $_SERVER['REQUEST_URI'];
+$currentUrl = $protocol . "://" . $host . $uri;
+
+// Construct absolute image URL
+$img = $a['image'] ?? 'images/nopic.png';
+if (strpos($img, 'http') === 0) {
+    $ogImage = $img;
+} else {
+    // If image is relative, make it absolute assuming standard structure
+    // Cleaning up potential relative prefixes like ../
+    $cleanImg = str_replace('../', '', $img);
+    // If it starts with view/, remove it as we construct path from root
+    if (strpos($cleanImg, 'view/') === 0) {
+        $cleanImg = substr($cleanImg, 5);
+    }
+    // Adjust path based on where images typically live relative to webroot
+    // Assuming projet_web is the webroot or close to it. 
+    // Best effort: pointing to view/ directory
+    $ogImage = $protocol . "://" . $host . '/projet_web/view/' . $cleanImg;
+}
+?>
+    <meta property="og:url" content="<?php echo htmlspecialchars($currentUrl); ?>" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="<?php echo htmlspecialchars($a['title']); ?>" />
+    <meta property="og:description" content="<?php echo htmlspecialchars($a['summary'] ?? $a['excerpt'] ?? ''); ?>" />
+    <meta property="og:image" content="<?php echo htmlspecialchars($ogImage); ?>" />
 </head>
     <style>
         /* User Dropdown Menu Styles - LARGE PHOTO LIKE PROFILE.PHP */
@@ -252,7 +282,8 @@ $isAdmin = false;
         .comment-item {
             display: flex;
             gap: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
+            align-items: flex-start;
         }
 
         .comment-avatar {
@@ -283,6 +314,35 @@ $isAdmin = false;
 
         .comment-body {
             flex: 1;
+        }
+
+        .comment-card {
+            background:#111;
+            padding:12px 14px;
+            border-radius:10px;
+            margin-bottom:6px;
+            width:100%;
+        }
+
+        .comment-header {
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+        }
+
+        .comment-meta {
+            font-weight:700;
+            color:#fff;
+            display:flex;
+            align-items:center;
+            flex-wrap:wrap;
+            gap:6px;
+        }
+
+        .comment-date {
+            font-weight:400;
+            color:#999;
+            font-size:0.9rem;
         }
 
         /* Comment Action Buttons */
@@ -490,12 +550,7 @@ $isAdmin = false;
                     
                     <a href="tradehis.php" class="dropdown-item">
                         <i class="fas fa-history"></i>
-                        <span>Trade History</span>
-                    </a>
-                    
-                    <a href="events.php?view=history" class="dropdown-item">
-                        <i class="fas fa-ticket-alt"></i>
-                        <span>Event History</span>
+                        <span>History</span>
                     </a>
                     
                     <?php 
@@ -650,94 +705,128 @@ $isAdmin = false;
           </div>
         <?php endif; ?>
 
-        <?php if (empty($comments)): ?>
-          <p style="color:#bbb;margin:8px 0">Be the first to comment on this article.</p>
-        <?php else: ?>
-          <?php foreach ($comments as $c): ?>
-            <div class="comment-item">
-              <?php
-              // Get commenter's profile picture
-              $commenterImage = null;
-              if (!empty($c['email'])) {
-                try {
-                  require_once __DIR__ . '/../../model/User.php';
-                  $commenterUser = User::findByEmail($c['email']);
-                  if ($commenterUser && $commenterUser->getImage()) {
-                    $commenterImage = '../../view/' . $commenterUser->getImage();
-                  }
-                } catch (Exception $e) {}
-              }
-              ?>
+        <?php
+
+        // Helper function to render comments recursively
+        function renderComment(Comment $c, $isLoggedIn, $currentUser, $depth = 0, $parentName = null) {
+            $padding = $depth * 20; // Indent replies
+            // Use pre-fetched user image or default
+            $commenterImage = $c->getUserImage() ? '../../view/' . $c->getUserImage() : null;
+            $replyId = $c->getIdComment() ?? 0;
+            ?>
+            <div class="comment-item" style="margin-left: <?php echo $padding; ?>px; <?php echo $depth > 0 ? 'border-left: 2px solid #333; padding-left: 10px;' : ''; ?>">
               <?php if ($commenterImage): ?>
-                <img src="<?php echo htmlspecialchars($commenterImage); ?>" alt="<?php echo htmlspecialchars($c['name']); ?>" class="comment-avatar">
+                <img src="<?php echo htmlspecialchars($commenterImage); ?>" alt="<?php echo htmlspecialchars($c->getName()); ?>" class="comment-avatar">
               <?php else: ?>
                 <div class="comment-avatar-placeholder">
                   <i class="fas fa-user"></i>
                 </div>
               <?php endif; ?>
-              <div class="comment-body">
-            <div class="comment" style="background:#111;padding:12px;border-radius:8px;margin-bottom:10px">
-              <div class="comment-header" style="display:flex;justify-content:space-between;align-items:center">
-                <div class="comment-meta" style="font-weight:700;color:#fff">
-                <?php echo htmlspecialchars($c['name']); ?>
-                <?php 
-                $sentiment = strtolower($c['sentiment'] ?? 'neutral');
-                if($sentiment === 'positive'): 
-                ?>
-                  <span title="Positive Vibes" style="margin-left:8px; background:rgba(40,167,69,0.2); color:#28a745; padding:2px 6px; border-radius:4px; font-size:0.75rem;">
-                    <i class="fas fa-heart"></i> Positive Vibes
-                  </span>
-                <?php elseif($sentiment === 'negative'): ?>
-                  <span title="Negative Sentiment" style="margin-left:8px; background:rgba(220,53,69,0.2); color:#dc3545; padding:2px 6px; border-radius:4px; font-size:0.75rem;">
-                    <i class="fas fa-frown"></i> Negative
-                  </span>
-                <?php endif; ?>
-                <span class="comment-date" style="font-weight:400;color:#999;margin-left:8px;font-size:0.9rem"><?php echo htmlspecialchars($c['date']); ?></span>
-              </div>
-              <?php if (!empty($c['rating'])): ?>
-                <div style="color:#ffc107;font-size:0.9rem">
-                  <?php for($i=1; $i<=5; $i++) echo $i <= $c['rating'] ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>'; ?>
-                </div>
-              <?php endif; ?>
-              </div>
-              <div class="comment-text" style="margin-top:8px;color:#ddd" data-comment-id="<?php echo $c['id'] ?? ''; ?>"><?php echo nl2br(htmlspecialchars($c['text'])); ?></div>
               
-              <!-- Comment Actions -->
-              <div class="comment-actions">
-                <button class="comment-action-btn" onclick="toggleReplyForm(<?php echo $c['id'] ?? 0; ?>)">
-                  <i class="fas fa-reply"></i> Reply
-                </button>
-                <?php if ($isLoggedIn && $currentUser && strtolower($c['email'] ?? '') === strtolower($currentUser->getEmail())): ?>
-                <button class="comment-action-btn" onclick="toggleEditForm(<?php echo $c['id'] ?? 0; ?>)">
-                  <i class="fas fa-edit"></i> Edit
-                </button>
+              <div class="comment-body">
+                <div class="comment-card">
+                  <div class="comment-header">
+                    <div class="comment-meta">
+                      <?php echo htmlspecialchars($c->getName()); ?>
+                      
+                      <?php if ($parentName): ?>
+                        <span style="color:#888; font-weight:400; font-size:0.85rem; margin-left:6px;">
+                           <i class="fas fa-share" style="font-size:0.75rem; transform: scaleY(-1);"></i> replying to <strong><?php echo htmlspecialchars($parentName); ?></strong>
+                        </span>
+                      <?php endif; ?>
+
+                      <?php 
+                      $sentiment = strtolower($c->getSentimentLabel() ?? 'neutral');
+                      if($sentiment === 'positive'): 
+                      ?>
+                        <span title="Positive Vibes" style="margin-left:8px; background:rgba(40,167,69,0.2); color:#28a745; padding:2px 6px; border-radius:4px; font-size:0.75rem;">
+                          <i class="fas fa-heart"></i> Positive Vibes
+                        </span>
+                      <?php elseif($sentiment === 'negative'): ?>
+                        <span title="Negative Sentiment" style="margin-left:8px; background:rgba(220,53,69,0.2); color:#dc3545; padding:2px 6px; border-radius:4px; font-size:0.75rem;">
+                          <i class="fas fa-frown"></i> Negative
+                        </span>
+                      <?php endif; ?>
+                      <span class="comment-date"><?php echo $c->getCreatedAt()->format('F j, Y, g:i a'); ?></span>
+                    </div>
+                    <?php if ($c->getRating()): ?>
+                      <div style="color:#ffc107;font-size:0.9rem">
+                        <?php for($i=1; $i<=5; $i++) echo $i <= $c->getRating() ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>'; ?>
+                      </div>
+                    <?php endif; ?>
+                  </div>
+                  <div class="comment-text" data-comment-id="<?php echo $replyId; ?>"><?php echo nl2br(htmlspecialchars($c->getText())); ?></div>
+                  
+                  <!-- Comment Actions -->
+                  <div class="comment-actions">
+                    <button class="comment-action-btn" onclick="toggleReplyForm(<?php echo $replyId; ?>)">
+                      <i class="fas fa-reply"></i> Reply
+                    </button>
+                    <?php if ($isLoggedIn && $currentUser && strtolower($c->getEmail() ?? '') === strtolower($currentUser->getEmail())): ?>
+                    <button class="comment-action-btn" onclick="toggleEditForm(<?php echo $replyId; ?>)">
+                      <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <?php endif; ?>
+                  </div>
+
+                  <!-- Reply Form (Hidden by default) -->
+                  <div class="reply-form" id="reply-form-<?php echo $replyId; ?>">
+                    <?php 
+                      $myAvatar = ($isLoggedIn && $currentUser && $currentUser->getImage()) ? '../../view/' . $currentUser->getImage() : null;
+                      $myName   = ($isLoggedIn && $currentUser) ? htmlspecialchars($currentUser->getUsername()) : 'Guest';
+                    ?>
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                        <?php if($myAvatar): ?>
+                            <img src="<?php echo htmlspecialchars($myAvatar); ?>" alt="<?php echo $myName; ?>" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid #ff7a00;">
+                        <?php else: ?>
+                            <div style="width:40px; height:40px; border-radius:50%; background:rgba(255,122,0,0.1); border:2px solid #ff7a00; display:flex; align-items:center; justify-content:center; color:#ff7a00;">
+                                <i class="fas fa-user"></i>
+                            </div>
+                        <?php endif; ?>
+                        <span style="color:#ff7a00; font-weight:600; font-size:0.95rem;"><?php echo $myName; ?></span>
+                    </div>
+
+                    <form method="post" action="news_article.php?id=<?php echo urlencode($_GET['id']); ?>#comments">
+                        <textarea name="comment" placeholder="Write your reply..." required></textarea>
+                        <input type="hidden" name="parent_id" value="<?php echo $replyId; ?>">
+                        <input type="hidden" name="name" value="<?php echo $myName; ?>">
+                        <input type="hidden" name="email" value="<?php echo $isLoggedIn && $currentUser ? htmlspecialchars($currentUser->getEmail()) : 'guest@foxunity.com'; ?>">
+                        <div class="reply-form-actions">
+                          <button type="submit" name="comment_submit" class="btn-submit-reply">Post Reply</button>
+                          <button type="button" class="btn-cancel-reply" onclick="cancelReply(<?php echo $replyId; ?>)">Cancel</button>
+                        </div>
+                    </form>
+                  </div>
+
+                  <!-- Edit Form -->
+                  <div class="edit-form" id="edit-form-<?php echo $replyId; ?>">
+                    <textarea id="edit-text-<?php echo $replyId; ?>"><?php echo htmlspecialchars($c->getText()); ?></textarea>
+                    <div class="reply-form-actions">
+                      <button class="btn-submit-reply" onclick="submitEdit(<?php echo $replyId; ?>)">Save Changes</button>
+                      <button class="btn-cancel-reply" onclick="cancelEdit(<?php echo $replyId; ?>)">Cancel</button>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Recursive Replies -->
+                <?php if ($c->getReplies()): ?>
+                    <div class="replies-container">
+                        <?php foreach ($c->getReplies() as $reply): ?>
+                            <?php renderComment($reply, $isLoggedIn, $currentUser, $depth + 1, $c->getName()); ?>
+                        <?php endforeach; ?>
+                    </div>
                 <?php endif; ?>
-              </div>
+              </div> <!-- End comment-body -->
+            </div> <!-- End comment-item -->
+        <?php
+        }
+        ?>
 
-              <!-- Reply Form -->
-              <div class="reply-form" id="reply-form-<?php echo $c['id'] ?? 0; ?>">
-                <textarea placeholder="Write your reply..." id="reply-text-<?php echo $c['id'] ?? 0; ?>"></textarea>
-                <div class="reply-form-actions">
-                  <button class="btn-submit-reply" onclick="submitReply(<?php echo $c['id'] ?? 0; ?>)">Post Reply</button>
-                  <button class="btn-cancel-reply" onclick="cancelReply(<?php echo $c['id'] ?? 0; ?>)">Cancel</button>
-                </div>
-              </div>
-
-              <!-- Edit Form -->
-              <div class="edit-form" id="edit-form-<?php echo $c['id'] ?? 0; ?>">
-                <textarea id="edit-text-<?php echo $c['id'] ?? 0; ?>"><?php echo htmlspecialchars($c['text']); ?></textarea>
-                <div class="reply-form-actions">
-                  <button class="btn-submit-reply" onclick="submitEdit(<?php echo $c['id'] ?? 0; ?>)">Save Changes</button>
-                  <button class="btn-cancel-reply" onclick="cancelEdit(<?php echo $c['id'] ?? 0; ?>)">Cancel</button>
-                </div>
-              </div>
-
-              <!-- Replies Container -->
-              <div class="replies-container" id="replies-<?php echo $c['id'] ?? 0; ?>"></div>
-              </div>
-              </div>
-              </div>
-            </div>
+        <?php if (empty($comments)): ?>
+          <p style="color:#bbb;margin:8px 0">Be the first to comment on this article.</p>
+        <?php else: ?>
+          <?php foreach ($comments as $c): ?>
+            <?php renderComment($c, $isLoggedIn, $currentUser); ?>
           <?php endforeach; ?>
         <?php endif; ?>
 
@@ -1255,6 +1344,79 @@ $isAdmin = false;
   </style>
 </body>
 <script>
+    // Comment Interaction Functions
+    function toggleReplyForm(id) {
+        // Close other forms if needed or just toggle this one
+        const form = document.getElementById('reply-form-' + id);
+        const editForm = document.getElementById('edit-form-' + id);
+        
+        if (editForm) editForm.style.display = 'none'; // Close edit if open
+        
+        if (form) {
+            if (form.style.display === 'none' || form.style.display === '') {
+                form.style.display = 'block';
+                const textarea = form.querySelector('textarea');
+                if (textarea) textarea.focus();
+            } else {
+                form.style.display = 'none';
+            }
+        }
+    }
+
+    function cancelReply(id) {
+        const form = document.getElementById('reply-form-' + id);
+        if (form) form.style.display = 'none';
+    }
+
+    function toggleEditForm(id) {
+        const form = document.getElementById('edit-form-' + id);
+        const replyForm = document.getElementById('reply-form-' + id);
+        
+        if (replyForm) replyForm.style.display = 'none'; // Close reply if open
+        
+        if (form) {
+            form.style.display = (form.style.display === 'none' || form.style.display === '') ? 'block' : 'none';
+        }
+    }
+
+    function cancelEdit(id) {
+        const form = document.getElementById('edit-form-' + id);
+        if (form) form.style.display = 'none';
+    }
+
+    function submitEdit(id) {
+        if(!confirm('Are you sure you want to update this comment?')) return;
+        
+        const text = document.getElementById('edit-text-' + id).value;
+        
+        // Create a form programmatically to submit POST request
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = window.location.href; // Submit to current page
+        
+        const inputId = document.createElement('input');
+        inputId.type = 'hidden';
+        inputId.name = 'comment_id';
+        inputId.value = id;
+        
+        const inputText = document.createElement('input');
+        inputText.type = 'hidden';
+        inputText.name = 'comment_text';
+        inputText.value = text;
+        
+        const inputAction = document.createElement('input');
+        inputAction.type = 'hidden';
+        inputAction.name = 'edit_comment';
+        inputAction.value = '1';
+        
+        form.appendChild(inputId);
+        form.appendChild(inputText);
+        form.appendChild(inputAction);
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+
     // Dropdown Menu Toggle
     document.addEventListener('DOMContentLoaded', function() {
         const userDropdown = document.getElementById('userDropdown');

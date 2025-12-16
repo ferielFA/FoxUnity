@@ -231,42 +231,6 @@ body {
   align-items: center;
   padding-top: 30px;
   border-right: 2px solid #ff7a00;
-  /* SCROLLER AJOUTÉ */
-  overflow-y: scroll !important;
-  overflow-x: hidden;
-  height: 100vh !important;
-  max-height: 100vh !important;
-  padding-bottom: 20px;
-  scroll-behavior: smooth;
-}
-
-/* Style du scrollbar - Chrome, Edge, Safari */
-.sidebar::-webkit-scrollbar {
-  width: 10px;
-}
-
-.sidebar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 10px;
-  margin: 5px 0;
-}
-
-.sidebar::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #ff7a00, #ff9900);
-  border-radius: 10px;
-  border: 2px solid rgba(0, 0, 0, 0.5);
-  transition: background 0.3s ease;
-}
-
-.sidebar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #ff9900, #ffaa00);
-  box-shadow: 0 0 10px #ff7a00;
-}
-
-/* Style pour Firefox */
-.sidebar {
-  scrollbar-width: thin;
-  scrollbar-color: #ff7a00 rgba(0, 0, 0, 0.5);
 }
 
 .sidebar img.dashboard-logo {
@@ -311,17 +275,6 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  /* Enable scrolling for main content */
-  height: 100vh;
-  /* Full height to match sidebar */
-}
-
-/* Add spacing to all direct children of main except topbar */
-.main> :not(.topbar) {
-  padding-left: 40px;
-  padding-right: 40px;
-  margin-bottom: 30px;
 }
 
 .topbar {
@@ -442,381 +395,260 @@ body {
 .site-footer span {
   color: #ff7a00;
   animation: glowPulse 4s infinite ease-in-out;
+  <<<<<<< HEAD
 }
 
-/* =========================================
-   DASHBOARD SPECIFIC STYLES (Moved from inline)
-   ========================================= */
-
-/* Cards Extra Interaction */
-.card {
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 30px rgba(255, 122, 0, 0.3);
-}
-
-.content.overview-section {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 25px;
-}
-
-/* User Dropdown Menu Styles - COHERENT AVEC USERS.PHP */
-.admin-dropdown {
-  position: relative;
-  display: inline-block;
-}
-
-.admin-user {
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  transition: all 0.3s ease;
-  padding: 5px 10px;
-  border-radius: 8px;
-}
-
-.admin-user:hover {
-  background: rgba(255, 122, 0, 0.1);
-}
-
-.admin-user img {
-  width: 35px;
-  height: 35px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #ff7a00;
-}
-
-.admin-user i.fa-user-circle {
-  font-size: 35px;
-  color: #ff7a00;
-}
-
-.admin-user span {
-  color: #fff;
-  font-weight: 600;
-  font-size: 16px;
-}
-
-.admin-user i.fa-chevron-down {
-  font-size: 12px;
-  color: #ff7a00;
-  transition: transform 0.3s ease;
-}
-
-.admin-dropdown.active .admin-user i.fa-chevron-down {
-  transform: rotate(180deg);
-}
-
-.admin-dropdown-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 10px;
-  background: rgba(20, 20, 20, 0.98);
-  border: 2px solid rgba(255, 122, 0, 0.3);
-  border-radius: 12px;
-  min-width: 200px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-10px);
-  transition: all 0.3s ease;
-  z-index: 1000;
-  overflow: hidden;
-}
-
-.admin-dropdown.active .admin-dropdown-menu {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-}
-
-.dropdown-item {
-  padding: 12px 15px;
-  color: #ffffff !important;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  transition: all 0.3s ease;
-  border-left: 3px solid transparent;
-  background: transparent;
-}
-
-.dropdown-item:hover {
-  background: rgba(255, 122, 0, 0.1);
-  border-left-color: #ff7a00;
-  color: #ffffff !important;
-  text-decoration: none;
-}
-
-.dropdown-item:visited {
-  color: #ffffff !important;
-}
-
-.dropdown-item i {
-  font-size: 16px;
-  color: #ff7a00 !important;
-  width: 20px;
-}
-
-.dropdown-divider {
-  height: 1px;
-  background: rgba(255, 122, 0, 0.2);
-  margin: 5px 0;
-}
-
-.dropdown-item.logout {
-  color: #ff4444 !important;
-}
-
-.dropdown-item.logout i {
-  color: #ff4444 !important;
-}
-
-.dropdown-item.logout:hover {
-  background: rgba(255, 68, 68, 0.1);
-  border-left-color: #ff4444;
-}
-
-/* Trading History Styles */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
-}
-
-.stat-card {
-  background: rgba(255, 122, 0, 0.1);
-  border: 1px solid #ff7a00;
-  border-radius: 12px;
+/* ======== ADMIN (news_admin.php) ======== */
+.wrap {
+  max-width: 1000px;
+  margin: 20px auto;
   padding: 20px;
-  text-align: center;
-  transition: transform 0.3s ease;
 }
 
-.stat-card:hover {
-  transform: translateY(-5px);
-}
-
-.stat-number {
-  font-size: 2.5em;
-  font-weight: bold;
-  color: #ff7a00;
-  margin: 10px 0;
-  font-family: 'Orbitron', sans-serif;
-}
-
-.stat-label {
-  color: #ccc;
-  font-size: 0.9em;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.trade-history-section {
-  margin: 40px 0;
-  padding: 20px;
-  background: rgba(255, 122, 0, 0.1);
-  border-radius: 12px;
-  border: 1px solid #ff7a00;
-}
-
-.history-table {
+/* Table used in admin list */
+table.admin-table {
   width: 100%;
   border-collapse: collapse;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  overflow: hidden;
-  margin-top: 20px;
+  margin-bottom: 18px
 }
 
-.history-table th,
-.history-table td {
-  padding: 15px;
+table.admin-table th,
+table.admin-table td {
+  padding: 12px;
   text-align: left;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid #222;
+  color: #ddd
 }
 
-.history-table th {
-  background: rgba(255, 122, 0, 0.2);
+table.admin-table thead th {
+  color: #ff7a00
+}
+
+.admin-actions a {
+  color: #9cf;
+  text-decoration: none;
+  margin-right: 8px
+}
+
+/* buttons and form fields */
+.btn {
+  /* reuse existing .btn but ensure visibility in admin */
+  text-decoration: none;
+  padding: 8px 14px;
+  border: 2px solid #ff7a00;
+  color: #ff7a00;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 600;
+}
+
+.btn:hover {
+  background: #ff7a00;
+  color: #000
+}
+
+form.admin-form input,
+form.admin-form textarea {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+  background: #0b0b0b;
+  border: 1px solid #333;
   color: #fff;
-  font-weight: 600;
-  font-family: 'Orbitron', sans-serif;
+  border-radius: 6px
 }
 
-.history-table tr:hover {
-  background: rgba(255, 255, 255, 0.05);
+.small {
+  width: 180px;
+  display: inline-block
 }
 
-.history-table tr:last-child td {
-  border-bottom: none;
-}
-
-.action-badge {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.action-created {
-  background: rgba(46, 213, 115, 0.2);
-  color: #2ed573;
-  border: 1px solid #2ed573;
-}
-
-.action-updated {
-  background: rgba(255, 165, 0, 0.2);
-  color: #ffa500;
-  border: 1px solid #ffa500;
-}
-
-.action-deleted {
-  background: rgba(255, 71, 87, 0.2);
-  color: #ff4757;
-  border: 1px solid #ff4757;
-}
-
-.action-finished {
-  background: rgba(0, 123, 255, 0.2);
-  color: #007bff;
-  border: 1px solid #007bff;
-}
-
-.table-container {
-  max-height: 600px;
-  overflow-y: auto;
-  border-radius: 12px;
-}
-
-.no-data {
-  text-align: center;
-  padding: 40px;
+.notice {
   color: #888;
+  font-size: 0.9rem;
+  margin-top: 12px
 }
 
-.search-filter {
+/* ======== TOAST / MESSAGES ======== */
+.toast-container {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 99999;
   display: flex;
-  gap: 15px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 8px
 }
 
-.search-filter input,
-.search-filter select {
-  padding: 12px 15px;
+.toast {
+  min-width: 220px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: #000;
+  background: #b6ffb3;
+  border-left: 4px solid #2db34a;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  font-weight: 600
+}
+
+.toast.error {
+  background: #ffd6d6;
+  color: #300;
+  border-left-color: #c33
+}
+
+.toast.info {
+  background: #d6ecff;
+  color: #013;
+  border-left-color: #3aa
+}
+
+/* ======== NEWS SEARCH & PAGINATION ======== */
+.news-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 18px
+}
+
+.news-search {
+  flex: 1;
+  padding: 10px;
   border-radius: 8px;
   border: 1px solid #333;
-  background: #1a1a1a;
-  color: #fff;
-  min-width: 200px;
-  font-family: 'Poppins', sans-serif;
+  background: #0b0b0b;
+  color: #fff
 }
 
-.search-filter input:focus,
-.search-filter select:focus {
-  outline: none;
-  border-color: #ff7a00;
-}
-
-.price {
-  color: #ff7a00;
-  font-weight: bold;
-  font-family: 'Orbitron', sans-serif;
-}
-
-.username {
-  color: #4fc3f7;
-  font-weight: 600;
-}
-
-.section-title {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 2em;
-  margin-bottom: 20px;
-  color: #fff;
-  text-align: center;
-}
-
-.section-title span {
-  color: #ff7a00;
-}
-
-.history-filter {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 15px;
-  flex-wrap: wrap;
-}
-
-.history-filter button {
-  background: #333;
-  color: #fff;
-  border: none;
-  padding: 10px 20px;
+.news-perpage {
+  padding: 8px;
   border-radius: 6px;
+  background: #0b0b0b;
+  border: 1px solid #333;
+  color: #fff
+}
+
+.pagination {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 28px;
+  justify-content: center
+}
+
+.pagination button {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(180deg, #141414, #1b1b1b);
+  color: #eee;
   cursor: pointer;
-  transition: background 0.3s;
-  font-family: 'Poppins', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s;
+  user-select: none;
 }
 
-.history-filter button.active {
-  background: #ff7a00;
-  color: #000;
-  font-weight: 600;
+.pagination button:hover:not(.active):not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+  border-color: rgba(255, 122, 0, 0.9);
+  color: #ffb67a;
 }
 
-.history-filter button:hover:not(.active) {
-  background: #555;
+.pagination button.active {
+  background: linear-gradient(180deg, #ffb24a, #ff8a00);
+  color: #0b0b0b;
+  border-color: #ff8a00;
+  box-shadow: 0 8px 24px rgba(255, 122, 0, 0.25), inset 0 -2px 0 rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
 }
 
-.skin-game {
-  text-transform: capitalize;
-  font-weight: 600;
+.pagination button:disabled {
+  opacity: 0.35;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+  color: #999;
+  border-color: #333;
 }
 
-.skin-game.valorant {
-  color: #ff4655;
-}
+<<<<<<< Updated upstream @media (max-width:420px) {
+  .pagination button {
+    width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
+    border-radius: 8px
+  }
 
-.skin-game.cs2 {
-  color: #f9a602;
-}
+  =======.history-filter button.active {
+    background: #ff7a00;
+    color: #000;
+    font-weight: 600;
+  }
 
-.skin-game.fortnite {
-  color: #5bc0f8;
-}
+  .history-filter button:hover:not(.active) {
+    background: #555;
+  }
 
-.skin-game.apex {
-  color: #ea4335;
-}
+  .skin-game {
+    text-transform: capitalize;
+    font-weight: 600;
+  }
 
-.skin-game.custom {
-  color: #9c27b0;
-}
+  .skin-game.valorant {
+    color: #ff4655;
+  }
 
-.value-note {
-  text-align: center;
-  color: #888;
-  font-size: 0.9em;
-  margin-top: 10px;
-  font-style: italic;
-}
+  .skin-game.cs2 {
+    color: #f9a602;
+  }
 
-.stat-note {
-  text-align: center;
-  color: #888;
-  font-size: 0.8em;
-  margin-top: 5px;
-  font-style: italic;
-}
+  .skin-game.fortnite {
+    color: #5bc0f8;
+  }
+
+  .skin-game.apex {
+    color: #ea4335;
+  }
+
+  .skin-game.custom {
+    color: #9c27b0;
+  }
+
+  .value-note {
+    text-align: center;
+    color: #888;
+    font-size: 0.9em;
+    margin-top: 10px;
+    font-style: italic;
+  }
+
+  .stat-note {
+    text-align: center;
+    color: #888;
+    font-size: 0.8em;
+    margin-top: 5px;
+    font-style: italic;
+  }
+
+  /* ======== CATEGORY BADGE (Shared) ======== */
+  .category-badge {
+    background: #262626;
+    color: #ff7a00;
+    padding: 5px 11px;
+    border-radius: 22px;
+    font-size: 0.97em;
+    font-weight: 600;
+    letter-spacing: .2px;
+    border: 1px solid rgba(255, 122, 0, 0.19);
+    >>>>>>>Stashed changes=======>>>>>>>1a0165571eb6996c378fbe1752f04eaedfe9c7d6
+  }

@@ -46,13 +46,12 @@ class Subscriber
     private static function hasColumn(string $col): bool
     {
         $pdo = self::getPdo();
-        $db   = $pdo->query('SELECT DATABASE()')->fetchColumn();
-        $stmt = $pdo->prepare(
-            'SELECT COUNT(*) FROM information_schema.columns
-             WHERE table_schema = ? AND table_name = ? AND column_name = ?'
-        );
-        $stmt->execute([$db, 'subscribers', $col]);
-        return (bool) $stmt->fetchColumn();
+        try {
+            $stmt = $pdo->query("SHOW COLUMNS FROM subscribers LIKE '$col'");
+            return (bool) $stmt->fetch();
+        } catch (Exception $e) {
+            return false;
+        }
     }
 
     private static function ensureCategoriesColumn(): void
@@ -87,9 +86,17 @@ class Subscriber
             if (empty($categoryIds)) {
                 return [false, 'Please select at least one category'];
             }
+            // Lookup user_id
+            $userId = null;
+            $uStmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+            $uStmt->execute([$email]);
+            if ($uRow = $uStmt->fetch(PDO::FETCH_ASSOC)) {
+                $userId = $uRow['id'];
+            }
+
             // Upsert desired set, remove others to sync preferences
-            foreach ($categoryIds as $cid) {
-                try {
+            try {
+                foreach ($categoryIds as $cid) {
                     // Validate category exists
                     $cat = Categorie::findById($cid);
                     if (!$cat) {
@@ -99,42 +106,46 @@ class Subscriber
                     $check = $pdo->prepare("SELECT id FROM subscribers WHERE email = ? AND category_id = ?");
                     $check->execute([$email, $cid]);
                     if (!$check->fetch()) {
-                        $ins = $pdo->prepare("INSERT INTO subscribers (email, category_id) VALUES (?, ?)");
-                        $ins->execute([$email, $cid]);
+                        $ins = $pdo->prepare("INSERT INTO subscribers (email, category_id, user_id) VALUES (?, ?, ?)");
+                        $ins->execute([$email, $cid, $userId]);
+                    } else {
+                        // Optional: Update user_id if it was missing (e.g. user registered after subscribing)
+                        $upd = $pdo->prepare("UPDATE subscribers SET user_id = ? WHERE email = ? AND category_id = ? AND user_id IS NULL");
+                        $upd->execute([$userId, $email, $cid]);
                     }
-                } catch (PDOException $e) {
-                    // Ignore duplicates or FK issues gracefully
                 }
-            }
-            // Remove categories not in desired list
-            try {
+                // Remove categories not in desired list
                 $del = $pdo->prepare(
                     "DELETE FROM subscribers WHERE email = ? AND category_id NOT IN (" . implode(',', array_fill(0, count($categoryIds), '?')) . ")"
                 );
                 $del->execute(array_merge([$email], $categoryIds));
             } catch (PDOException $e) {
-                // If NOT IN fails when list empty, ignore
+                return [false, 'Database error: ' . $e->getMessage()];
             }
             return [true, 'Preferences updated successfully'];
         } else {
             // Schema: one row per email, categories stored as comma-separated
-            // Check if exists
-            $stmt = $pdo->prepare("SELECT id FROM subscribers WHERE email = ?");
-            $stmt->execute([$email]);
-            if ($stmt->fetch()) {
-                // Update existing
-                $catString = implode(',', $categoryIds);
-                $upd = $pdo->prepare("UPDATE subscribers SET categories = ? WHERE email = ?");
-                if ($upd->execute([$catString, $email])) {
-                    return [true, 'Preferences updated successfully'];
+            try {
+                // Check if exists
+                $stmt = $pdo->prepare("SELECT id FROM subscribers WHERE email = ?");
+                $stmt->execute([$email]);
+                if ($stmt->fetch()) {
+                    // Update existing
+                    $catString = implode(',', $categoryIds);
+                    $upd = $pdo->prepare("UPDATE subscribers SET categories = ? WHERE email = ?");
+                    if ($upd->execute([$catString, $email])) {
+                        return [true, 'Preferences updated successfully'];
+                    }
+                } else {
+                    // Insert new
+                    $catString = implode(',', $categoryIds);
+                    $ins = $pdo->prepare("INSERT INTO subscribers (email, categories) VALUES (?, ?)");
+                    if ($ins->execute([$email, $catString])) {
+                        return [true, 'Subscribed successfully'];
+                    }
                 }
-            } else {
-                // Insert new
-                $catString = implode(',', $categoryIds);
-                $ins = $pdo->prepare("INSERT INTO subscribers (email, categories) VALUES (?, ?)");
-                if ($ins->execute([$email, $catString])) {
-                    return [true, 'Subscribed successfully'];
-                }
+            } catch (PDOException $e) {
+                return [false, 'Database error: ' . $e->getMessage()];
             }
             return [false, 'Database error'];
         }
@@ -145,7 +156,7 @@ class Subscriber
         $pdo = self::getPdo();
         $hasCategoryId = self::hasColumn('category_id');
         $hasCategories = self::hasColumn('categories');
-        if ($hasCategoryId && !$hasCategories) {
+        if ($hasCategoryId) {
             // Aggregate categories per email
             $sql = 'SELECT id, email, category_id, created_at FROM subscribers ORDER BY created_at DESC';
             $rows = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
@@ -202,7 +213,7 @@ class Subscriber
         $pdo = self::getPdo();
         $hasCategoryId = self::hasColumn('category_id');
         $hasCategories = self::hasColumn('categories');
-        if ($hasCategoryId && !$hasCategories) {
+        if ($hasCategoryId) {
             $stmt = $pdo->prepare('SELECT id, email, category_id, created_at FROM subscribers WHERE email = ?');
             $stmt->execute([$email]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);

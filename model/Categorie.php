@@ -386,15 +386,20 @@ class Categorie
         
         $categoriesList = '';
         if (!empty($categoryNames)) {
-            $categoriesList = '<div style="background:rgba(255,153,0,0.1);border-left:3px solid #ff9900;padding:15px;margin:20px 0;">
-                <h3 style="color:#ff9900;margin:0 0 10px 0;font-size:1.1rem;">Your Subscribed Categories:</h3>
+            $categoriesList = '<div style="background:rgba(255,153,0,0.1);border-left:3px solid #ff9900;padding:15px;margin:25px 0;border-radius:4px;">
+                <h3 style="color:#ff9900;margin:0 0 10px 0;font-size:1.1rem;text-transform:uppercase;letter-spacing:1px;">Your Subscriptions:</h3>
                 <ul style="margin:0;padding-left:20px;color:#ddd;">';
             foreach ($categoryNames as $name) {
-                $categoriesList .= '<li style="margin:5px 0;">' . htmlspecialchars($name) . '</li>';
+                $categoriesList .= '<li style="margin:8px 0;">' . htmlspecialchars($name) . '</li>';
             }
             $categoriesList .= '</ul></div>';
         }
         
+        // Construct Logo URL
+        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
+        $host = $_SERVER['HTTP_HOST'];
+        $logoUrl = $protocol . "://" . $host . "/projet_web/images/nine1.png";
+
         $styles = $config['styles'];
         $message = "
         <!DOCTYPE html>
@@ -404,25 +409,29 @@ class Categorie
             <title>$subject</title>
         </head>
         <body style='background:{$styles['background']};color:{$styles['text_color']};font-family:\"Segoe UI\",Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0;'>
-            <div style='max-width:600px;margin:40px auto;background:linear-gradient(135deg, rgba(30,30,30,0.95), rgba(20,20,20,0.98));border:1px solid rgba(255,153,0,0.2);border-radius:12px;overflow:hidden;'>
-                <div style='background:linear-gradient(135deg, #ff7a00, #ff5500);padding:30px;text-align:center;'>
-                    <h1 style='color:#fff;margin:0;font-size:2rem;text-shadow:0 2px 4px rgba(0,0,0,0.3);'>🎮 FoxUnity</h1>
-                    <p style='color:rgba(255,255,255,0.9);margin:10px 0 0 0;font-size:0.9rem;'>Gaming for Good</p>
+            <div style='max-width:600px;margin:40px auto;background:#141414;border:1px solid #333;border-radius:16px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.5);'>
+                <div style='background:linear-gradient(180deg, rgba(30,30,30,1) 0%, rgba(20,20,20,1) 100%);padding:40px 20px;text-align:center;border-bottom:1px solid #333;'>
+                    <img src='$logoUrl' alt='FoxUnity' style='width:120px;margin-bottom:15px;filter:drop-shadow(0 0 10px rgba(255,122,0,0.3));'>
+                    <h1 style='color:#fff;margin:0;font-size:1.5rem;letter-spacing:2px;text-transform:uppercase;font-weight:700;'>FoxUnity</h1>
+                    <p style='color:#ff7a00;margin:5px 0 0 0;font-size:0.8rem;text-transform:uppercase;letter-spacing:3px;'>Gaming for Good</p>
                 </div>
-                <div style='padding:40px 30px;'>
-                    <h2 style='color:{$styles['accent_color']};margin:0 0 20px 0;font-size:1.5rem;'>✓ Subscription Successful!</h2>
-                    <p style='line-height:1.8;margin:0 0 20px 0;font-size:1rem;'>
-                        Thank you for subscribing to <strong style='color:{$styles['accent_color']}'>FoxUnity News</strong>! 
+                <div style='padding:50px 40px;'>
+                    <h2 style='color:{$styles['accent_color']};margin:0 0 20px 0;font-size:1.4rem;'>Subscription Confirmed!</h2>
+                    <p style='line-height:1.8;margin:0 0 20px 0;font-size:1rem;color:#ccc;'>
+                        You're all set! You've successfully subscribed to <strong style='color:#fff'>FoxUnity News</strong>. You will now receive updates on the topics that matter most to you.
                     </p>
                     $categoriesList
-                    <div style='text-align:center;margin:30px 0 20px 0;'>
+                    <div style='text-align:center;margin:40px 0 30px 0;'>
                         <a href='http://{$_SERVER['HTTP_HOST']}/projet_web/view/front/news.php' 
-                           style='display:inline-block;background:{$styles['button_bg']};color:{$styles['button_text']};
-                                  padding:14px 35px;text-decoration:none;border-radius:6px;font-weight:bold;
-                                  font-size:1rem;box-shadow:0 4px 12px rgba(255,153,0,0.3);'>
-                            Browse Latest News
+                           style='display:inline-block;background:linear-gradient(135deg, #ff7a00, #ff5500);color:#fff;
+                                  padding:16px 40px;text-decoration:none;border-radius:30px;font-weight:bold;
+                                  font-size:1rem;box-shadow:0 5px 20px rgba(255,122,0,0.4);transition:transform 0.2s;'>
+                            Start Browsing News
                         </a>
                     </div>
+                </div>
+                <div style='background:#0a0a0a;padding:20px;text-align:center;font-size:0.8rem;color:#666;border-top:1px solid #222;'>
+                    <p style='margin:0;'>&copy; " . date('Y') . " FoxUnity. All rights reserved.</p>
                 </div>
             </div>
         </body>
@@ -431,9 +440,9 @@ class Categorie
         return self::sendEmail($email, $subject, $message, 'Welcome');
     }
 
-    private static function sendArticleNotification($to, $article): bool {
+    public static function sendArticleNotification($to, $article): bool {
         $config = self::getEmailConfig();
-        $subjectPrefix = $config['templates']['article_notification']['subject_prefix'] ?? '🔥 Hot News: ';
+        $subjectPrefix = $config['templates']['article_notification']['subject_prefix'] ?? '🔥 New Article: ';
         $subject = $subjectPrefix . $article['title'];
         
         $categoryName = 'Gaming';
@@ -442,6 +451,11 @@ class Categorie
             if ($cat) $categoryName = $cat['nom'];
         }
         
+        // Construct Logo URL
+        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
+        $host = $_SERVER['HTTP_HOST'];
+        $logoUrl = $protocol . "://" . $host . "/projet_web/images/Nine__1_-removebg-preview.png";
+
         $link = "http://" . $_SERVER['HTTP_HOST'] . "/projet_web/view/front/news_article.php?id=" . urlencode($article['id'] ?? ($article['slug'] ?? ''));
         $styles = $config['styles'];
         
@@ -453,23 +467,31 @@ class Categorie
             <title>$subject</title>
         </head>
         <body style='background:{$styles['background']};color:{$styles['text_color']};font-family:\"Segoe UI\",Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0;'>
-            <div style='max-width:600px;margin:40px auto;background:linear-gradient(135deg, rgba(30,30,30,0.95), rgba(20,20,20,0.98));border:1px solid rgba(255,153,0,0.2);border-radius:12px;overflow:hidden;'>
-                <div style='background:linear-gradient(135deg, #ff7a00, #ff5500);padding:30px;text-align:center;'>
-                    <h1 style='color:#fff;margin:0;font-size:2rem;text-shadow:0 2px 4px rgba(0,0,0,0.3);'>🎮 FoxUnity</h1>
-                    <p style='color:rgba(255,255,255,0.9);margin:10px 0 0 0;font-size:0.9rem;'>Gaming for Good</p>
+            <div style='max-width:600px;margin:40px auto;background:#141414;border:1px solid #333;border-radius:16px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.5);'>
+                <div style='background:linear-gradient(180deg, rgba(30,30,30,1) 0%, rgba(20,20,20,1) 100%);padding:30px 20px;text-align:center;border-bottom:1px solid #333;'>
+                     <img src='$logoUrl' alt='FoxUnity' style='width:100px;filter:drop-shadow(0 0 8px rgba(255,122,0,0.3));'>
                 </div>
+                <!-- Article Header / Image Area could go here if we had an absolute image URL -->
                 <div style='padding:40px 30px;'>
-                    <h2 style='color:#fff;margin:0 0 20px 0;font-size:1.8rem;line-height:1.3;'>
+                    <div style='text-align:center;margin-bottom:20px;'>
+                        <span style='background:rgba(255,122,0,0.15);color:#ff7a00;padding:4px 12px;border-radius:20px;font-size:0.8rem;text-transform:uppercase;letter-spacing:1px;font-weight:bold;'>$categoryName</span>
+                    </div>
+                    <h2 style='color:#fff;margin:0 0 20px 0;font-size:1.8rem;line-height:1.3;text-align:center;'>
                         " . htmlspecialchars($article['title']) . "
                     </h2>
-                    <p style='line-height:1.8;margin:0 0 25px 0;font-size:1rem;color:#bbb;'>
+                    <p style='line-height:1.8;margin:0 0 30px 0;font-size:1.05rem;color:#bbb;text-align:center;'>
                         " . htmlspecialchars($article['excerpt'] ?? substr(strip_tags($article['contenu'] ?? ''), 0, 200)) . "...
                     </p>
                     <div style='text-align:center;margin:35px 0 25px 0;'>
-                        <a href='$link' style='display:inline-block;background:{$styles['button_bg']};color:{$styles['button_text']};padding:16px 40px;text-decoration:none;border-radius:6px;font-weight:bold;font-size:1.1rem;'>
-                            📖 Read Full Article
+                        <a href='$link' style='display:inline-block;background:linear-gradient(135deg, #ff7a00, #ff5500);color:#fff;
+                                  padding:16px 50px;text-decoration:none;border-radius:30px;font-weight:bold;
+                                  font-size:1.1rem;box-shadow:0 5px 20px rgba(255,122,0,0.4);transition:transform 0.2s;'>
+                            Read Full Article
                         </a>
                     </div>
+                </div>
+                <div style='background:#0a0a0a;padding:20px;text-align:center;font-size:0.8rem;color:#666;border-top:1px solid #222;'>
+                    <p style='margin:0;'>&copy; " . date('Y') . " FoxUnity. Gaming for Good.</p>
                 </div>
             </div>
         </body>

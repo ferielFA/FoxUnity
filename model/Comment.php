@@ -14,7 +14,10 @@ class Comment
     private float $toxicityScore;
     private string $sentimentLabel;
     private ?int $rating;
+    private ?int $parentId; 
     private DateTime $createdAt;
+    private array $replies = [];
+    private ?string $userImage = null; // Added userImage property
 
     public function __construct(
         ?int $idComment = null,
@@ -26,6 +29,8 @@ class Comment
         float $toxicityScore = 0.0,
         string $sentimentLabel = 'neutral',
         ?int $rating = null,
+        ?int $parentId = null,
+        ?string $userImage = null, // Added userImage argument
         ?DateTime $createdAt = null
     ) {
         $this->idComment = $idComment;
@@ -37,6 +42,8 @@ class Comment
         $this->toxicityScore = $toxicityScore;
         $this->sentimentLabel = $sentimentLabel;
         $this->rating         = $rating;
+        $this->parentId       = $parentId;
+        $this->userImage      = $userImage; // Set userImage
         $this->createdAt = $createdAt ?? new DateTime();
     }
 
@@ -50,7 +57,10 @@ class Comment
     public function getToxicityScore(): float { return $this->toxicityScore; }
     public function getSentimentLabel(): string { return $this->sentimentLabel; }
     public function getRating(): ?int { return $this->rating; }
+    public function getParentId(): ?int { return $this->parentId; }
+    public function getUserImage(): ?string { return $this->userImage; } // Added getter
     public function getCreatedAt(): DateTime { return $this->createdAt; }
+    public function getReplies(): array { return $this->replies; }
 
     // Setters
     public function setIdComment(?int $idComment): void { $this->idComment = $idComment; }
@@ -62,7 +72,13 @@ class Comment
     public function setToxicityScore(float $score): void { $this->toxicityScore = $score; }
     public function setSentimentLabel(string $label): void { $this->sentimentLabel = $label; }
     public function setRating(?int $rating): void { $this->rating = $rating; }
+    public function setParentId(?int $parentId): void { $this->parentId = $parentId; }
+    public function setUserImage(?string $userImage): void { $this->userImage = $userImage; } // Added setter
     public function setCreatedAt(DateTime $createdAt): void { $this->createdAt = $createdAt; }
+
+    public function addReply(Comment $reply): void {
+        $this->replies[] = $reply;
+    }
 
     // Méthodes métier
     public function softDelete(): void
@@ -83,7 +99,11 @@ class Comment
     {
         $pdo = self::getPdo();
         $stmt = $pdo->prepare(
-            "SELECT * FROM comments WHERE article_id = :articleId AND is_deleted = 0 ORDER BY created_at DESC"
+            "SELECT c.*, u.image as user_image 
+             FROM comments c 
+             LEFT JOIN users u ON c.email = u.email 
+             WHERE c.article_id = :articleId AND c.is_deleted = 0 
+             ORDER BY c.created_at DESC"
         );
         $stmt->execute(['articleId' => $articleId]);
 
@@ -99,6 +119,8 @@ class Comment
                 (float)($row['toxicity_score'] ?? 0),
                 $row['sentiment_label'] ?? 'neutral',
                 isset($row['rating']) ? (int)$row['rating'] : null,
+                isset($row['parent_id']) ? (int)$row['parent_id'] : null,
+                $row['user_image'] ?? null,
                 new DateTime($row['created_at'])
             );
         }
@@ -119,8 +141,8 @@ class Comment
     {
         $pdo = self::getPdo();
         $sql = "INSERT INTO comments
-                (article_id, name, email, text, toxicity_score, sentiment_label, rating, created_at)
-                VALUES (:articleId, :name, :email, :text, :tox, :sent, :rating, NOW())";
+                (article_id, name, email, text, toxicity_score, sentiment_label, rating, parent_id, created_at)
+                VALUES (:articleId, :name, :email, :text, :tox, :sent, :rating, :parentId, NOW())";
 
         $stmt = $pdo->prepare($sql);
 
@@ -131,7 +153,8 @@ class Comment
             'text' => $comment->getText(),
             'tox' => $comment->getToxicityScore(),
             'sent' => $comment->getSentimentLabel(),
-            'rating' => $comment->getRating()
+            'rating' => $comment->getRating(),
+            'parentId' => $comment->getParentId()
         ]);
     }
 
@@ -146,6 +169,7 @@ class Comment
                 toxicity_score = :tox,
                 sentiment_label = :sent,
                 rating = :rating,
+                parent_id = :parentId,
                 is_deleted = :is_deleted
                 WHERE idComment = :id";
 
@@ -160,6 +184,7 @@ class Comment
             'tox' => $comment->getToxicityScore(),
             'sent' => $comment->getSentimentLabel(),
             'rating' => $comment->getRating(),
+            'parentId' => $comment->getParentId(),
             'is_deleted' => (int)$comment->isDeleted()
         ]);
     }

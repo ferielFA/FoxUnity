@@ -168,7 +168,7 @@ $commentsDir = __DIR__ . '/uploads/comments';
   <div class="sidebar">
     <img src="../images/Nine__1_-removebg-preview.png" alt="Nine Tailed Fox Logo" class="dashboard-logo">
     <h2>Dashboard</h2>
-    <a href="dashboard.php">Overview</a>
+    <a href="dashboard.php" class="">Overview</a>
     <a href="users.php">Users</a>
     <a href="#">Shop</a>
     <a href="tradingb.php">Trade History</a>
@@ -177,13 +177,12 @@ $commentsDir = __DIR__ . '/uploads/comments';
     <a href="news_history.php" id="news-history-link">News History</a>
     <a href="categories.php" id="categories-link">Categories</a>
     <a href="newsletter_admin.php" id="newsletter-link">Newsletter</a>
-    <a href="reclamback.php">Support</a>
-    <a href="evaluations_publiques.php">Évaluations Publiques</a>
+    <a href="#">Support</a>
     <a href="../front/index.php">← Return Homepage</a>
   </div>
 
-  <div class="main">
-    <div class="topbar">
+  <div class="main" style="padding:0 1vw 30px 2vw;max-width:1800px;margin:0 auto;">
+    <div class="topbar" style="margin-top:16px;">
       <h1>News Administration</h1>
       <div class="admin-dropdown" id="adminDropdown">
         <div class="user admin-user">
@@ -213,20 +212,187 @@ $commentsDir = __DIR__ . '/uploads/comments';
     </div>
 
     <div class="content">
-      <div class="card" style="width:100%; grid-column: 1 / -1;">
+      <div class="card modern-card" style="width:100%;grid-column: 1 / -1;box-shadow: 0 6px 32px 2px rgba(0,0,0,0.18);background: #181818;border-radius: 20px;border: none;padding: 30px 24px 24px 24px;min-height:unset;position:relative;margin-top:28px;max-width:100%;">
+<style>
+  .modern-card {
+    background: linear-gradient(135deg, #181818 60%, #232323 100%);
+    border-radius: 20px;
+    box-shadow: 0 6px 32px 2px rgba(0,0,0,0.34);
+    padding: 36px 32px 32px 32px;
+    min-height: 650px;
+    border: none; 
+  }
+  .modern-section-title {
+    font-weight: 800;
+    color: #ff7a00;
+    font-size: 1.3rem;
+    background: linear-gradient(90deg, #2b2b2b 80%, #232323);
+    padding: 12px 24px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    letter-spacing: .5px;
+    box-shadow: 0 1px 8px 0 rgba(255,122,0,0.03);
+    display: inline-block;
+  }
+  .admin-table.modern-table {
+    background: #191919;
+    border-radius: 14px;
+    box-shadow: 0 1px 8px 0 rgba(0,0,0,0.1);
+    overflow: hidden;
+    width: 100%;
+    border: none;
+    margin: 16px 0;
+  }
+  .admin-table.modern-table thead tr {
+    background: #232323;
+    color: #ff7a00;
+    font-weight: bold;
+    font-size: 1.07rem;
+    border-bottom: 3px solid #333;
+    letter-spacing: 0.5px;
+  }
+  .admin-table.modern-table th, .admin-table.modern-table td {
+    padding: 16px 12px;
+    text-align: left;
+    border: none;
+    font-size: 1.06rem;
+  }
+  .admin-table.modern-table tbody tr:nth-child(even) {
+    background: #202020;
+  }
+  .admin-table.modern-table tbody tr:nth-child(odd) {
+    background: #181818;
+  }
+  .admin-table.modern-table tbody tr:hover {
+    background: #22231e;
+    transition: background 0.2s;
+  }
+
+  .category-badge {
+    background: rgba(255, 255, 255, 0.08);
+    color: #aaa;
+    font-weight: 600;
+    padding: 5px 14px;
+    border-radius: 30px;
+    font-size: 0.9em;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: inline-block;
+  }
+  .hot-badge {
+    background: #ff7a00;
+    color: #fff;
+    padding: 4px 13px;
+    border-radius: 40px;
+    font-size: 0.99em;
+    font-weight: 700;
+    margin-left: 5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: none;
+    box-shadow: 0 2px 10px 0 rgba(255,122,0,0.07);
+    vertical-align: middle;
+  }
+  .form-floating-label-group label {
+    color: #bbb;
+    display: block;
+    margin-bottom: 6px;
+    font-size: 1.04em;
+    font-weight: 700;
+  }
+  .form-floating-label-group input,
+  .form-floating-label-group select,
+  .form-floating-label-group textarea {
+    background: #191919;
+    border: 2px solid #2b2b2b;
+    color: #fff;
+    border-radius: 10px;
+    padding: 13px 14px;
+    margin-bottom: 19px;
+    width: 100%;
+    font-size: 1.07em;
+    box-shadow: 0 1px 7px 0 rgba(0,0,0,0.06);
+    transition: border 0.2s;
+  }
+  .form-floating-label-group input:focus,
+  .form-floating-label-group select:focus,
+  .form-floating-label-group textarea:focus {
+    border: 2px solid #ff7a00;
+    outline: none;
+    background: #232323;
+    color: #fff;
+  }
+  .admin-form button.btn,
+  a.btn {
+    background: linear-gradient(90deg,#ff7a00 30%,#ffb380 100%);
+    color: #1a0d00;
+    font-weight: bold;
+    font-size: 1.08em;
+    padding: 12px 32px;
+    border-radius: 22px;
+    border: 2px solid #ff7a00;
+    outline: none;
+    box-shadow: 0 2px 10px 0 rgba(255,122,0,0.07);
+    transition: background 0.18s, color 0.18s, border 0.18s;
+    margin: 0 3px 0 0;
+    cursor: pointer;
+    text-decoration: none;
+    letter-spacing: .02em;
+    display: inline-block;
+    line-height: 1.1;
+  }
+  .admin-form button.btn:hover, a.btn:hover {
+    background: #1a0d00;
+    color: #fff;
+    border-color: #ff7a00;
+    box-shadow: 0 4px 16px 0 rgba(255,122,0,0.14);
+  }
+  .admin-form button.btn[disabled], a.btn[disabled] {
+    opacity: 0.65;
+    cursor: not-allowed;
+    filter: grayscale(45%);
+  }
+  .admin-actions a {
+    font-weight: 600;
+    color: #ff7a00;
+    margin-right: 10px;
+    transition: color 0.2s;
+  }
+  .admin-actions a:hover {
+    color: #ff4500;
+    text-decoration: underline;
+  }
+  .empty-state {
+    text-align: center;
+    color: #bbb;
+    padding: 42px 0;
+    font-size: 1.19em;
+    opacity: 0.8;
+  }
+  .img-preview-modern {
+    border-radius: 17px;
+    box-shadow: 0 2px 15px 0 rgba(255,122,0,0.14);
+    object-fit: cover;
+    background: #1a0d00;
+    border: 1.8px solid #2b2b2b;
+    margin-bottom: 12px;
+    max-width: 99%;
+    aspect-ratio: 3/1.3;
+    display: block;
+  }
+</style>
       
-        <div style="margin-bottom:16px;border-bottom:1px solid #333;padding-bottom:12px">
-          <span style="font-weight:700;color:#fff;font-size:1.05rem">Manage News</span>
-        </div>
+        <div style="margin-bottom:12px; border-bottom:1.5px solid #242323; padding-bottom:10px; display: flex; align-items: center; gap: 25px; min-height:unset;">
+  <span class="modern-section-title" style="font-size:1.22em;"><i class="fas fa-newspaper" style="margin-right:8px; color:#ff7a00"></i>Manage News</span>
+  <div style="margin-left:auto;display:flex;gap:14px;">
+    <a class="btn" style="min-width:165px;font-size:1em;letter-spacing:.1em;box-shadow:none;" href="news_admin.php?action=new"><i class="fas fa-plus-circle" style="margin-right:7px"></i>ADD ARTICLE</a>
+  </div>
+</div>
 
         <div id="tab-manage-content">
           <div style="display:flex;justify-content:space-between;align-items:center">
-            <h2 style="margin:0">Manage News</h2>
-              <div>
-              <a class="btn" href="news_admin.php?action=new">+ Add Article</a>
-              <a class="btn" href="../front/news.php" target="_blank">View Public News</a>
-            </div>
-          </div>
+  <h2 style="margin:0">Manage News</h2>
+</div>
 
               <?php if (!empty($messages) || !empty($errors)): ?>
                 <div style="margin-top:10px">
@@ -239,7 +405,7 @@ $commentsDir = __DIR__ . '/uploads/comments';
             <?php $it = $editing ?? ['id'=>'','title'=>'','date'=>date('Y-m-d'),'datePublication'=>date('Y-m-d'),'image'=>'','idCategorie'=>0,'category'=>'','excerpt'=>'','content'=>'','hot'=>0]; ?>
             <section style="margin-top:16px">
               <h3><?php echo $editing ? 'Edit' : 'New'; ?> Article</h3>
-              <form id="article-form" class="admin-form" method="post" action="news_admin.php<?php echo $editing ? '?id='.urlencode($editing['id']) : '' ;?>" enctype="multipart/form-data">
+              <form id="article-form" class="admin-form form-floating-label-group" method="post" action="news_admin.php<?php echo $editing ? '?id='.urlencode($editing['id']) : '' ;?>" enctype="multipart/form-data" style="background: #181818; border-radius: 16px; box-shadow: 0 2px 36px 0 rgba(255,122,0,0.07); padding: 32px 24px 18px 24px; margin-bottom:30px; border:1.5px solid #242323">
                 <input type="hidden" name="action" value="<?php echo $editing ? 'save' : 'add'; ?>">
                 <?php if ($editing): ?><input type="hidden" name="id" value="<?php echo htmlspecialchars($editing['id'] ?? ''); ?>"><?php endif; ?>
                 <?php if (!$editing): ?><label for="fld-id">ID (alphanumeric):</label><input id="fld-id" name="id" value="<?php echo htmlspecialchars($it['id'] ?? ''); ?>" class="small"><?php endif; ?>
@@ -252,24 +418,26 @@ $commentsDir = __DIR__ . '/uploads/comments';
                 <input type="hidden" id="fld-image-existing" name="image_existing" value="<?php echo htmlspecialchars($it['image'] ?? ''); ?>">
                 <?php if (!empty($it['image'])): ?>
                   <div style="margin:12px 0;border-radius:8px;overflow:hidden;background:#0b0b0b;border:1px solid #333">
-                    <img id="img-preview" src="<?php echo htmlspecialchars($it['image']); ?>" style="max-width:100%;max-height:200px;display:block" alt="Preview">
+                    <img id="img-preview" src="<?php echo htmlspecialchars($it['image']); ?>" class="img-preview-modern" alt="Preview">
                   </div>
                 <?php else: ?>
                   <div id="img-preview-container" style="display:none;margin:12px 0;border-radius:8px;overflow:hidden;background:#0b0b0b;border:1px solid #333">
-                    <img id="img-preview" style="max-width:100%;max-height:200px;display:block" alt="Preview">
+                    <img id="img-preview" class="img-preview-modern" alt="Preview">
                   </div>
                 <?php endif; ?>
                 
                 <label for="fld-category">Category</label>
-                <select id="fld-idCategorie" name="idCategorie">
-                  <option value="0">-- Select category --</option>
-                  <?php foreach ($categories as $c): ?>
-                    <option value="<?php echo intval($c['idCategorie']); ?>" <?php if (!empty($it['idCategorie']) && intval($it['idCategorie'])===intval($c['idCategorie'])) echo 'selected'; ?>><?php echo htmlspecialchars($c['nom']); ?></option>
-                  <?php endforeach; ?>
-                </select>
-                <small style="display:block;color:#aaa;margin-top:6px">Or enter a custom category name below (will be saved to article only):</small>
-                <input id="fld-category" name="category" value="<?php echo htmlspecialchars($it['category'] ?? ''); ?>">
-                
+<div style="display:flex;gap:10px;align-items:stretch;flex-wrap:wrap;">
+  <select id="fld-idCategorie" name="idCategorie" style="flex:1 1 240px;min-width:220px;max-width:320px;width:100%;">
+    <option value="0">-- Select category --</option>
+    <?php foreach ($categories as $c): ?>
+      <option value="<?php echo intval($c['idCategorie']); ?>" <?php if (!empty($it['idCategorie']) && intval($it['idCategorie'])===intval($c['idCategorie'])) echo 'selected'; ?>><?php echo htmlspecialchars($c['nom']); ?></option>
+    <?php endforeach; ?>
+  </select>
+  <input id="fld-category" name="category" value="<?php echo htmlspecialchars($it['category'] ?? ''); ?>" placeholder="Custom category (optional)" style="flex:2 1 420px;min-width:240px;width:100%;">
+</div>
+<small style="display:block;color:#aaa;margin-top:6px">You can select or add a custom category name.</small>
+
                 <div style="margin:16px 0">
                   <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
                     <input type="checkbox" id="fld-hot" name="hot" value="1" <?php echo ($it['hot'] ?? 0) ? 'checked' : ''; ?> style="margin:0">
@@ -338,28 +506,37 @@ $commentsDir = __DIR__ . '/uploads/comments';
                 <?php endif; ?>
 
                 <p>
-                  <button id="btn-save" class="btn" type="submit">Save</button>
-                  <a class="btn" href="news_admin.php">Cancel</a>
-                  <button id="btn-restore" class="btn" type="button" style="margin-left:8px;">Restore Draft</button>
-                  <button id="btn-clear-draft" class="btn" type="button" style="margin-left:6px;background:#c33;color:#fff;border-color:#c33;">Clear Draft</button>
+                  <button id="btn-save" class="btn" type="submit"><i class="fas fa-save"></i> Save</button>
+                  <a class="btn" href="news_admin.php"><i class="fas fa-times-circle"></i> Cancel</a>
+                  <button id="btn-restore" class="btn" type="button" style="margin-left:8px;"><i class="fas fa-history"></i> Restore Draft</button>
+                  <button id="btn-clear-draft" class="btn" type="button" style="margin-left:6px;background:#c33;color:#fff;border-color:#c33;"><i class="fas fa-trash-alt"></i> Clear Draft</button>
                 </p>
               </form>
             </section>
           <?php else: ?>
 
+            <?php
+              $perPage = 8;
+              $currentPage = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+              $totalArticles = count($data);
+              $totalPages = max(1, (int)ceil($totalArticles / $perPage));
+              if ($currentPage > $totalPages) { $currentPage = $totalPages; }
+              $offset = ($currentPage - 1) * $perPage;
+              $pageData = array_slice($data, $offset, $perPage);
+            ?>
             <section style="margin-top:16px">
-              <h3>Existing Articles (<?php echo count($data); ?>)</h3>
-              <table class="admin-table" id="articles-table">
+              <h3>Existing Articles (<?php echo $totalArticles; ?>)</h3>
+              <table class="admin-table modern-table" id="articles-table">
                 <thead><tr><th>#</th><th>Slug</th><th>Title</th><th>Date</th><th>Category</th><th>Hot</th><th>Sentiment</th><th>Actions</th></tr></thead>
                 <tbody>
-                <?php foreach ($data as $row): ?>
+                <?php foreach ($pageData as $row): ?>
                   <tr>
                     <td><?php echo htmlspecialchars($row['idArticle'] ?? ''); ?></td>
                     <td><?php echo htmlspecialchars($row['id'] ?? ''); ?></td>
                     <td><?php echo htmlspecialchars($row['title'] ?? ''); ?></td>
                     <td><?php echo htmlspecialchars($row['date'] ?? ''); ?></td>
-                    <td><?php echo htmlspecialchars((findCategoryName($row['idCategorie'] ?? 0, $categories) ?? '') . (empty($row['idCategorie']) ? '' : ' (ID:'. ($row['idCategorie']) .')')); ?></td>
-                    <td><?php echo $row['hot'] ? '🔥 Yes' : 'No'; ?></td>
+                    <td><span class="category-badge"><?php echo htmlspecialchars(findCategoryName($row['idCategorie'] ?? 0, $categories) ?? ''); ?></span></td>
+                    <td><?php echo $row['hot'] ? '<span class="hot-badge"><i class="fas fa-fire"></i> Hot</span>' : '<span style="color:#888">No</span>'; ?></td>
                     <td>
                       <?php 
                         $stats = $row['sentiment_stats'] ?? ['positive'=>0,'negative'=>0];
@@ -381,6 +558,27 @@ $commentsDir = __DIR__ . '/uploads/comments';
                 <?php endforeach; ?>
                 </tbody>
               </table>
+              <?php if ($totalPages > 1): ?>
+              <div style="margin-top:12px; display:flex; justify-content:flex-end; gap:6px; flex-wrap:wrap;">
+                <?php
+                  $buildLink = function($p) {
+                    $base = 'news_admin.php';
+                    $params = $_GET;
+                    $params['page'] = $p;
+                    return $base . '?' . http_build_query($params);
+                  };
+                ?>
+                <?php if ($currentPage > 1): ?>
+                  <a class="btn" style="padding:9px 14px; min-width:70px;" href="<?php echo htmlspecialchars($buildLink($currentPage-1)); ?>">&laquo; Prev</a>
+                <?php endif; ?>
+                <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+                  <a class="btn" style="padding:9px 12px; min-width:42px; <?php echo $p === $currentPage ? 'background:#ff7a00;color:#1a0d00;border-color:#ff7a00;' : '' ?>" href="<?php echo htmlspecialchars($buildLink($p)); ?>"><?php echo $p; ?></a>
+                <?php endfor; ?>
+                <?php if ($currentPage < $totalPages): ?>
+                  <a class="btn" style="padding:9px 14px; min-width:70px;" href="<?php echo htmlspecialchars($buildLink($currentPage+1)); ?>">Next &raquo;</a>
+                <?php endif; ?>
+              </div>
+              <?php endif; ?>
             </section>
 
             <?php if ($action === 'delete' && $id !== ''): ?>
@@ -395,45 +593,6 @@ $commentsDir = __DIR__ . '/uploads/comments';
               </section>
             <?php endif; ?>
 
-            <section style="margin-top:24px">
-              <h3>Newsletter Snapshot</h3>
-              <?php 
-                // Notification service moved to Categorie
-                $subscribers = Subscriber::getAll();
-                $recent = array_slice($subscribers, 0, 5);
-              ?>
-              <p style="color:#bbb">Total Subscribers: <strong><?php echo count($subscribers); ?></strong></p>
-              <table class="admin-table" style="width:100%">
-                <thead><tr><th>ID</th><th>Email</th><th>Interests</th><th>Subscribed</th></tr></thead>
-                <tbody>
-                  <?php 
-                    // Create simple map for display
-                    $catMap = [];
-                    foreach ($categories as $c) { $catMap[$c['idCategorie']] = $c['nom']; }
-                  ?>
-                  <?php foreach ($recent as $s): ?>
-                  <?php
-                    $sIds = array_filter(explode(',', $s['categories'] ?? ''));
-                    $sNames = [];
-                    foreach($sIds as $sid) { if(isset($catMap[$sid])) $sNames[] = $catMap[$sid]; }
-                    $catDisplay = empty($sNames) ? '-' : implode(', ', $sNames);
-                  ?>
-                  <tr>
-                    <td><?php echo intval($s['id'] ?? 0); ?></td>
-                    <td><?php echo htmlspecialchars($s['email'] ?? ''); ?></td>
-                    <td><?php echo htmlspecialchars($catDisplay); ?></td>
-                    <td><?php echo htmlspecialchars($s['created_at'] ?? ''); ?></td>
-                  </tr>
-                  <?php endforeach; ?>
-                  <?php if (empty($recent)): ?>
-                  <tr><td colspan="4" style="color:#888">No subscribers yet.</td></tr>
-                  <?php endif; ?>
-                </tbody>
-              </table>
-              <div style="margin-top:10px;text-align:right">
-                <a class="btn" href="newsletter_admin.php">Open Newsletter Admin</a>
-              </div>
-            </section>
 
 
           <?php endif; ?>
