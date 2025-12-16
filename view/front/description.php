@@ -198,6 +198,16 @@ $img = !empty($skin['image']) ? '../' . ltrim($skin['image'], '/\\') : '../image
                         <span>My Profile</span>
                     </a>
                     
+                    <a href="tradehis.php" class="dropdown-item">
+                        <i class="fas fa-history"></i>
+                        <span>Trade History</span>
+                    </a>
+                    
+                    <a href="events.php?view=history" class="dropdown-item">
+                        <i class="fas fa-ticket-alt"></i>
+                        <span>Event History</span>
+                    </a>
+                    
                     <?php 
                     $userRole = strtolower($currentUser->getRole());
                     if ($userRole === 'admin' || $userRole === 'superadmin'): 

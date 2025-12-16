@@ -236,7 +236,7 @@ unset($eventItem); // Break reference
         }
 
         .username-display:hover {
-            background: rgba(245, 194, 66, 0.1);
+            background: rgba(255, 122, 0, 0.1);
         }
 
         .username-display img {
@@ -244,24 +244,24 @@ unset($eventItem); // Break reference
             height: 45px;
             border-radius: 50%;
             object-fit: cover;
-            border: 2px solid #f5c242;
+            border: 2px solid #ff7a00;
         }
 
         .username-display span {
-            color: #f5c242;
+            color: #ff7a00;
             font-weight: 600;
             font-size: 16px;
         }
 
         .username-display i.fa-chevron-down {
             font-size: 12px;
-            color: #f5c242;
+            color: #ff7a00;
             transition: transform 0.3s ease;
         }
 
         .username-display i.fa-user-circle {
             font-size: 24px;
-            color: #f5c242;
+            color: #ff7a00;
         }
 
         .user-dropdown.active .username-display i.fa-chevron-down {
@@ -274,7 +274,7 @@ unset($eventItem); // Break reference
             right: 0;
             margin-top: 10px;
             background: rgba(20, 20, 20, 0.98);
-            border: 2px solid rgba(245, 194, 66, 0.3);
+            border: 2px solid rgba(255, 122, 0, 0.3);
             border-radius: 12px;
             min-width: 200px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
@@ -304,19 +304,19 @@ unset($eventItem); // Break reference
         }
 
         .dropdown-item:hover {
-            background: rgba(245, 194, 66, 0.1);
-            border-left-color: #f5c242;
+            background: rgba(255, 122, 0, 0.1);
+            border-left-color: #ff7a00;
         }
 
         .dropdown-item i {
             font-size: 16px;
-            color: #f5c242;
+            color: #ff7a00;
             width: 20px;
         }
 
         .dropdown-divider {
             height: 1px;
-            background: rgba(245, 194, 66, 0.2);
+            background: rgba(255, 122, 0, 0.2);
             margin: 5px 0;
         }
 
@@ -334,7 +334,7 @@ unset($eventItem); // Break reference
         }
 
         .cart-icon {
-            color: #f5c242 !important;
+            color: #ff7a00 !important;
             position: relative;
             font-weight: 600;
             transition: all 0.3s ease;
@@ -345,17 +345,17 @@ unset($eventItem); // Break reference
         }
         
         .cart-icon:hover {
-            color: #f39c12 !important;
+            color: #ff7a00 !important;
             transform: translateY(-2px);
         }
         
         .cart-icon i {
-            color: #f5c242;
+            color: #ff7a00;
             font-size: 18px;
         }
         
         .cart-count {
-            background: linear-gradient(135deg, #f5c242, #f39c12);
+            background: linear-gradient(135deg, #ff7a00, #ff9100);
             color: #000;
             border-radius: 50%;
             padding: 2px 6px;
@@ -366,7 +366,7 @@ unset($eventItem); // Break reference
             right: -8px;
             min-width: 18px;
             text-align: center;
-            box-shadow: 0 2px 8px rgba(245, 194, 66, 0.4);
+            box-shadow: 0 2px 8px rgba(255, 122, 0, 0.4);
         }
 
         /* View Toggle Buttons */
@@ -393,8 +393,8 @@ unset($eventItem); // Break reference
         }
 
         .btn-view-toggle:hover {
-            border-color: #f5c242;
-            background: rgba(245, 194, 66, 0.1);
+            border-color: #ff7a00;
+            background: rgba(255, 122, 0, 0.1);
         }
 
         .btn-view-toggle.active {
@@ -1056,7 +1056,10 @@ unset($eventItem); // Break reference
             <a href="trading.php" data-lang-en="Trading" data-lang-fr="Échange">Trading</a>
             <a href="news.php" data-lang-en="News" data-lang-fr="Actualités">News</a>
             <a href="reclamation.html" data-lang-en="Support" data-lang-fr="Support">Support</a>
-            <a href="about.php" data-lang-en="About Us" data-lang-fr="À Propos">About Us</a>
+            <a href="reclamation.php">Support</a>
+            <a href="contact_us.php">New Request</a>
+            <a href="public_reclamations.php"><i class="fas fa-star"></i> Public Evaluations</a>
+           <a href="about.php">About Us</a>
         </nav>
         
         <div class="header-right">
@@ -1088,9 +1091,14 @@ unset($eventItem); // Break reference
                         <span>My Profile</span>
                     </a>
                     
-                    <a href="?view=history" class="dropdown-item">
+                    <a href="tradehis.php" class="dropdown-item">
                         <i class="fas fa-history"></i>
-                        <span>Events History</span>
+                        <span>Trade History</span>
+                    </a>
+                    
+                    <a href="events.php?view=history" class="dropdown-item">
+                        <i class="fas fa-ticket-alt"></i>
+                        <span>Event History</span>
                     </a>
                     
                     <?php 

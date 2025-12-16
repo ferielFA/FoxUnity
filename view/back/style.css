@@ -540,23 +540,30 @@ body {
 
 .dropdown-item {
   padding: 12px 15px;
-  color: #fff;
+  color: #ffffff !important;
   text-decoration: none;
   display: flex;
   align-items: center;
   gap: 10px;
   transition: all 0.3s ease;
   border-left: 3px solid transparent;
+  background: transparent;
 }
 
 .dropdown-item:hover {
   background: rgba(255, 122, 0, 0.1);
   border-left-color: #ff7a00;
+  color: #ffffff !important;
+  text-decoration: none;
+}
+
+.dropdown-item:visited {
+  color: #ffffff !important;
 }
 
 .dropdown-item i {
   font-size: 16px;
-  color: #ff7a00;
+  color: #ff7a00 !important;
   width: 20px;
 }
 
@@ -567,11 +574,11 @@ body {
 }
 
 .dropdown-item.logout {
-  color: #ff4444;
+  color: #ff4444 !important;
 }
 
 .dropdown-item.logout i {
-  color: #ff4444;
+  color: #ff4444 !important;
 }
 
 .dropdown-item.logout:hover {

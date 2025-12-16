@@ -710,9 +710,14 @@ if ($currentUser->getImage()) {
                         <span>My Profile</span>
                     </a>
 
-                    <a href="events.php?view=history" class="dropdown-item">
+                    <a href="tradehis.php" class="dropdown-item">
                         <i class="fas fa-history"></i>
-                        <span>Events History</span>
+                        <span>Trade History</span>
+                    </a>
+                    
+                    <a href="events.php?view=history" class="dropdown-item">
+                        <i class="fas fa-ticket-alt"></i>
+                        <span>Event History</span>
                     </a>
 
                     <?php

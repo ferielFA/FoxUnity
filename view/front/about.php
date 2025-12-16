@@ -191,7 +191,8 @@ $donationTenPercent = round($donationBase * 0.10, 2);
         <div class="dropdown-menu">
           <?php if ($currentUser): ?>
           <a href="profile.php" class="dropdown-item"><i class="fas fa-user"></i><span>My Profile</span></a>
-          <a href="tradehis.php" class="dropdown-item"><i class="fas fa-history"></i><span>History</span></a>
+          <a href="tradehis.php" class="dropdown-item"><i class="fas fa-history"></i><span>Trade History</span></a>
+          <a href="events.php?view=history" class="dropdown-item"><i class="fas fa-ticket-alt"></i><span>Event History</span></a>
           <?php if (strtolower($currentUser->getRole()) === 'admin' || strtolower($currentUser->getRole()) === 'superadmin'): ?>
           <a href="../back/dashboard.php" class="dropdown-item"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a>
           <?php endif; ?>

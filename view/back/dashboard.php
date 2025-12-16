@@ -82,29 +82,28 @@ $showTradeHistory = isset($_GET['section']) && $_GET['section'] === 'trades';
     <a href="../front/index.php">← Return Homepage</a>
   </div>
 
-  <!-- ===== MAIN ===== -->
-  <div class="main">
+<div class="main">
     <div class="topbar">
       <h1><?= $showTradeHistory ? 'Trade History Dashboard' : 'Welcome, Commander' ?></h1>
       <div class="admin-dropdown" id="adminDropdown">
         <div class="user admin-user">
           <?php if ($userImage): ?>
-            <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
+          <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
           <?php else: ?>
-            <i class="fas fa-user-circle"></i>
+          <i class="fas fa-user-circle" style="font-size: 35px; color: #ff7a00;"></i>
           <?php endif; ?>
           <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
-          <i class="fas fa-chevron-down"></i>
+          <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
         </div>
-
+        
         <div class="admin-dropdown-menu">
           <a href="admin-profile.php" class="dropdown-item">
             <i class="fas fa-user"></i>
             <span>My Profile</span>
           </a>
-
+          
           <div class="dropdown-divider"></div>
-
+          
           <a href="../front/logout.php" class="dropdown-item logout">
             <i class="fas fa-sign-out-alt"></i>
             <span>Logout</span>
