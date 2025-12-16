@@ -25,7 +25,466 @@ $isAdmin = false;
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
+<?php
+// Construct absolute URL for OG tags
+$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
+$host = $_SERVER['HTTP_HOST'];
+$uri = $_SERVER['REQUEST_URI'];
+$currentUrl = $protocol . "://" . $host . $uri;
+
+// Construct absolute image URL
+$img = $a['image'] ?? 'images/nopic.png';
+if (strpos($img, 'http') === 0) {
+    $ogImage = $img;
+} else {
+    // If image is relative, make it absolute assuming standard structure
+    // Cleaning up potential relative prefixes like ../
+    $cleanImg = str_replace('../', '', $img);
+    // If it starts with view/, remove it as we construct path from root
+    if (strpos($cleanImg, 'view/') === 0) {
+        $cleanImg = substr($cleanImg, 5);
+    }
+    // Adjust path based on where images typically live relative to webroot
+    // Assuming projet_web is the webroot or close to it. 
+    // Best effort: pointing to view/ directory
+    $ogImage = $protocol . "://" . $host . '/projet_web/view/' . $cleanImg;
+}
+?>
+    <meta property="og:url" content="<?php echo htmlspecialchars($currentUrl); ?>" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="<?php echo htmlspecialchars($a['title']); ?>" />
+    <meta property="og:description" content="<?php echo htmlspecialchars($a['summary'] ?? $a['excerpt'] ?? ''); ?>" />
+    <meta property="og:image" content="<?php echo htmlspecialchars($ogImage); ?>" />
 </head>
+<<<<<<< Updated upstream
+=======
+    <style>
+        /* User Dropdown Menu Styles - LARGE PHOTO LIKE PROFILE.PHP */
+        .user-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .username-display {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            padding: 5px 10px;
+            border-radius: 8px;
+        }
+
+        .username-display:hover {
+            background: rgba(255, 122, 0, 0.1);
+        }
+
+        /* LARGE PROFILE IMAGE - 45px x 45px */
+        .username-display img {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ff7a00;
+        }
+
+        .username-display span {
+            color: #ff7a00;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .username-display i.fa-chevron-down {
+            font-size: 12px;
+            color: #ff7a00;
+            transition: transform 0.3s ease;
+        }
+
+        .username-display i.fa-user-circle {
+            font-size: 24px;
+            color: #ff7a00;
+        }
+
+        .user-dropdown.active .username-display i.fa-chevron-down {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 10px;
+            background: rgba(20, 20, 20, 0.98);
+            border: 2px solid rgba(255, 122, 0, 0.3);
+            border-radius: 12px;
+            min-width: 200px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .user-dropdown.active .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-item {
+            padding: 12px 15px;
+            color: #fff;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(255, 122, 0, 0.1);
+            border-left-color: #ff7a00;
+        }
+
+        .dropdown-item i {
+            display: inline-block; /* Fix for missing icons sometimes */
+            font-size: 16px;
+            color: #ff7a00;
+            width: 20px;
+            text-align: center;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: rgba(255, 122, 0, 0.2);
+            margin: 5px 0;
+        }
+
+        .dropdown-item.logout {
+            color: #ff4444;
+        }
+
+        .dropdown-item.logout i {
+            color: #ff4444;
+        }
+
+        .dropdown-item.logout:hover {
+            background: rgba(255, 68, 68, 0.1);
+            border-left-color: #ff4444;
+        }
+
+        /* Cart icon styling */
+        .cart-icon {
+            color: #ff7a00 !important;
+            position: relative;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-left: 15px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .cart-icon:hover {
+            color: #ff9933 !important;
+            transform: translateY(-2px);
+        }
+        
+        .cart-icon i {
+            color: #ff7a00;
+            font-size: 18px;
+        }
+        
+        .cart-count {
+            background: linear-gradient(135deg, #ff7a00, #ff4f00);
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: 700;
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            min-width: 18px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(255, 122, 0, 0.4);
+        }
+
+        /* Social Share Buttons */
+        .share-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .share-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: white;
+        }
+
+        .share-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        .share-btn i {
+            font-size: 16px;
+        }
+
+        .share-btn.twitter {
+            background: linear-gradient(135deg, #1DA1F2, #0d8bd9);
+        }
+
+        .share-btn.facebook {
+            background: linear-gradient(135deg, #1877F2, #0e5fc7);
+        }
+
+        .share-btn.instagram {
+            background: linear-gradient(135deg, #E1306C, #C13584, #833AB4);
+        }
+
+        .share-btn.copy {
+            background: linear-gradient(135deg, #6c757d, #495057);
+        }
+
+        .share-btn.copy.copied {
+            background: linear-gradient(135deg, #28a745, #1e7e34);
+        }
+
+        /* Comment Avatar Styles */
+        .comment-item {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 18px;
+            align-items: flex-start;
+        }
+
+        .comment-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ff7a00;
+            flex-shrink: 0;
+        }
+
+        .comment-avatar-placeholder {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(255, 122, 0, 0.2), rgba(255, 122, 0, 0.1));
+            border: 2px solid rgba(255, 122, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .comment-avatar-placeholder i {
+            font-size: 24px;
+            color: #ff7a00;
+        }
+
+        .comment-body {
+            flex: 1;
+        }
+
+        .comment-card {
+            background:#111;
+            padding:12px 14px;
+            border-radius:10px;
+            margin-bottom:6px;
+            width:100%;
+        }
+
+        .comment-header {
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+        }
+
+        .comment-meta {
+            font-weight:700;
+            color:#fff;
+            display:flex;
+            align-items:center;
+            flex-wrap:wrap;
+            gap:6px;
+        }
+
+        .comment-date {
+            font-weight:400;
+            color:#999;
+            font-size:0.9rem;
+        }
+
+        /* Comment Action Buttons */
+        .comment-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .comment-action-btn {
+            background: transparent;
+            border: 1px solid rgba(255, 122, 0, 0.3);
+            color: #ff7a00;
+            padding: 6px 14px;
+            border-radius: 15px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .comment-action-btn:hover {
+            background: rgba(255, 122, 0, 0.1);
+            border-color: #ff7a00;
+            transform: translateY(-2px);
+        }
+
+        .comment-action-btn i {
+            font-size: 12px;
+        }
+
+        /* Reply Form */
+        .reply-form {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(255, 122, 0, 0.05);
+            border-left: 3px solid #ff7a00;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .reply-form.active {
+            display: block;
+        }
+
+        .reply-form textarea {
+            width: 100%;
+            padding: 10px;
+            background: #0b0b0b;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: #fff;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .reply-form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn-submit-reply {
+            background: linear-gradient(135deg, #ff7a00, #ff4f00);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-submit-reply:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 122, 0, 0.4);
+        }
+
+        .btn-cancel-reply {
+            background: transparent;
+            border: 1px solid #666;
+            color: #999;
+            padding: 8px 16px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-cancel-reply:hover {
+            border-color: #ff7a00;
+            color: #ff7a00;
+        }
+
+        /* Edit Mode */
+        .comment-text.editing {
+            display: none;
+        }
+
+        .edit-form {
+            display: none;
+            margin-top: 10px;
+        }
+
+        .edit-form.active {
+            display: block;
+        }
+
+        /* Reply Display */
+        .replies-container {
+            margin-top: 15px;
+            padding-left: 20px;
+            border-left: 2px solid rgba(255, 122, 0, 0.2);
+        }
+
+        .reply-item {
+            background: rgba(255, 122, 0, 0.03);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 2px solid #ff7a00;
+        }
+
+        .reply-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .reply-author {
+            font-weight: 600;
+            color: #ff7a00;
+            font-size: 14px;
+        }
+
+        .reply-date {
+            color: #999;
+            font-size: 12px;
+        }
+
+        .reply-text {
+            color: #ddd;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+>>>>>>> Stashed changes
 <body>
   <!-- Bulles animées rouges -->
   <div class="bubbles">
@@ -189,10 +648,131 @@ $isAdmin = false;
           </div>
         <?php endif; ?>
 
+<<<<<<< Updated upstream
+=======
+        <?php
+
+        // Helper function to render comments recursively
+        function renderComment(Comment $c, $isLoggedIn, $currentUser, $depth = 0, $parentName = null) {
+            $padding = $depth * 20; // Indent replies
+            // Use pre-fetched user image or default
+            $commenterImage = $c->getUserImage() ? '../../view/' . $c->getUserImage() : null;
+            $replyId = $c->getIdComment() ?? 0;
+            ?>
+            <div class="comment-item" style="margin-left: <?php echo $padding; ?>px; <?php echo $depth > 0 ? 'border-left: 2px solid #333; padding-left: 10px;' : ''; ?>">
+              <?php if ($commenterImage): ?>
+                <img src="<?php echo htmlspecialchars($commenterImage); ?>" alt="<?php echo htmlspecialchars($c->getName()); ?>" class="comment-avatar">
+              <?php else: ?>
+                <div class="comment-avatar-placeholder">
+                  <i class="fas fa-user"></i>
+                </div>
+              <?php endif; ?>
+              
+              <div class="comment-body">
+                <div class="comment-card">
+                  <div class="comment-header">
+                    <div class="comment-meta">
+                      <?php echo htmlspecialchars($c->getName()); ?>
+                      
+                      <?php if ($parentName): ?>
+                        <span style="color:#888; font-weight:400; font-size:0.85rem; margin-left:6px;">
+                           <i class="fas fa-share" style="font-size:0.75rem; transform: scaleY(-1);"></i> replying to <strong><?php echo htmlspecialchars($parentName); ?></strong>
+                        </span>
+                      <?php endif; ?>
+
+                      <?php 
+                      $sentiment = strtolower($c->getSentimentLabel() ?? 'neutral');
+                      if($sentiment === 'positive'): 
+                      ?>
+                        <span title="Positive Vibes" style="margin-left:8px; background:rgba(40,167,69,0.2); color:#28a745; padding:2px 6px; border-radius:4px; font-size:0.75rem;">
+                          <i class="fas fa-heart"></i> Positive Vibes
+                        </span>
+                      <?php elseif($sentiment === 'negative'): ?>
+                        <span title="Negative Sentiment" style="margin-left:8px; background:rgba(220,53,69,0.2); color:#dc3545; padding:2px 6px; border-radius:4px; font-size:0.75rem;">
+                          <i class="fas fa-frown"></i> Negative
+                        </span>
+                      <?php endif; ?>
+                      <span class="comment-date"><?php echo $c->getCreatedAt()->format('F j, Y, g:i a'); ?></span>
+                    </div>
+                    <?php if ($c->getRating()): ?>
+                      <div style="color:#ffc107;font-size:0.9rem">
+                        <?php for($i=1; $i<=5; $i++) echo $i <= $c->getRating() ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>'; ?>
+                      </div>
+                    <?php endif; ?>
+                  </div>
+                  <div class="comment-text" data-comment-id="<?php echo $replyId; ?>"><?php echo nl2br(htmlspecialchars($c->getText())); ?></div>
+                  
+                  <!-- Comment Actions -->
+                  <div class="comment-actions">
+                    <button class="comment-action-btn" onclick="toggleReplyForm(<?php echo $replyId; ?>)">
+                      <i class="fas fa-reply"></i> Reply
+                    </button>
+                    <?php if ($isLoggedIn && $currentUser && strtolower($c->getEmail() ?? '') === strtolower($currentUser->getEmail())): ?>
+                    <button class="comment-action-btn" onclick="toggleEditForm(<?php echo $replyId; ?>)">
+                      <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <?php endif; ?>
+                  </div>
+
+                  <!-- Reply Form (Hidden by default) -->
+                  <div class="reply-form" id="reply-form-<?php echo $replyId; ?>">
+                    <?php 
+                      $myAvatar = ($isLoggedIn && $currentUser && $currentUser->getImage()) ? '../../view/' . $currentUser->getImage() : null;
+                      $myName   = ($isLoggedIn && $currentUser) ? htmlspecialchars($currentUser->getUsername()) : 'Guest';
+                    ?>
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                        <?php if($myAvatar): ?>
+                            <img src="<?php echo htmlspecialchars($myAvatar); ?>" alt="<?php echo $myName; ?>" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid #ff7a00;">
+                        <?php else: ?>
+                            <div style="width:40px; height:40px; border-radius:50%; background:rgba(255,122,0,0.1); border:2px solid #ff7a00; display:flex; align-items:center; justify-content:center; color:#ff7a00;">
+                                <i class="fas fa-user"></i>
+                            </div>
+                        <?php endif; ?>
+                        <span style="color:#ff7a00; font-weight:600; font-size:0.95rem;"><?php echo $myName; ?></span>
+                    </div>
+
+                    <form method="post" action="news_article.php?id=<?php echo urlencode($_GET['id']); ?>#comments">
+                        <textarea name="comment" placeholder="Write your reply..." required></textarea>
+                        <input type="hidden" name="parent_id" value="<?php echo $replyId; ?>">
+                        <input type="hidden" name="name" value="<?php echo $myName; ?>">
+                        <input type="hidden" name="email" value="<?php echo $isLoggedIn && $currentUser ? htmlspecialchars($currentUser->getEmail()) : 'guest@foxunity.com'; ?>">
+                        <div class="reply-form-actions">
+                          <button type="submit" name="comment_submit" class="btn-submit-reply">Post Reply</button>
+                          <button type="button" class="btn-cancel-reply" onclick="cancelReply(<?php echo $replyId; ?>)">Cancel</button>
+                        </div>
+                    </form>
+                  </div>
+
+                  <!-- Edit Form -->
+                  <div class="edit-form" id="edit-form-<?php echo $replyId; ?>">
+                    <textarea id="edit-text-<?php echo $replyId; ?>"><?php echo htmlspecialchars($c->getText()); ?></textarea>
+                    <div class="reply-form-actions">
+                      <button class="btn-submit-reply" onclick="submitEdit(<?php echo $replyId; ?>)">Save Changes</button>
+                      <button class="btn-cancel-reply" onclick="cancelEdit(<?php echo $replyId; ?>)">Cancel</button>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Recursive Replies -->
+                <?php if ($c->getReplies()): ?>
+                    <div class="replies-container">
+                        <?php foreach ($c->getReplies() as $reply): ?>
+                            <?php renderComment($reply, $isLoggedIn, $currentUser, $depth + 1, $c->getName()); ?>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+              </div> <!-- End comment-body -->
+            </div> <!-- End comment-item -->
+        <?php
+        }
+        ?>
+
+>>>>>>> Stashed changes
         <?php if (empty($comments)): ?>
           <p style="color:#bbb;margin:8px 0">Be the first to comment on this article.</p>
         <?php else: ?>
           <?php foreach ($comments as $c): ?>
+<<<<<<< Updated upstream
             <div class="comment" style="background:#111;padding:12px;border-radius:8px;margin-bottom:10px">
               <div class="comment-header" style="display:flex;justify-content:space-between;align-items:center">
                 <div class="comment-meta" style="font-weight:700;color:#fff">
@@ -212,6 +792,9 @@ $isAdmin = false;
               </div>
               <div class="comment-text" style="margin-top:8px;color:#ddd"><?php echo nl2br(htmlspecialchars($c['text'])); ?></div>
             </div>
+=======
+            <?php renderComment($c, $isLoggedIn, $currentUser); ?>
+>>>>>>> Stashed changes
           <?php endforeach; ?>
         <?php endif; ?>
 

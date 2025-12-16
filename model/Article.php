@@ -231,7 +231,7 @@ class Article
 
         $stmt = $pdo->prepare(
             "INSERT INTO article
-                (slug, user_id, titre, contenu, excerpt, summary, image, datePublication, idCategorie, hot)
+                (slug, id_pub, titre, contenu, excerpt, summary, image, datePublication, idCategorie, hot)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         );
 

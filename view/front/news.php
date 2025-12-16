@@ -148,9 +148,9 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
         </div>
         
         <div class="saved-controls" id="saved-controls" style="display:none; margin-bottom:20px;">
-            <button id="view-saved">View Saved</button>
-            <button id="copy-saved">Copy Saved Links</button>
-            <button id="clear-saved">Clear Saved</button>
+            <button id="view-saved" class="saved-btn saved-btn-primary"><i class="fas fa-bookmark"></i><span>View Saved</span></button>
+            <button id="copy-saved" class="saved-btn saved-btn-secondary"><i class="fas fa-link"></i><span>Copy Saved Links</span></button>
+            <button id="clear-saved" class="saved-btn saved-btn-danger"><i class="fas fa-trash-alt"></i><span>Clear Saved</span></button>
         </div>
 
       <div class="hot-news">
@@ -383,16 +383,27 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
     <?php
       $__userEmail = $_SESSION['newsletter_email'] ?? '';
       if ($__userEmail) {
-          require_once __DIR__ . '/../../model/Subscriber.php';
-          $row = Subscriber::getByEmail($__userEmail);
+          // Prefer already loaded selection from the subscribe form when available
           $__userSubs = [];
-          if ($row) {
-              $ids = array_filter(explode(',', $row['categories'] ?? ''), 'strlen');
-              $ids = array_map('intval', $ids);
+          if (!empty($myCats)) {
               $catsSrc = isset($allCategories) ? $allCategories : (isset($categories) ? $categories : []);
               $map = [];
               foreach ($catsSrc as $c) { $map[$c['idCategorie']] = $c['nom']; }
-              foreach ($ids as $id) { $__userSubs[] = ['id' => $id, 'name' => $map[$id] ?? ('Category #' . $id)]; }
+              foreach ($myCats as $id) {
+                  $id = (int)$id;
+                  $__userSubs[] = ['id' => $id, 'name' => $map[$id] ?? ('Category #' . $id)];
+              }
+          } else {
+              require_once __DIR__ . '/../../model/Subscriber.php';
+              $row = Subscriber::getByEmail($__userEmail);
+              if ($row) {
+                  $ids = array_filter(explode(',', $row['categories'] ?? ''), 'strlen');
+                  $ids = array_map('intval', $ids);
+                  $catsSrc = isset($allCategories) ? $allCategories : (isset($categories) ? $categories : []);
+                  $map = [];
+                  foreach ($catsSrc as $c) { $map[$c['idCategorie']] = $c['nom']; }
+                  foreach ($ids as $id) { $__userSubs[] = ['id' => $id, 'name' => $map[$id] ?? ('Category #' . $id)]; }
+              }
           }
     ?>
     <section id="my-subs-section" style="margin:40px 0 0;">
@@ -635,6 +646,51 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
     .read-more{display:inline-block;color:var(--accent);text-decoration:none;font-weight:700;font-size:0.88rem;letter-spacing:0.5px;position:relative;width:fit-content;text-transform:uppercase;}
     .read-more::after{content:'';position:absolute;bottom:-2px;left:0;width:0;height:2px;background:linear-gradient(90deg,#ff7a00,transparent);transition:width 0.35s ease;}
     .news-card:hover .read-more::after{width:100%}
+
+    /* Saved controls buttons */
+    .saved-controls{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+    }
+    .saved-btn{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 14px;
+      border-radius:999px;
+      border:2px solid transparent;
+      background:#1f1f1f;
+      color:#ddd;
+      font-size:0.85rem;
+      font-weight:600;
+      cursor:pointer;
+      text-transform:uppercase;
+      letter-spacing:0.04em;
+      transition:all 0.2s ease;
+    }
+    .saved-btn i{font-size:0.85rem;}
+    .saved-btn-primary{
+      background:linear-gradient(90deg,#ff7a00,#ff4f00);
+      color:#000;
+      border-color:#ff7a00;
+    }
+    .saved-btn-secondary{
+      background:#252525;
+      color:#ffb76b;
+      border-color:rgba(255,183,107,0.4);
+    }
+    .saved-btn-danger{
+      background:rgba(255,68,68,0.08);
+      color:#ff6868;
+      border-color:rgba(255,68,68,0.5);
+    }
+    .saved-btn:hover{
+      transform:translateY(-1px);
+      box-shadow:0 4px 12px rgba(0,0,0,0.4);
+      filter:brightness(1.05);
+    }
 
     @media (max-width:1100px){
       .news-grid{grid-template-columns:repeat(2,1fr);}

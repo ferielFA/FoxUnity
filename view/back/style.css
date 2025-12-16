@@ -448,6 +448,70 @@ form.admin-form input, form.admin-form textarea {
   border-color:#333;
 }
 
+<<<<<<< Updated upstream
 @media (max-width:420px){
   .pagination button{width:36px;height:36px;font-size:0.9rem;border-radius:8px}
+=======
+.history-filter button.active {
+  background: #ff7a00;
+  color: #000;
+  font-weight: 600;
+}
+
+.history-filter button:hover:not(.active) {
+  background: #555;
+}
+
+.skin-game {
+  text-transform: capitalize;
+  font-weight: 600;
+}
+
+.skin-game.valorant {
+  color: #ff4655;
+}
+
+.skin-game.cs2 {
+  color: #f9a602;
+}
+
+.skin-game.fortnite {
+  color: #5bc0f8;
+}
+
+.skin-game.apex {
+  color: #ea4335;
+}
+
+.skin-game.custom {
+  color: #9c27b0;
+}
+
+.value-note {
+  text-align: center;
+  color: #888;
+  font-size: 0.9em;
+  margin-top: 10px;
+  font-style: italic;
+}
+
+.stat-note {
+  text-align: center;
+  color: #888;
+  font-size: 0.8em;
+  margin-top: 5px;
+  font-style: italic;
+}
+
+/* ======== CATEGORY BADGE (Shared) ======== */
+.category-badge {
+    background: #262626;
+    color: #ff7a00;
+    padding: 5px 11px;
+    border-radius: 22px;
+    font-size: 0.97em;
+    font-weight: 600;
+    letter-spacing: .2px;
+    border: 1px solid rgba(255, 122, 0, 0.19);
+>>>>>>> Stashed changes
 }

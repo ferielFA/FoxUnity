@@ -43,25 +43,33 @@ class NewsArticleController
         $this->article    = $a;
         $this->categories = Categorie::getAll();
         
-        // Load comments
-        // Calculate Community Verdict
+        // Load comments and organize into threads
+        $loadedComments = Comment::findByArticleId($a['idArticle']);
+        
+        $commentMap = []; // [id => Comment Object]
+        $rootComments = [];
         $positiveCount = 0;
         $negativeCount = 0;
-        $loadedComments = Comment::findByArticleId($a['idArticle']);
-        $this->comments = [];
+
+        // First pass: Index objects and count sentiment
         foreach ($loadedComments as $c) {
             if ($c->getSentimentLabel() === 'positive') $positiveCount++;
             if ($c->getSentimentLabel() === 'negative') $negativeCount++;
-            
-            $this->comments[] = [
-                'name' => $c->getName(),
-                'email' => $c->getEmail(),
-                'text' => $c->getText(), // Already censored in DB
-                'sentiment' => $c->getSentimentLabel(),
-                'rating' => $c->getRating(),
-                'date' => $c->getCreatedAt()->format('Y-m-d H:i:s')
-            ];
+
+            $commentMap[$c->getIdComment()] = $c;
         }
+
+        // Second pass: Build tree using objects
+        foreach ($commentMap as $id => $c) {
+            $parentId = $c->getParentId();
+            if ($parentId && isset($commentMap[$parentId])) {
+                $commentMap[$parentId]->addReply($c);
+            } else {
+                $rootComments[] = $c;
+            }
+        }
+        
+        $this->comments = $rootComments; // Expose root objects
         
         $total = $positiveCount + $negativeCount;
         $verdict = 'Neutral';
@@ -78,7 +86,9 @@ class NewsArticleController
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment_submit']) && $this->article) {
             $name = trim((string)($_POST['name'] ?? ''));
+            $email = trim((string)($_POST['email'] ?? '')); // Capture email
             $text = trim((string)($_POST['comment'] ?? ''));
+            $parentId = isset($_POST['parent_id']) && !empty($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
             $rating = isset($_POST['rating']) ? (int)$_POST['rating'] : null;
             if ($rating !== null && ($rating < 1 || $rating > 5)) $rating = null;
 
@@ -109,7 +119,7 @@ class NewsArticleController
                 } else {
                     $censoredText = Comment::censor($text);
                     
-                    $newComment = new Comment(null, $this->article['idArticle'], $name, '', $censoredText, false, $analysis['toxicity'], $analysis['label'], $rating);
+                    $newComment = new Comment(null, $this->article['idArticle'], $name, $email, $censoredText, false, $analysis['toxicity'], $analysis['label'], $rating, $parentId);
                     Comment::save($newComment);
                     
                     // Redirect to avoid repost
