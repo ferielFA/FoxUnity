@@ -976,7 +976,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
         <nav class="site-nav">
             <a href="index.php">Home</a>
             <a href="events.php">Events</a>
-            <a href="shop.html">Shop</a>
+            <a href="shop.php">Shop</a>
             <a href="trading.php">Trading</a>
             <a href="news.php">News</a>
             <a href="reclamation.php" class="active">Support</a>

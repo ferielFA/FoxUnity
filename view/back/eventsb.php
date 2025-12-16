@@ -692,7 +692,7 @@ foreach ($evenements as $item) {
     <h2>Dashboard</h2>
     <a href="dashboard.php">Overview</a>
     <a href="users.php">Users</a>
-    <a href="#">Shop</a>
+    <a href="shopb.php">Shop</a>
     <a href="tradingb.php">Trade History</a>
     <a href="eventsb.php" class="active">Events</a>
     <a href="news_admin.php">News</a>
@@ -1412,19 +1412,19 @@ foreach ($evenements as $item) {
     if (adminDropdown) {
       const adminUser = adminDropdown.querySelector('.admin-user');
       if (adminUser) {
-        adminUser.addEventListener('click', function(e) {
+        adminUser.addEventListener('click', function (e) {
           e.stopPropagation();
           adminDropdown.classList.toggle('active');
         });
       }
-      
-      document.addEventListener('click', function(e) {
+
+      document.addEventListener('click', function (e) {
         if (!adminDropdown.contains(e.target)) {
           adminDropdown.classList.remove('active');
         }
       });
-      
-      document.addEventListener('keydown', function(e) {
+
+      document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
           adminDropdown.classList.remove('active');
         }

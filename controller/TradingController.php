@@ -6,46 +6,52 @@ require_once __DIR__ . '/../model/User.php';
 require_once __DIR__ . '/../model/SkinModel.php';
 require_once __DIR__ . '/TradeHistoryController.php';
 require_once __DIR__ . '/../model/ConversationModel.php';
+require_once __DIR__ . '/ProductController.php';
 
-class TradingController {
+class TradingController
+{
     private $skinModel;
     private $tradeHistoryModel;
     private $conversationModel;
+    private $productController;
     private $currentUser;
     private $db;
-    
-    public function __construct(?string $currentUser = null) {
+
+    public function __construct(?string $currentUser = null)
+    {
         $this->db = getDB();
         // User operations are handled by the `User` class (model/User.php)
         $this->skinModel = new SkinModel();
         $this->tradeHistoryModel = new TradeHistoryController();
         $this->conversationModel = new ConversationModel();
-        
+        $this->productController = new ProductController();
+
         // Get current user from session if not provided
         if ($currentUser === null) {
             $this->currentUser = getCurrentUsername();
         } else {
             $this->currentUser = $currentUser;
         }
-        
+
         // If still no user, throw exception or handle gracefully
         if (empty($this->currentUser)) {
             throw new Exception("No user logged in. Please login first.");
         }
-        
+
         // Verify user is linked to database and active using User model
         $userObj = User::getByUsername($this->currentUser);
         if (!$userObj || $userObj->getStatus() !== 'active') {
             throw new Exception("User account not found or inactive. Please login again.");
         }
     }
-    
+
     /**
      * Handle POST requests
      * 
      * @return array|null Returns response data for JSON requests, or null for redirects
      */
-    public function handlePost(): ?array {
+    public function handlePost(): ?array
+    {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             return null;
         }
@@ -56,7 +62,7 @@ class TradingController {
                 return ['success' => false, 'error' => 'Session mismatch. Please refresh the page.'];
             }
         }
-        
+
         if (isset($_POST['add_trade'])) {
             return $this->handleAddTrade();
         } elseif (isset($_POST['update_trade'])) {
@@ -82,14 +88,15 @@ class TradingController {
         } elseif (isset($_POST['ai_pick_skin'])) {
             return $this->handleAIPickSkin();
         }
-        
+
         return null;
     }
 
-    private function handleGetUserAnalytics(): array {
+    private function handleGetUserAnalytics(): array
+    {
         $userObj = User::getByUsername($this->currentUser);
         $userId = $userObj ? $userObj->getId() : null;
-        
+
         if (!$userId) {
             return ['success' => false, 'error' => 'User not found'];
         }
@@ -97,25 +104,26 @@ class TradingController {
         return $this->tradeHistoryModel->getUserAnalytics($userId);
     }
 
-    private function handleAIPickSkin(): array {
+    private function handleAIPickSkin(): array
+    {
         try {
             $userObj = User::getByUsername($this->currentUser);
             $userId = $userObj ? $userObj->getId() : null;
-            
+
             if (!$userId) {
                 return ['success' => false, 'error' => 'User not found'];
             }
 
             // 1. Get User Analytics to find preferences
             $analytics = $this->tradeHistoryModel->getUserAnalytics($userId);
-            $preferredCategory = ($analytics['success'] && $analytics['favorite_game'] !== 'None') 
-                                ? strtolower($analytics['favorite_game']) 
-                                : null;
+            $preferredCategory = ($analytics['success'] && $analytics['favorite_game'] !== 'None')
+                ? strtolower($analytics['favorite_game'])
+                : null;
 
             // 2. Get All Available Skins (EXCLUDING user's own skins)
             $allSkins = $this->skinModel->getAllSkins();
             // Filter out current user's own skins
-            $availableSkins = array_filter($allSkins, function($skin) use ($userId) {
+            $availableSkins = array_filter($allSkins, function ($skin) use ($userId) {
                 return isset($skin['owner_id']) && $skin['owner_id'] != $userId;
             });
             // Re-index array after filtering
@@ -132,13 +140,13 @@ class TradingController {
 
             if ($preferredCategory) {
                 // Filter by preference
-                $preferredSkins = array_filter($availableSkins, function($skin) use ($preferredCategory) {
+                $preferredSkins = array_filter($availableSkins, function ($skin) use ($preferredCategory) {
                     return strtolower($skin['category'] ?? '') === $preferredCategory;
                 });
 
                 if (!empty($preferredSkins)) {
                     // Find best value (lowest price) in preferred category
-                    usort($preferredSkins, function($a, $b) {
+                    usort($preferredSkins, function ($a, $b) {
                         return $a['price'] <=> $b['price'];
                     });
                     $selectedSkin = $preferredSkins[0]; // Best value
@@ -148,18 +156,18 @@ class TradingController {
 
             // Fallback: Lowest Price Overall if no preference match or no preference
             if (!$selectedSkin) {
-                usort($availableSkins, function($a, $b) {
+                usort($availableSkins, function ($a, $b) {
                     return $a['price'] <=> $b['price'];
                 });
                 $selectedSkin = $availableSkins[0];
-                
+
                 if ($preferredCategory) {
                     $reason = "Our database shows you like " . ucfirst($preferredCategory) . ", but no skins are available. We selected the absolute lowest price skin from the database instead.";
                 } else {
                     $reason = "Visual analysis complete. Based on database price comparison, this is the best value skin currently listed.";
                 }
             }
-            
+
             return [
                 'success' => true,
                 'skin' => $selectedSkin,
@@ -171,40 +179,43 @@ class TradingController {
         }
     }
 
-    private function handleBuy(): ?array {
+    private function handleBuy(): ?array
+    {
         $skinIds = isset($_POST['skin_ids']) ? json_decode($_POST['skin_ids'], true) : [];
-        
-        if (empty($skinIds) || !is_array($skinIds)) {
+        $productIds = isset($_POST['product_ids']) ? json_decode($_POST['product_ids'], true) : [];
+
+        if ((empty($skinIds) || !is_array($skinIds)) && (empty($productIds) || !is_array($productIds))) {
             return ['success' => false, 'error' => 'No items selected'];
         }
-        
+
         $buyer = User::getByUsername($this->currentUser);
         $buyerId = $buyer ? $buyer->getId() : null;
         if (!$buyerId) {
             return ['success' => false, 'error' => 'User not found'];
         }
-        
+
         $successCount = 0;
         $errors = [];
-        
+
         foreach ($skinIds as $skinData) {
             // Support both simple ID array or object array
             $skinId = is_array($skinData) ? ($skinData['id'] ?? 0) : $skinData;
-            
-            if (!$skinId) continue;
-            
+
+            if (!$skinId)
+                continue;
+
             $skin = $this->skinModel->getSkinById($skinId);
             if (!$skin) {
                 $errors[] = "Skin ID $skinId not found";
                 continue;
             }
-            
+
             // Prevent buying own skin
             if ($skin['seller_username'] === $this->currentUser) {
                 $errors[] = "You cannot buy your own skin: {$skin['name']}";
                 continue;
             }
-            
+
             // Transfer ownership
             if ($this->skinModel->transferOwnership($skinId, $buyerId)) {
                 // Log history
@@ -216,7 +227,7 @@ class TradingController {
                     $skin['price'],
                     $skin['category']
                 );
-                
+
                 // Insert into trade table
                 try {
                     $stmt = $this->db->prepare("
@@ -231,104 +242,121 @@ class TradingController {
                 } catch (PDOException $e) {
                     error_log("Failed to insert trade record: " . $e->getMessage());
                 }
-                
+
                 $successCount++;
             } else {
                 $errors[] = "Failed to purchase {$skin['name']}";
             }
         }
-        
+
+        // Process Products
+        foreach ($productIds as $prodId) {
+            $prodId = (int) $prodId;
+            if (!$prodId)
+                continue;
+
+            $result = $this->productController->buyProduct($buyerId, $prodId);
+            if ($result['success']) {
+                $successCount++;
+            } else {
+                $errors[] = $result['error'];
+            }
+        }
+
         if ($successCount > 0) {
             return ['success' => true, 'count' => $successCount, 'errors' => $errors];
         } else {
             return ['success' => false, 'error' => 'Purchase failed', 'details' => $errors];
         }
     }
-    
 
-    private function handleAddTrade(): ?array {
-        $name = isset($_POST['skinName']) ? trim((string)$_POST['skinName']) : '';
-        $price = isset($_POST['skinPrice']) ? (float)$_POST['skinPrice'] : 0.0;
-        $description = isset($_POST['skinDescription']) ? trim((string)$_POST['skinDescription']) : '';
-        $category = isset($_POST['skinGame']) ? trim((string)$_POST['skinGame']) : 'custom';
-        $sellerUsername = isset($_POST['sellerUsername']) ? trim((string)$_POST['sellerUsername']) : '';
-        
+
+    private function handleAddTrade(): ?array
+    {
+        $name = isset($_POST['skinName']) ? trim((string) $_POST['skinName']) : '';
+        $price = isset($_POST['skinPrice']) ? (float) $_POST['skinPrice'] : 0.0;
+        $description = isset($_POST['skinDescription']) ? trim((string) $_POST['skinDescription']) : '';
+        $category = isset($_POST['skinGame']) ? trim((string) $_POST['skinGame']) : 'custom';
+        $sellerUsername = isset($_POST['sellerUsername']) ? trim((string) $_POST['sellerUsername']) : '';
+
 
         if (empty($name) || $price <= 0 || empty($sellerUsername)) {
             return ['success' => false, 'error' => 'Invalid trade data'];
         }
-        
+
         // Security: Ensure user can only add trades as themselves
         if ($sellerUsername !== $this->currentUser) {
             return ['success' => false, 'error' => 'Unauthorized'];
         }
-        
+
 
         $owner = User::getByUsername($sellerUsername);
         $ownerId = $owner ? $owner->getId() : null;
         if (!$ownerId) {
             return ['success' => false, 'error' => 'User not found'];
         }
-        
+
 
         $imagePath = $this->handleImageUpload();
         if ($imagePath === null) {
             return ['success' => false, 'error' => 'Failed to upload image'];
         }
-        
+
 
         $skinId = $this->skinModel->createSkin($ownerId, $name, $price, $imagePath, $description, $category);
         if (!$skinId) {
             return ['success' => false, 'error' => 'Failed to create trade'];
         }
-        
- 
+
+
         $this->tradeHistoryModel->logTradeHistory($ownerId, $skinId, 'created', $name, $price, $category);
-        
+
         return ['success' => true, 'message' => 'Trade created successfully', 'skinId' => $skinId];
     }
-    
 
-    private function handleUpdateTrade(): ?array {
-        $skinId = isset($_POST['skinId']) ? (int)$_POST['skinId'] : 0;
-        $name = isset($_POST['skinName']) ? trim((string)$_POST['skinName']) : '';
-        $price = isset($_POST['skinPrice']) ? (float)$_POST['skinPrice'] : 0.0;
-        $description = isset($_POST['skinDescription']) ? trim((string)$_POST['skinDescription']) : '';
-        $category = isset($_POST['skinGame']) ? trim((string)$_POST['skinGame']) : 'custom';
-        
+
+    private function handleUpdateTrade(): ?array
+    {
+        $skinId = isset($_POST['skinId']) ? (int) $_POST['skinId'] : 0;
+        $name = isset($_POST['skinName']) ? trim((string) $_POST['skinName']) : '';
+        $price = isset($_POST['skinPrice']) ? (float) $_POST['skinPrice'] : 0.0;
+        $description = isset($_POST['skinDescription']) ? trim((string) $_POST['skinDescription']) : '';
+        $category = isset($_POST['skinGame']) ? trim((string) $_POST['skinGame']) : 'custom';
+
         if (empty($name) || $price <= 0 || $skinId <= 0) {
             return ['success' => false, 'error' => 'Invalid trade data'];
         }
-        
+
 
         $skin = $this->skinModel->getSkinByOwner($skinId, $this->currentUser);
         if (!$skin) {
             return ['success' => false, 'error' => 'Trade not found or not owned by you'];
         }
-        
+
 
         if (!$this->skinModel->updateSkin($skinId, $name, $price, $description, $category)) {
             return ['success' => false, 'error' => 'Failed to update trade'];
         }
 
         $this->tradeHistoryModel->logTradeHistory($skin['owner_id'], $skinId, 'updated', $name, $price, $category);
-        
+
         return ['success' => true, 'message' => 'Trade updated successfully'];
     }
-    
 
-    private function handleDeleteTrade(): ?array {
-        $skinId = isset($_POST['skinId']) ? (int)$_POST['skinId'] : (isset($_POST['skin_id']) ? (int)$_POST['skin_id'] : 0);
-        
+
+    private function handleDeleteTrade(): ?array
+    {
+        $skinId = isset($_POST['skinId']) ? (int) $_POST['skinId'] : (isset($_POST['skin_id']) ? (int) $_POST['skin_id'] : 0);
+
         if ($skinId <= 0) {
             return ['success' => false, 'error' => 'Invalid skin'];
         }
-        
+
         $skin = $this->skinModel->getSkinById($skinId);
         if (!$skin) {
             return ['success' => false, 'error' => 'Skin not found'];
         }
-        
+
         // Security check
         if ($skin['seller_username'] !== $this->currentUser) {
             return ['success' => false, 'error' => 'Unauthorized'];
@@ -340,11 +368,11 @@ class TradingController {
         if ($currentUserId) {
             // New Logic: Close and Archive all active negotiations before deleting
             $activeBuyers = $this->conversationModel->getActiveConversationsForSkin($skinId, $currentUserId);
-            
+
             foreach ($activeBuyers as $buyerId) {
                 // Generate a negotiation ID for this forced closure
                 $negotiationId = uniqid('neg_del_'); // distinguishable ID
-                
+
                 // Close conversation
                 if ($this->conversationModel->closeConversation($skinId, $currentUserId, $buyerId, $negotiationId)) {
                     // Log for Buyer: Negotiation Refused (or maybe we should name it 'listing_deleted' but keeping it 'negotiation_refused' ensures it shows in the archive tab easily)
@@ -352,7 +380,7 @@ class TradingController {
                     // or maybe we could use 'deleted' action but with negotiation_id?
                     // The TradeHistoryController handles 'negotiation_refused' specially.
                     // Let's use 'negotiation_refused' so the buyer sees it in their archive.
-                    
+
                     $this->tradeHistoryModel->logTradeHistory(
                         $buyerId,
                         $skinId,
@@ -362,7 +390,7 @@ class TradingController {
                         $skin['category'],
                         $negotiationId
                     );
-                    
+
                     // Log for Seller: Negotiation Refused (Closed due to deletion)
                     $this->tradeHistoryModel->logTradeHistory(
                         $currentUserId,
@@ -376,9 +404,9 @@ class TradingController {
                 }
             }
         }
-        
+
         if ($this->skinModel->deleteSkin($skinId)) {
-             // Log the deletion itself for the seller (Standard history)
+            // Log the deletion itself for the seller (Standard history)
             if ($currentUserId) {
                 $this->tradeHistoryModel->logTradeHistory(
                     $currentUserId,
@@ -394,15 +422,16 @@ class TradingController {
             return ['success' => false, 'error' => 'Failed to delete trade'];
         }
     }
-    
 
-    private function handleRefuseOffer(): ?array {
-        $skinId = isset($_POST['skin_id']) ? (int)$_POST['skin_id'] : 0;
-        
+
+    private function handleRefuseOffer(): ?array
+    {
+        $skinId = isset($_POST['skin_id']) ? (int) $_POST['skin_id'] : 0;
+
         if ($skinId <= 0) {
             return ['success' => false, 'error' => 'Invalid skin'];
         }
-        
+
         $skin = $this->skinModel->getSkinById($skinId);
         if (!$skin) {
             return ['success' => false, 'error' => 'Skin not found'];
@@ -421,15 +450,15 @@ class TradingController {
 
         // Identify the conversation partner
         $partnerId = $this->conversationModel->getConversationPartner($skinId, $currentUserId);
-        
+
         if (!$partnerId) {
-             // Fallback: Check if there are any messages where I am the receiver (Seller)
-             $partnerId = $this->conversationModel->getAnyBuyerForSkin($skinId, $currentUserId);
-             
-             if (!$partnerId) {
-                 error_log("handleRefuseOffer: No partner found for skinId=$skinId, userId=$currentUserId");
-                 return ['success' => false, 'error' => 'No active negotiation found to refuse.'];
-             }
+            // Fallback: Check if there are any messages where I am the receiver (Seller)
+            $partnerId = $this->conversationModel->getAnyBuyerForSkin($skinId, $currentUserId);
+
+            if (!$partnerId) {
+                error_log("handleRefuseOffer: No partner found for skinId=$skinId, userId=$currentUserId");
+                return ['success' => false, 'error' => 'No active negotiation found to refuse.'];
+            }
         }
 
         error_log("handleRefuseOffer: Closing conversation skin=$skinId, user=$currentUserId, partner=$partnerId");
@@ -450,7 +479,7 @@ class TradingController {
                     $skin['category'],
                     $negotiationId // Pass negotiation ID
                 );
-                
+
                 $this->tradeHistoryModel->logTradeHistory(
                     $partnerId,
                     $skinId,
@@ -470,8 +499,9 @@ class TradingController {
         }
     }
 
-    private function handleAcceptOffer(): ?array {
-        $skinId = isset($_POST['skin_id']) ? (int)$_POST['skin_id'] : 0;
+    private function handleAcceptOffer(): ?array
+    {
+        $skinId = isset($_POST['skin_id']) ? (int) $_POST['skin_id'] : 0;
 
         if ($skinId <= 0) {
             return ['success' => false, 'error' => 'Invalid skin'];
@@ -529,8 +559,8 @@ class TradingController {
                 $skinId,
                 'bought', // Changed from 'trade' to 'bought' for correct analytics
                 $skin['name'],
-                (float)$skin['price'],
-                (string)$skin['category'],
+                (float) $skin['price'],
+                (string) $skin['category'],
                 $negotiationId
             );
 
@@ -539,8 +569,8 @@ class TradingController {
                 $skinId,
                 'sold', // Changed from 'trade' to 'sold' for correct analytics
                 $skin['name'],
-                (float)$skin['price'],
-                (string)$skin['category'],
+                (float) $skin['price'],
+                (string) $skin['category'],
                 $negotiationId
             );
 
@@ -554,40 +584,42 @@ class TradingController {
         }
     }
 
-    private function handleClearHistory(): ?array {
+    private function handleClearHistory(): ?array
+    {
         $userObj = User::getByUsername($this->currentUser);
         if (!$userObj) {
             return ['success' => false, 'error' => 'User not found'];
         }
-        
+
         $type = isset($_POST['clear_type']) ? trim($_POST['clear_type']) : 'all';
         $allowedTypes = ['all', 'standard', 'negotiations'];
-        
+
         if (!in_array($type, $allowedTypes)) {
             $type = 'all';
         }
-        
+
         if (!$this->tradeHistoryModel->clearTradeHistory($userObj->getId(), $type)) {
             return ['success' => false, 'error' => 'Failed to clear history'];
         }
-        
+
         return ['success' => true, 'message' => 'Trade history cleared successfully'];
     }
-    
 
-    private function handleSendMessage(): ?array {
-        $skinId = isset($_POST['skin_id']) ? (int)$_POST['skin_id'] : 0;
-        $message = isset($_POST['message']) ? trim((string)$_POST['message']) : '';
-        
+
+    private function handleSendMessage(): ?array
+    {
+        $skinId = isset($_POST['skin_id']) ? (int) $_POST['skin_id'] : 0;
+        $message = isset($_POST['message']) ? trim((string) $_POST['message']) : '';
+
         // Allow either message or image (or both)
         if ((empty($message) && (!isset($_FILES['image']) || $_FILES['image']['size'] == 0)) || $skinId <= 0) {
             return ['success' => false, 'error' => 'Please provide a message or image'];
         }
-                $skin = $this->skinModel->getSkinById($skinId);
+        $skin = $this->skinModel->getSkinById($skinId);
         if (!$skin) {
             return ['success' => false, 'error' => 'Skin not found'];
         }
-        
+
 
         $sender = User::getByUsername($this->currentUser);
         $senderId = $sender ? $sender->getId() : null;
@@ -597,7 +629,7 @@ class TradingController {
 
         $receiverId = null;
         $isSeller = ($skin['seller_username'] === $this->currentUser);
-        
+
         if ($isSeller) {
             // Seller sending - first try to get conversation partner
             $receiverId = $this->conversationModel->getConversationPartner($skinId, $senderId);
@@ -618,7 +650,7 @@ class TradingController {
                 return ['success' => false, 'error' => 'This trade is currently being negotiated by someone else.'];
             }
         }
-        
+
         // Prevent sending to yourself (shouldn't happen, but safety check)
         if ($senderId === $receiverId) {
             return ['success' => false, 'error' => 'You cannot send messages to yourself'];
@@ -632,7 +664,7 @@ class TradingController {
                 return ['success' => false, 'error' => 'Failed to upload image'];
             }
         }
-        
+
         // Send message
         $messageId = $this->conversationModel->sendMessage(
             $skinId,
@@ -641,22 +673,23 @@ class TradingController {
             $message,
             $imagePath
         );
-        
+
         if ($messageId) {
             return ['success' => true, 'message_id' => $messageId];
         } else {
             return ['success' => false, 'error' => 'Failed to send message'];
         }
     }
-    
 
-    private function handleGetMessages(): ?array {
-        $skinId = isset($_POST['skin_id']) ? (int)$_POST['skin_id'] : 0;
-        
+
+    private function handleGetMessages(): ?array
+    {
+        $skinId = isset($_POST['skin_id']) ? (int) $_POST['skin_id'] : 0;
+
         if ($skinId <= 0) {
             return ['success' => false, 'error' => 'Invalid skin'];
         }
-        
+
         // Get skin information
         $skin = $this->skinModel->getSkinById($skinId);
         if (!$skin) {
@@ -668,12 +701,12 @@ class TradingController {
         if (!$userId) {
             return ['success' => false, 'error' => 'User not found'];
         }
-        
+
         // Determine the conversation partner
         $isSeller = ($skin['seller_username'] === $this->currentUser);
         $partnerId = null;
         $canMessage = true;  // By default, can message (both buyers and sellers can message)
-        
+
         if ($isSeller) {
             // If seller, get the conversation partner (buyer) from existing messages
             $partnerId = $this->conversationModel->getConversationPartner($skinId, $userId);
@@ -699,14 +732,15 @@ class TradingController {
                 $messages = $this->conversationModel->getMessages($skinId, $userId);
             }
         }
-        
+
         return ['success' => true, 'messages' => $messages, 'isSeller' => $isSeller, 'canMessage' => $canMessage];
     }
 
-    private function handleGetArchivedMessages(): ?array {
-        $skinId = isset($_POST['skin_id']) ? (int)$_POST['skin_id'] : 0;
+    private function handleGetArchivedMessages(): ?array
+    {
+        $skinId = isset($_POST['skin_id']) ? (int) $_POST['skin_id'] : 0;
         $negotiationId = isset($_POST['negotiation_id']) ? trim($_POST['negotiation_id']) : null;
-        
+
         if ($skinId <= 0) {
             return ['success' => false, 'error' => 'Invalid skin'];
         }
@@ -716,7 +750,7 @@ class TradingController {
         if (!$userId) {
             return ['success' => false, 'error' => 'User not found'];
         }
-        
+
         $messages = [];
         if (!empty($negotiationId)) {
             // Get messages for specific negotiation session
@@ -725,44 +759,45 @@ class TradingController {
             // Fallback for old records without negotiation_id
             $messages = $this->conversationModel->getAllArchivedMessagesForUser($skinId, $userId);
         }
-        
+
         return ['success' => true, 'messages' => $messages];
     }
-    
+
     /**
      * Handle image upload
      * 
      * @return string|null Returns relative image path or null on failure
      */
-    private function handleImageUpload(): ?string {
+    private function handleImageUpload(): ?string
+    {
         if (!isset($_FILES['skinImage']) || $_FILES['skinImage']['error'] !== UPLOAD_ERR_OK) {
             return null;
         }
-        
+
         $uploadDirRelative = 'images/skins/';
         $uploadDirFS = __DIR__ . '/../view/' . $uploadDirRelative;
-        
+
 
         if (!is_dir($uploadDirFS)) {
             mkdir($uploadDirFS, 0777, true);
         }
-        
-  
-        $origName = basename((string)$_FILES['skinImage']['name']);
+
+
+        $origName = basename((string) $_FILES['skinImage']['name']);
         $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
         $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-        
+
         if (!in_array($ext, $allowed, true)) {
             return null;
         }
-        
+
         $newFileName = uniqid('skin_') . '.' . $ext;
         $targetFullPath = $uploadDirFS . $newFileName;
-        
+
         if (move_uploaded_file($_FILES['skinImage']['tmp_name'], $targetFullPath)) {
             return $uploadDirRelative . $newFileName;
         }
-        
+
         return null;
     }
 
@@ -772,7 +807,8 @@ class TradingController {
      * @param array $file
      * @return string|null Returns the relative path to the uploaded image or null on failure
      */
-    private function handleMessageImageUpload(array $file): ?string {
+    private function handleMessageImageUpload(array $file): ?string
+    {
         // Validate file
         $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         if (!in_array($file['type'], $allowed)) {
@@ -809,13 +845,14 @@ class TradingController {
 
         return null;
     }
-    
+
     /**
      * Get all data needed for the view
      * 
      * @return array
      */
-    public function getViewData(): array {
+    public function getViewData(): array
+    {
         return [
             'skins' => $this->skinModel->getAllSkins(),
             'mySkins' => $this->skinModel->getSkinsByUsername($this->currentUser),

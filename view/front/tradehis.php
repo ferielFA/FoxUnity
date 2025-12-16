@@ -561,7 +561,7 @@ $currentUser = $viewData['currentUser'];
     <nav class="site-nav">
       <a href="index.php">Home</a>
       <a href="events.php">Events</a>
-      <a href="shop.html">Shop</a>
+      <a href="shop.php">Shop</a>
       <a href="trading.php" class="active">Trading</a>
       <a href="news.php">News</a>
       <a href="reclamation.php">Support</a>

@@ -3,15 +3,15 @@ require_once __DIR__ . '/../../controller/UserController.php';
 
 // Check if user is logged in and is Admin or SuperAdmin
 if (!UserController::isLoggedIn()) {
-    header('Location: ../front/login.php');
-    exit();
+  header('Location: ../front/login.php');
+  exit();
 }
 
 $currentUser = UserController::getCurrentUser();
 $userRole = strtolower($currentUser ? $currentUser->getRole() : '');
 if (!$currentUser || ($userRole !== 'admin' && $userRole !== 'superadmin')) {
-    header('Location: ../front/index.php');
-    exit();
+  header('Location: ../front/index.php');
+  exit();
 }
 
 $message = '';
@@ -20,114 +20,116 @@ $shouldRedirect = false;
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $dob = trim($_POST['dob'] ?? '');
-    $gender = trim($_POST['gender'] ?? '');
-    
-    // Validate inputs
-    $errors = [];
-    
-    if (empty($username)) {
-        $errors[] = "Username is required";
+  $username = trim($_POST['username'] ?? '');
+  $email = trim($_POST['email'] ?? '');
+  $dob = trim($_POST['dob'] ?? '');
+  $gender = trim($_POST['gender'] ?? '');
+
+  // Validate inputs
+  $errors = [];
+
+  if (empty($username)) {
+    $errors[] = "Username is required";
+  }
+
+  if (empty($email)) {
+    $errors[] = "Email is required";
+  } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    $errors[] = "Invalid email format";
+  }
+
+  if (empty($dob)) {
+    $errors[] = "Date of birth is required";
+  } else {
+    // Validate date of birth - cannot be in the future
+    $dobDate = new DateTime($dob);
+    $today = new DateTime();
+    if ($dobDate > $today) {
+      $errors[] = 'Date of birth cannot be in the future!';
     }
-    
-    if (empty($email)) {
-        $errors[] = "Email is required";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors[] = "Invalid email format";
-    }
-    
-    if (empty($dob)) {
-        $errors[] = "Date of birth is required";
+  }
+
+
+  if (empty($gender)) {
+    $errors[] = "Gender is required";
+  }
+
+  // Handle image upload
+  $imagePath = $currentUser->getImage();
+  if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] === 0) {
+    $allowed = ['jpg', 'jpeg', 'png', 'gif'];
+    $filename = $_FILES['profile_image']['name'];
+    $fileTmpName = $_FILES['profile_image']['tmp_name'];
+    $fileSize = $_FILES['profile_image']['size'];
+    $fileExt = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+    if (!in_array($fileExt, $allowed)) {
+      $errors[] = "Only JPG, JPEG, PNG & GIF files are allowed";
+    } elseif ($fileSize > 5000000) { // 5MB max
+      $errors[] = "File size must be less than 5MB";
     } else {
-        // Validate date of birth - cannot be in the future
-        $dobDate = new DateTime($dob);
-        $today = new DateTime();
-        if ($dobDate > $today) {
-            $errors[] = 'Date of birth cannot be in the future!';
-        }
+      $uploadDir = __DIR__ . '/../uploads/profiles/';
+      if (!file_exists($uploadDir)) {
+        mkdir($uploadDir, 0777, true);
+      }
+
+      // Delete old image if exists
+      if ($imagePath && file_exists(__DIR__ . '/../' . $imagePath)) {
+        unlink(__DIR__ . '/../' . $imagePath);
+      }
+
+      $newFilename = 'profile_' . uniqid() . '.' . $fileExt;
+      $destination = $uploadDir . $newFilename;
+
+      if (move_uploaded_file($fileTmpName, $destination)) {
+        $imagePath = 'uploads/profiles/' . $newFilename;
+      } else {
+        $errors[] = "Failed to upload image";
+      }
     }
-    
-    
-    if (empty($gender)) {
-        $errors[] = "Gender is required";
-    }
-    
-    // Handle image upload
-    $imagePath = $currentUser->getImage();
-    if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] === 0) {
-        $allowed = ['jpg', 'jpeg', 'png', 'gif'];
-        $filename = $_FILES['profile_image']['name'];
-        $fileTmpName = $_FILES['profile_image']['tmp_name'];
-        $fileSize = $_FILES['profile_image']['size'];
-        $fileExt = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-        
-        if (!in_array($fileExt, $allowed)) {
-            $errors[] = "Only JPG, JPEG, PNG & GIF files are allowed";
-        } elseif ($fileSize > 5000000) { // 5MB max
-            $errors[] = "File size must be less than 5MB";
-        } else {
-            $uploadDir = __DIR__ . '/../uploads/profiles/';
-            if (!file_exists($uploadDir)) {
-                mkdir($uploadDir, 0777, true);
-            }
-            
-            // Delete old image if exists
-            if ($imagePath && file_exists(__DIR__ . '/../' . $imagePath)) {
-                unlink(__DIR__ . '/../' . $imagePath);
-            }
-            
-            $newFilename = 'profile_' . uniqid() . '.' . $fileExt;
-            $destination = $uploadDir . $newFilename;
-            
-            if (move_uploaded_file($fileTmpName, $destination)) {
-                $imagePath = 'uploads/profiles/' . $newFilename;
-            } else {
-                $errors[] = "Failed to upload image";
-            }
-        }
-    }
-    
-    if (empty($errors)) {
-        // Update user
-        $currentUser->setUsername($username);
-        $currentUser->setEmail($email);
-        $currentUser->setDob($dob);
-        $currentUser->setGender($gender);
-        $currentUser->setImage($imagePath);
-        
-        if ($currentUser->update()) {
-            $_SESSION['user'] = serialize($currentUser);
-            $message = 'Profile updated successfully! Redirecting to your profile...';
-            $messageType = 'success';
-            $shouldRedirect = true;
-        } else {
-            $message = 'Failed to update profile';
-            $messageType = 'error';
-        }
+  }
+
+  if (empty($errors)) {
+    // Update user
+    $currentUser->setUsername($username);
+    $currentUser->setEmail($email);
+    $currentUser->setDob($dob);
+    $currentUser->setGender($gender);
+    $currentUser->setImage($imagePath);
+
+    if ($currentUser->update()) {
+      $_SESSION['user'] = serialize($currentUser);
+      $message = 'Profile updated successfully! Redirecting to your profile...';
+      $messageType = 'success';
+      $shouldRedirect = true;
     } else {
-        $message = implode('<br>', $errors);
-        $messageType = 'error';
+      $message = 'Failed to update profile';
+      $messageType = 'error';
     }
+  } else {
+    $message = implode('<br>', $errors);
+    $messageType = 'error';
+  }
 }
 
 // Get user image - NO DEFAULT IMAGE
 $userImage = null;
 if ($currentUser->getImage()) {
-    $userImage = '../../view/' . $currentUser->getImage();
+  $userImage = '../../view/' . $currentUser->getImage();
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Edit Admin Profile - FoxUnity Dashboard</title>
   <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  
+
   <style>
     /* Admin Dropdown Styles - COHERENT */
     .admin-dropdown {
@@ -365,7 +367,8 @@ if ($currentUser->getImage()) {
       color: #ff7a00;
     }
 
-    .form-input, .form-select {
+    .form-input,
+    .form-select {
       width: 100%;
       padding: 15px;
       background: rgba(255, 255, 255, 0.05);
@@ -413,7 +416,8 @@ if ($currentUser->getImage()) {
       font-size: 10px;
     }
 
-    .form-input:focus, .form-select:focus {
+    .form-input:focus,
+    .form-select:focus {
       outline: none;
       border-color: #ff7a00;
       background: rgba(255, 122, 0, 0.05);
@@ -488,6 +492,7 @@ if ($currentUser->getImage()) {
         transform: translate(-50%, -20px);
         opacity: 0;
       }
+
       to {
         transform: translate(-50%, 0);
         opacity: 1;
@@ -514,8 +519,13 @@ if ($currentUser->getImage()) {
     }
 
     @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
     }
 
     .confirm-box {
@@ -530,8 +540,15 @@ if ($currentUser->getImage()) {
     }
 
     @keyframes scaleIn {
-      from { transform: scale(0.8); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
+      from {
+        transform: scale(0.8);
+        opacity: 0;
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
     }
 
     .confirm-box h3 {
@@ -554,7 +571,8 @@ if ($currentUser->getImage()) {
       justify-content: center;
     }
 
-    .btn-confirm-yes, .btn-confirm-no {
+    .btn-confirm-yes,
+    .btn-confirm-no {
       padding: 12px 30px;
       border: none;
       border-radius: 10px;
@@ -607,7 +625,7 @@ if ($currentUser->getImage()) {
     <h2>Dashboard</h2>
     <a href="dashboard.php">Overview</a>
     <a href="users.php">Users</a>
-    <a href="#">Shop</a>
+    <a href="shopb.php">Shop</a>
     <a href="dashboard.php?section=trades">Trade History</a>
     <a href="eventsb.php">Events</a>
     <a href="news_admin.php">News</a>
@@ -626,22 +644,22 @@ if ($currentUser->getImage()) {
       <div class="admin-dropdown" id="adminDropdown">
         <div class="user admin-user">
           <?php if ($userImage): ?>
-          <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
+            <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
           <?php else: ?>
-          <i class="fas fa-user-circle"></i>
+            <i class="fas fa-user-circle"></i>
           <?php endif; ?>
           <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
           <i class="fas fa-chevron-down"></i>
         </div>
-        
+
         <div class="admin-dropdown-menu">
           <a href="admin-profile.php" class="dropdown-item">
             <i class="fas fa-user"></i>
             <span>My Profile</span>
           </a>
-          
+
           <div class="dropdown-divider"></div>
-          
+
           <a href="../front/logout.php" class="dropdown-item logout">
             <i class="fas fa-sign-out-alt"></i>
             <span>Logout</span>
@@ -652,10 +670,10 @@ if ($currentUser->getImage()) {
 
     <div class="content">
       <?php if ($message): ?>
-      <div class="message-alert message-<?php echo $messageType; ?>">
-        <i class="fas fa-<?php echo $messageType === 'success' ? 'check-circle' : 'exclamation-circle'; ?>"></i>
-        <span><?php echo $message; ?></span>
-      </div>
+        <div class="message-alert message-<?php echo $messageType; ?>">
+          <i class="fas fa-<?php echo $messageType === 'success' ? 'check-circle' : 'exclamation-circle'; ?>"></i>
+          <span><?php echo $message; ?></span>
+        </div>
       <?php endif; ?>
 
       <div class="edit-profile-card">
@@ -666,9 +684,9 @@ if ($currentUser->getImage()) {
           <div class="profile-image-section">
             <div class="current-avatar" id="avatarPreview">
               <?php if ($userImage): ?>
-              <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Current Avatar">
+                <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Current Avatar">
               <?php else: ?>
-              <i class="fas fa-user-circle"></i>
+                <i class="fas fa-user-circle"></i>
               <?php endif; ?>
             </div>
             <div class="upload-btn-wrapper">
@@ -684,8 +702,8 @@ if ($currentUser->getImage()) {
             <label class="form-label">
               <i class="fas fa-user"></i> Username
             </label>
-            <input type="text" id="username" name="username" class="form-input" 
-                   value="<?php echo htmlspecialchars($currentUser->getUsername()); ?>">
+            <input type="text" id="username" name="username" class="form-input"
+              value="<?php echo htmlspecialchars($currentUser->getUsername()); ?>">
             <div class="validation-message" id="username-message"></div>
           </div>
 
@@ -693,8 +711,8 @@ if ($currentUser->getImage()) {
             <label class="form-label">
               <i class="fas fa-envelope"></i> Email
             </label>
-            <input type="text" id="email" name="email" class="form-input" 
-                   value="<?php echo htmlspecialchars($currentUser->getEmail()); ?>">
+            <input type="text" id="email" name="email" class="form-input"
+              value="<?php echo htmlspecialchars($currentUser->getEmail()); ?>">
             <div class="validation-message" id="email-message"></div>
           </div>
 
@@ -702,8 +720,8 @@ if ($currentUser->getImage()) {
             <label class="form-label">
               <i class="fas fa-calendar"></i> Date of Birth
             </label>
-            <input type="date" id="dob" name="dob" class="form-input" 
-                   value="<?php echo htmlspecialchars($currentUser->getDob()); ?>">
+            <input type="date" id="dob" name="dob" class="form-input"
+              value="<?php echo htmlspecialchars($currentUser->getDob()); ?>">
             <div class="validation-message" id="dob-message"></div>
           </div>
 
@@ -714,7 +732,8 @@ if ($currentUser->getImage()) {
             <select id="gender" name="gender" class="form-select">
               <option value="">Select Gender</option>
               <option value="Male" <?php echo $currentUser->getGender() === 'Male' ? 'selected' : ''; ?>>Male</option>
-              <option value="Female" <?php echo $currentUser->getGender() === 'Female' ? 'selected' : ''; ?>>Female</option>
+              <option value="Female" <?php echo $currentUser->getGender() === 'Female' ? 'selected' : ''; ?>>Female
+              </option>
               <option value="Other" <?php echo $currentUser->getGender() === 'Other' ? 'selected' : ''; ?>>Other</option>
             </select>
             <div class="validation-message" id="gender-message"></div>
@@ -753,24 +772,24 @@ if ($currentUser->getImage()) {
 
   <script>
     // ========== ADMIN DROPDOWN TOGGLE ==========
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
       const adminDropdown = document.getElementById('adminDropdown');
-      
+
       if (adminDropdown) {
         const adminUser = adminDropdown.querySelector('.admin-user');
-        
-        adminUser.addEventListener('click', function(e) {
+
+        adminUser.addEventListener('click', function (e) {
           e.stopPropagation();
           adminDropdown.classList.toggle('active');
         });
-        
-        document.addEventListener('click', function(e) {
+
+        document.addEventListener('click', function (e) {
           if (!adminDropdown.contains(e.target)) {
             adminDropdown.classList.remove('active');
           }
         });
-        
-        document.addEventListener('keydown', function(e) {
+
+        document.addEventListener('keydown', function (e) {
           if (e.key === 'Escape') {
             adminDropdown.classList.remove('active');
           }
@@ -779,17 +798,17 @@ if ($currentUser->getImage()) {
     });
 
     // ========== VALIDATION FUNCTIONS ==========
-    
+
     // Helper function pour afficher validation
     function showValidation(inputId, messageId, isValid, message) {
       const input = document.getElementById(inputId);
       const messageEl = document.getElementById(messageId);
-      
+
       if (!input || !messageEl) return;
-      
+
       input.classList.remove('valid', 'invalid');
       messageEl.classList.remove('success', 'error');
-      
+
       if (isValid) {
         input.classList.add('valid');
         messageEl.classList.add('success');
@@ -806,7 +825,7 @@ if ($currentUser->getImage()) {
     // Validation Username
     function validateUsername() {
       const username = document.getElementById('username').value.trim();
-      
+
       if (username.length === 0) {
         showValidation('username', 'username-message', false, '');
         return false;
@@ -823,7 +842,7 @@ if ($currentUser->getImage()) {
     function validateEmail() {
       const email = document.getElementById('email').value.trim();
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      
+
       if (email.length === 0) {
         showValidation('email', 'email-message', false, '');
         return false;
@@ -839,17 +858,17 @@ if ($currentUser->getImage()) {
     // Validation Date of Birth
     function validateDOB() {
       const dob = document.getElementById('dob').value;
-      
+
       if (!dob) {
         showValidation('dob', 'dob-message', false, 'Required');
         return false;
       }
-      
+
       // Vérifier que la date n'est pas dans le futur
       const dobDate = new Date(dob);
       const today = new Date();
       today.setHours(0, 0, 0, 0); // Reset time to compare only dates
-      
+
       if (dobDate > today) {
         showValidation('dob', 'dob-message', false, 'Cannot be in the future');
         return false;
@@ -862,7 +881,7 @@ if ($currentUser->getImage()) {
     // Validation Gender
     function validateGender() {
       const gender = document.getElementById('gender').value;
-      
+
       if (!gender) {
         showValidation('gender', 'gender-message', false, 'Required');
         return false;
@@ -890,13 +909,13 @@ if ($currentUser->getImage()) {
     const avatarPreview = document.getElementById('avatarPreview');
     const fileName = document.getElementById('fileName');
 
-    profileImage.addEventListener('change', function(e) {
+    profileImage.addEventListener('change', function (e) {
       const file = e.target.files[0];
       if (file) {
         fileName.textContent = file.name;
-        
+
         const reader = new FileReader();
-        reader.onload = function(event) {
+        reader.onload = function (event) {
           avatarPreview.innerHTML = '<img src="' + event.target.result + '" alt="Preview">';
         };
         reader.readAsDataURL(file);
@@ -912,16 +931,16 @@ if ($currentUser->getImage()) {
     const confirmNo = document.getElementById('confirmNo');
     let formSubmitPending = false;
 
-    form.addEventListener('submit', function(e) {
+    form.addEventListener('submit', function (e) {
       if (!formSubmitPending) {
         e.preventDefault();
-        
+
         // Valider tous les champs
         const isUsernameValid = validateUsername();
         const isEmailValid = validateEmail();
         const isDOBValid = validateDOB();
         const isGenderValid = validateGender();
-        
+
         // Si tout est valide, montrer modal
         if (isUsernameValid && isEmailValid && isDOBValid && isGenderValid) {
           confirmModal.classList.add('show');
@@ -930,24 +949,24 @@ if ($currentUser->getImage()) {
     });
 
     // Confirm changes
-    confirmYes.addEventListener('click', function() {
+    confirmYes.addEventListener('click', function () {
       formSubmitPending = true;
       confirmModal.classList.remove('show');
       form.submit();
     });
 
     // Cancel changes
-    confirmNo.addEventListener('click', function() {
+    confirmNo.addEventListener('click', function () {
       confirmModal.classList.remove('show');
     });
 
-    confirmModal.addEventListener('click', function(e) {
+    confirmModal.addEventListener('click', function (e) {
       if (e.target === confirmModal) {
         confirmModal.classList.remove('show');
       }
     });
 
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && confirmModal.classList.contains('show')) {
         confirmModal.classList.remove('show');
       }
@@ -977,7 +996,7 @@ if ($currentUser->getImage()) {
     });
 
     // Auto-hide message alert
-    setTimeout(function() {
+    setTimeout(function () {
       const message = document.querySelector('.message-alert');
       if (message) {
         message.style.opacity = '0';
@@ -987,12 +1006,13 @@ if ($currentUser->getImage()) {
 
     // Auto-redirect after successful update - FIX DU BUG
     <?php if (isset($shouldRedirect) && $shouldRedirect): ?>
-    setTimeout(function() {
-      // Pas besoin de transition ici, juste rediriger directement
-      window.location.href = 'admin-profile.php';
-    }, 2000); // Réduit à 2 secondes
+      setTimeout(function () {
+        // Pas besoin de transition ici, juste rediriger directement
+        window.location.href = 'admin-profile.php';
+      }, 2000); // Réduit à 2 secondes
     <?php endif; ?>
   </script>
-  
+
 </body>
+
 </html>

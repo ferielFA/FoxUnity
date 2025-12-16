@@ -481,7 +481,7 @@ $allSatisfactions = $satisfactionController->getAllSatisfactions();
         <h2>Dashboard</h2>
         <a href="dashboard.php">Overview</a>
         <a href="users.php">Users</a>
-        <a href="#">Shop</a>
+        <a href="shopb.php">Shop</a>
         <a href="tradingb.php">Trade History</a>
         <a href="eventsb.php">Events</a>
         <a href="news_admin.php">News</a>
@@ -686,71 +686,71 @@ $allSatisfactions = $satisfactionController->getAllSatisfactions();
             </div>
 
 
-    <!-- Attachment Modal -->
-    <div id="attachment-modal" class="modal" style="display: none;">
-        <div class="modal-content"
-            style="max-width: 90vw; max-height: 90vh; background: rgba(10,10,10,0.98); border: 2px solid rgba(255,122,0,0.3); border-radius: 15px; padding: 20px; position: relative;">
-            <button class="modal-close" onclick="closeAttachmentModal()"
-                style="position: absolute; top: 15px; right: 15px; background: rgba(255,60,60,0.2); color: #ff3c3c; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; z-index: 10; transition: all 0.3s ease;">
-                <i class="fas fa-times"></i>
-            </button>
-            <div id="attachment-modal-content"
-                style="display: flex; align-items: center; justify-content: center; min-height: 400px;">
-                <!-- Content will be inserted here -->
+            <!-- Attachment Modal -->
+            <div id="attachment-modal" class="modal" style="display: none;">
+                <div class="modal-content"
+                    style="max-width: 90vw; max-height: 90vh; background: rgba(10,10,10,0.98); border: 2px solid rgba(255,122,0,0.3); border-radius: 15px; padding: 20px; position: relative;">
+                    <button class="modal-close" onclick="closeAttachmentModal()"
+                        style="position: absolute; top: 15px; right: 15px; background: rgba(255,60,60,0.2); color: #ff3c3c; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; z-index: 10; transition: all 0.3s ease;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div id="attachment-modal-content"
+                        style="display: flex; align-items: center; justify-content: center; min-height: 400px;">
+                        <!-- Content will be inserted here -->
+                    </div>
+                    <div style="text-align: center; margin-top: 15px;">
+                        <a id="attachment-download-link" href="#" target="_blank"
+                            style="color: #ff7a00; text-decoration: none; font-size: 14px;">
+                            <i class="fas fa-download"></i> Download
+                        </a>
+                    </div>
+                </div>
             </div>
-            <div style="text-align: center; margin-top: 15px;">
-                <a id="attachment-download-link" href="#" target="_blank"
-                    style="color: #ff7a00; text-decoration: none; font-size: 14px;">
-                    <i class="fas fa-download"></i> Download
-                </a>
-            </div>
-        </div>
-    </div>
 
-    <script>
-        // Attachment Modal Functions
-        function openAttachmentModal(element) {
-            const modal = document.getElementById('attachment-modal');
-            const modalContent = document.getElementById('attachment-modal-content');
-            const downloadLink = document.getElementById('attachment-download-link');
-            const fileSrc = element.getAttribute('data-src');
-            const fileType = element.getAttribute('data-type');
+            <script>
+                // Attachment Modal Functions
+                function openAttachmentModal(element) {
+                    const modal = document.getElementById('attachment-modal');
+                    const modalContent = document.getElementById('attachment-modal-content');
+                    const downloadLink = document.getElementById('attachment-download-link');
+                    const fileSrc = element.getAttribute('data-src');
+                    const fileType = element.getAttribute('data-type');
 
-            if (!modal || !modalContent) {
-                console.error('Attachment modal elements not found');
-                return;
-            }
+                    if (!modal || !modalContent) {
+                        console.error('Attachment modal elements not found');
+                        return;
+                    }
 
-            modal.style.display = 'flex';
-            if (downloadLink) {
-                downloadLink.href = fileSrc;
-            }
+                    modal.style.display = 'flex';
+                    if (downloadLink) {
+                        downloadLink.href = fileSrc;
+                    }
 
-            if (fileType === 'image') {
-                console.log('Opening image modal with src:', fileSrc);
+                    if (fileType === 'image') {
+                        console.log('Opening image modal with src:', fileSrc);
 
-                // Afficher directement l'image avec gestion d'erreur
-                modalContent.innerHTML = `
+                        // Afficher directement l'image avec gestion d'erreur
+                        modalContent.innerHTML = `
                     <img src="${fileSrc}" 
                          alt="Full size attachment" 
                          style="max-width: 100%; max-height: 85vh; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: block; margin: 0 auto;"
                          onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\\'text-align: center; padding: 40px; color: #ff7a00;\\'><i class=\\'fas fa-exclamation-triangle\\' style=\\'font-size: 48px; margin-bottom: 20px; display: block;\\'></i><p style=\\'font-size: 18px; margin-bottom: 10px;\\'>Impossible de charger l\\'image</p><p style=\\'font-size: 14px; color: #aaa; word-break: break-all;\\'>Chemin: ${fileSrc}</p><a href=\\'${fileSrc}\\' target=\\'_blank\\' style=\\'color: #ff7a00; text-decoration: none; margin-top: 20px; display: inline-block;\\'><i class=\\'fas fa-external-link-alt\\'></i> Ouvrir dans un nouvel onglet</a></div>';">
                 `;
-            } else if (fileType === 'video') {
-                const videoExt = fileSrc.split('.').pop();
-                const video = document.createElement('video');
-                video.controls = true;
-                video.autoplay = true;
-                video.style.cssText = 'max-width: 100%; max-height: 85vh; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: block; margin: 0 auto;';
+                    } else if (fileType === 'video') {
+                        const videoExt = fileSrc.split('.').pop();
+                        const video = document.createElement('video');
+                        video.controls = true;
+                        video.autoplay = true;
+                        video.style.cssText = 'max-width: 100%; max-height: 85vh; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: block; margin: 0 auto;';
 
-                const source = document.createElement('source');
-                source.src = fileSrc;
-                source.type = `video/${videoExt}`;
-                video.appendChild(source);
+                        const source = document.createElement('source');
+                        source.src = fileSrc;
+                        source.type = `video/${videoExt}`;
+                        video.appendChild(source);
 
-                video.onerror = function () {
-                    console.error('Erreur de chargement de la vidéo:', fileSrc);
-                    modalContent.innerHTML = `
+                        video.onerror = function () {
+                            console.error('Erreur de chargement de la vidéo:', fileSrc);
+                            modalContent.innerHTML = `
                         <div style="text-align: center; padding: 40px; color: #ff7a00;">
                             <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 20px; display: block;"></i>
                             <p style="font-size: 18px; margin-bottom: 10px;">Impossible de charger la vidéo</p>
@@ -760,83 +760,83 @@ $allSatisfactions = $satisfactionController->getAllSatisfactions();
                             </a>
                         </div>
                     `;
-                };
+                        };
 
-                modalContent.innerHTML = '';
-                modalContent.appendChild(video);
-            }
+                        modalContent.innerHTML = '';
+                        modalContent.appendChild(video);
+                    }
 
-            // Prevent body scroll when modal is open
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeAttachmentModal() {
-            const modal = document.getElementById('attachment-modal');
-            const modalContent = document.getElementById('attachment-modal-content');
-
-            if (!modal) return;
-
-            modal.style.display = 'none';
-            if (modalContent) {
-                modalContent.innerHTML = '';
-            }
-
-            // Restore body scroll
-            document.body.style.overflow = '';
-        }
-
-        // Close modal when clicking outside (only if modal exists)
-        const attachmentModal = document.getElementById('attachment-modal');
-        if (attachmentModal) {
-            attachmentModal.addEventListener('click', function (e) {
-                if (e.target === this) {
-                    closeAttachmentModal();
+                    // Prevent body scroll when modal is open
+                    document.body.style.overflow = 'hidden';
                 }
-            });
-        }
 
-        // Close modal with Escape key
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') {
-                const modal = document.getElementById('attachment-modal');
-                if (modal && modal.style.display === 'flex') {
-                    closeAttachmentModal();
+                function closeAttachmentModal() {
+                    const modal = document.getElementById('attachment-modal');
+                    const modalContent = document.getElementById('attachment-modal-content');
+
+                    if (!modal) return;
+
+                    modal.style.display = 'none';
+                    if (modalContent) {
+                        modalContent.innerHTML = '';
+                    }
+
+                    // Restore body scroll
+                    document.body.style.overflow = '';
                 }
-            }
-        });
 
-        document.querySelectorAll('.sidebar a').forEach(item => {
-            item.addEventListener('click', function () {
-                document.querySelectorAll('.sidebar a').forEach(nav => {
-                    nav.classList.remove('active');
+                // Close modal when clicking outside (only if modal exists)
+                const attachmentModal = document.getElementById('attachment-modal');
+                if (attachmentModal) {
+                    attachmentModal.addEventListener('click', function (e) {
+                        if (e.target === this) {
+                            closeAttachmentModal();
+                        }
+                    });
+                }
+
+                // Close modal with Escape key
+                document.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape') {
+                        const modal = document.getElementById('attachment-modal');
+                        if (modal && modal.style.display === 'flex') {
+                            closeAttachmentModal();
+                        }
+                    }
                 });
-                this.classList.add('active');
-            });
-        });
-        // Admin Dropdown Logic
-        const adminDropdown = document.getElementById('adminDropdown');
-        if (adminDropdown) {
-          const adminUser = adminDropdown.querySelector('.admin-user');
-          if (adminUser) {
-            adminUser.addEventListener('click', function(e) {
-              e.stopPropagation();
-              adminDropdown.classList.toggle('active');
-            });
-          }
-          
-          document.addEventListener('click', function(e) {
-            if (!adminDropdown.contains(e.target)) {
-              adminDropdown.classList.remove('active');
-            }
-          });
-          
-          document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-              adminDropdown.classList.remove('active');
-            }
-          });
-        }
-    </script>
+
+                document.querySelectorAll('.sidebar a').forEach(item => {
+                    item.addEventListener('click', function () {
+                        document.querySelectorAll('.sidebar a').forEach(nav => {
+                            nav.classList.remove('active');
+                        });
+                        this.classList.add('active');
+                    });
+                });
+                // Admin Dropdown Logic
+                const adminDropdown = document.getElementById('adminDropdown');
+                if (adminDropdown) {
+                    const adminUser = adminDropdown.querySelector('.admin-user');
+                    if (adminUser) {
+                        adminUser.addEventListener('click', function (e) {
+                            e.stopPropagation();
+                            adminDropdown.classList.toggle('active');
+                        });
+                    }
+
+                    document.addEventListener('click', function (e) {
+                        if (!adminDropdown.contains(e.target)) {
+                            adminDropdown.classList.remove('active');
+                        }
+                    });
+
+                    document.addEventListener('keydown', function (e) {
+                        if (e.key === 'Escape') {
+                            adminDropdown.classList.remove('active');
+                        }
+                    });
+                }
+            </script>
 </body>
 
 </html>

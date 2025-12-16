@@ -807,7 +807,7 @@ $statuts = [
         <nav class="site-nav">
             <a href="index.php" data-lang-en="Home" data-lang-fr="Accueil">Home</a>
             <a href="events.php" class="active" data-lang-en="Events" data-lang-fr="Événements">Events</a>
-            <a href="shop.html" data-lang-en="Shop" data-lang-fr="Boutique">Shop</a>
+            <a href="shop.php" data-lang-en="Shop" data-lang-fr="Boutique">Shop</a>
             <a href="trading.php" data-lang-en="Trading" data-lang-fr="Échange">Trading</a>
             <a href="news.php" data-lang-en="News" data-lang-fr="Actualités">News</a>
             <a href="reclamation.html" data-lang-en="Support" data-lang-fr="Support">Support</a>

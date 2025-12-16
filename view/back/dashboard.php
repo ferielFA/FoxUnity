@@ -149,7 +149,7 @@ $showTradeHistory = isset($_GET['section']) && $_GET['section'] === 'trades';
     <h2>Dashboard</h2>
     <a href="dashboard.php" class="<?= !$showTradeHistory ? 'active' : '' ?>">Overview</a>
     <a href="users.php">Users</a>
-    <a href="#">Shop</a>
+    <a href="shopb.php">Shop</a>
     <a href="tradingb.php" class="<?= $showTradeHistory ? 'active' : '' ?>">Trade History</a>
     <a href="eventsb.php">Events</a>
     <a href="news_admin.php">News</a>
@@ -161,28 +161,28 @@ $showTradeHistory = isset($_GET['section']) && $_GET['section'] === 'trades';
     <a href="../front/index.php">← Return Homepage</a>
   </div>
 
-<div class="main">
+  <div class="main">
     <div class="topbar">
       <h1><?= $showTradeHistory ? 'Trade History Dashboard' : 'Welcome, Commander' ?></h1>
       <div class="admin-dropdown" id="adminDropdown">
         <div class="user admin-user">
           <?php if ($userImage): ?>
-          <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
+            <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
           <?php else: ?>
-          <i class="fas fa-user-circle" style="font-size: 35px; color: #ff7a00;"></i>
+            <i class="fas fa-user-circle" style="font-size: 35px; color: #ff7a00;"></i>
           <?php endif; ?>
           <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
           <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
         </div>
-        
+
         <div class="admin-dropdown-menu">
           <a href="admin-profile.php" class="dropdown-item">
             <i class="fas fa-user"></i>
             <span>My Profile</span>
           </a>
-          
+
           <div class="dropdown-divider"></div>
-          
+
           <a href="../front/logout.php" class="dropdown-item logout">
             <i class="fas fa-sign-out-alt"></i>
             <span>Logout</span>
@@ -335,7 +335,8 @@ $showTradeHistory = isset($_GET['section']) && $_GET['section'] === 'trades';
                     <td><?= htmlspecialchars($history['skin_name']) ?></td>
                     <td class="price">$<?= number_format((float) $history['skin_price'], 2) ?></td>
                     <td class="skin-game <?= $history['skin_category'] ?>">
-                      <?= htmlspecialchars(ucfirst($history['skin_category'])) ?></td>
+                      <?= htmlspecialchars(ucfirst($history['skin_category'])) ?>
+                    </td>
                     <td>#<?= $history['skin_id'] ?></td>
                   </tr>
                 <?php endforeach; ?>

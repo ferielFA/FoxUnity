@@ -2214,7 +2214,7 @@ unset($reclamation);
         <h2>Dashboard</h2>
         <a href="dashboard.php">Overview</a>
         <a href="users.php" class="active">Users</a>
-        <a href="#">Shop</a>
+        <a href="shopb.php">Shop</a>
         <a href="tradingb.php">Trade History</a>
         <a href="eventsb.php">Events</a>
         <a href="news_admin.php">News</a>

@@ -3,33 +3,35 @@ require_once __DIR__ . '/../../controller/UserController.php';
 
 // Check if user is logged in and is Admin or SuperAdmin
 if (!UserController::isLoggedIn()) {
-    header('Location: ../front/login.php');
-    exit();
+  header('Location: ../front/login.php');
+  exit();
 }
 
 $currentUser = UserController::getCurrentUser();
 $userRole = strtolower($currentUser ? $currentUser->getRole() : '');
 if (!$currentUser || ($userRole !== 'admin' && $userRole !== 'superadmin')) {
-    header('Location: ../front/index.php');
-    exit();
+  header('Location: ../front/index.php');
+  exit();
 }
 
 // Get user image - NO DEFAULT IMAGE
 $userImage = null;
 if ($currentUser->getImage()) {
-    $userImage = '../../view/' . $currentUser->getImage();
+  $userImage = '../../view/' . $currentUser->getImage();
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Profile - FoxUnity Dashboard</title>
   <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  
+
   <style>
     /* Admin Dropdown Styles */
     .admin-dropdown {
@@ -311,7 +313,8 @@ if ($currentUser->getImage()) {
       justify-content: center;
     }
 
-    .btn-delete-confirm, .btn-delete-cancel {
+    .btn-delete-confirm,
+    .btn-delete-cancel {
       padding: 12px 30px;
       border: none;
       border-radius: 10px;
@@ -377,6 +380,7 @@ if ($currentUser->getImage()) {
         transform: translate(-50%, -20px);
         opacity: 0;
       }
+
       to {
         transform: translate(-50%, 0);
         opacity: 1;
@@ -408,7 +412,7 @@ if ($currentUser->getImage()) {
     <h2>Dashboard</h2>
     <a href="dashboard.php">Overview</a>
     <a href="users.php">Users</a>
-    <a href="#">Shop</a>
+    <a href="shopb.php">Shop</a>
     <a href="tradingb.php">Trade History</a>
     <a href="eventsb.php">Events</a>
     <a href="news_admin.php">News</a>
@@ -427,22 +431,22 @@ if ($currentUser->getImage()) {
       <div class="admin-dropdown" id="adminDropdown">
         <div class="user admin-user">
           <?php if ($userImage): ?>
-          <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
+            <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
           <?php else: ?>
-          <i class="fas fa-user-circle" style="font-size: 35px; color: #ff7a00;"></i>
+            <i class="fas fa-user-circle" style="font-size: 35px; color: #ff7a00;"></i>
           <?php endif; ?>
           <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
           <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
         </div>
-        
+
         <div class="admin-dropdown-menu">
           <a href="admin-profile.php" class="dropdown-item">
             <i class="fas fa-user"></i>
             <span>My Profile</span>
           </a>
-          
+
           <div class="dropdown-divider"></div>
-          
+
           <a href="../front/logout.php" class="dropdown-item logout">
             <i class="fas fa-sign-out-alt"></i>
             <span>Logout</span>
@@ -455,11 +459,12 @@ if ($currentUser->getImage()) {
       <div class="profile-card">
         <div class="profile-header">
           <?php if ($userImage): ?>
-          <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar" class="profile-avatar">
+            <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar" class="profile-avatar">
           <?php else: ?>
-          <div class="profile-avatar" style="display: flex; align-items: center; justify-content: center; background: rgba(255, 122, 0, 0.1);">
-            <i class="fas fa-user-circle" style="font-size: 80px; color: #ff7a00;"></i>
-          </div>
+            <div class="profile-avatar"
+              style="display: flex; align-items: center; justify-content: center; background: rgba(255, 122, 0, 0.1);">
+              <i class="fas fa-user-circle" style="font-size: 80px; color: #ff7a00;"></i>
+            </div>
           <?php endif; ?>
           <div class="profile-info">
             <h2><?php echo htmlspecialchars($currentUser->getUsername()); ?></h2>
@@ -512,7 +517,8 @@ if ($currentUser->getImage()) {
             <div class="detail-label">
               <i class="fas fa-check-circle"></i> Status
             </div>
-            <div class="detail-value" style="color: #4caf50;"><?php echo htmlspecialchars($currentUser->getStatus()); ?></div>
+            <div class="detail-value" style="color: #4caf50;"><?php echo htmlspecialchars($currentUser->getStatus()); ?>
+            </div>
           </div>
 
           <div class="detail-item">
@@ -550,7 +556,8 @@ if ($currentUser->getImage()) {
   <div class="delete-modal" id="deleteModal">
     <div class="delete-box">
       <h3><i class="fas fa-exclamation-triangle"></i> Delete Account?</h3>
-      <p>This action cannot be undone. This will permanently delete your account and remove all your data from our servers.</p>
+      <p>This action cannot be undone. This will permanently delete your account and remove all your data from our
+        servers.</p>
       <div class="warning-text">
         <i class="fas fa-skull-crossbones"></i> All your data will be lost forever!
       </div>
@@ -567,24 +574,24 @@ if ($currentUser->getImage()) {
 
   <script>
     // Admin Dropdown Toggle
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
       const adminDropdown = document.getElementById('adminDropdown');
-      
+
       if (adminDropdown) {
         const adminUser = adminDropdown.querySelector('.admin-user');
-        
-        adminUser.addEventListener('click', function(e) {
+
+        adminUser.addEventListener('click', function (e) {
           e.stopPropagation();
           adminDropdown.classList.toggle('active');
         });
-        
-        document.addEventListener('click', function(e) {
+
+        document.addEventListener('click', function (e) {
           if (!adminDropdown.contains(e.target)) {
             adminDropdown.classList.remove('active');
           }
         });
-        
-        document.addEventListener('keydown', function(e) {
+
+        document.addEventListener('keydown', function (e) {
           if (e.key === 'Escape') {
             adminDropdown.classList.remove('active');
           }
@@ -618,19 +625,19 @@ if ($currentUser->getImage()) {
     const cancelDelete = document.getElementById('cancelDelete');
 
     if (deleteBtn) {
-      deleteBtn.addEventListener('click', function() {
+      deleteBtn.addEventListener('click', function () {
         deleteModal.classList.add('show');
       });
     }
 
     if (cancelDelete) {
-      cancelDelete.addEventListener('click', function() {
+      cancelDelete.addEventListener('click', function () {
         deleteModal.classList.remove('show');
       });
     }
 
     if (confirmDelete) {
-      confirmDelete.addEventListener('click', function() {
+      confirmDelete.addEventListener('click', function () {
         // Create a form to submit the delete request
         const form = document.createElement('form');
         form.method = 'POST';
@@ -641,19 +648,20 @@ if ($currentUser->getImage()) {
     }
 
     // Close modal on outside click
-    deleteModal.addEventListener('click', function(e) {
+    deleteModal.addEventListener('click', function (e) {
       if (e.target === deleteModal) {
         deleteModal.classList.remove('show');
       }
     });
 
     // Close modal on Escape key
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && deleteModal.classList.contains('show')) {
         deleteModal.classList.remove('show');
       }
     });
   </script>
-  
+
 </body>
+
 </html>
