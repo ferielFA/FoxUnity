@@ -38,11 +38,7 @@ if ($currentUser->getImage()) {
     .msg-success{background:#0b2b10;color:#b6ffb3;padding:10px;border-radius:8px;margin-bottom:10px;border-left:4px solid #2db34a}
     .msg-error{background:#2b0b0b;color:#ffd6d6;padding:10px;border-radius:8px;margin-bottom:10px;border-left:4px solid #c33}
     .table-actions .btn{margin-right:6px}
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
-=======
->>>>>>> 1a0165571eb6996c378fbe1752f04eaedfe9c7d6
+
 
     /* Admin Dropdown Styles */
     .admin-dropdown {
@@ -164,7 +160,6 @@ if ($currentUser->getImage()) {
         align-items: center;
         padding-right: 20px;
     }
-<<<<<<< HEAD
     /* Modern styling for Categories page */
     .cat-hero{
       display:flex;
@@ -269,9 +264,6 @@ if ($currentUser->getImage()) {
       transform:translateY(-1px);
       transition:all 0.15s ease;
     }
->>>>>>> Stashed changes
-=======
->>>>>>> 1a0165571eb6996c378fbe1752f04eaedfe9c7d6
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -291,39 +283,6 @@ if ($currentUser->getImage()) {
     <a href="../front/index.php">← Return Homepage</a>
   </div>
 
-<<<<<<< Updated upstream
-  <div class="main">
-    <div class="topbar">
-      <h1>Categories Management</h1>
-      <div class="admin-dropdown" id="adminDropdown">
-        <div class="user admin-user">
-          <?php if ($userImage): ?>
-          <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
-          <?php else: ?>
-          <i class="fas fa-user-circle"></i>
-          <?php endif; ?>
-          <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
-          <i class="fas fa-chevron-down"></i>
-        </div>
-        
-        <div class="admin-dropdown-menu">
-          <a href="admin-profile.php" class="dropdown-item">
-            <i class="fas fa-user"></i>
-            <span>My Profile</span>
-          </a>
-          
-          <div class="dropdown-divider"></div>
-          
-          <a href="../front/logout.php" class="dropdown-item logout">
-            <i class="fas fa-sign-out-alt"></i>
-            <span>Logout</span>
-          </a>
-        </div>
-      </div>
-    </div>
-    <div class="content">
-      <div class="card">
-=======
   <div class="main" style="padding:18px 1vw 14px 2vw;max-width:1800px;margin:0 auto;min-height:calc(100vh - 70px);display:flex;flex-direction:column;justify-content:center;align-items:stretch;background:radial-gradient(1200px at 20% 20%, rgba(255,122,0,0.05), transparent 55%), radial-gradient(900px at 80% 10%, rgba(255,122,0,0.06), transparent 50%);">
     <div class="topbar">
       <h1>Categories Management</h1>
@@ -355,7 +314,6 @@ if ($currentUser->getImage()) {
     </div>
      <div class="content" style="padding:0;margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;width:100%;">
        <div class="card modern-card cat-card" style="margin:8px auto 0 auto;">
->>>>>>> Stashed changes
         <?php if(!empty($messages) || !empty($errors)): ?>
           <div style="margin-bottom:12px">
             <?php foreach($messages as $m): ?><div class="msg-success"><?php echo htmlspecialchars($m); ?></div><?php endforeach; ?>

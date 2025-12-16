@@ -69,11 +69,7 @@ if (strpos($img, 'http') === 0) {
     <meta property="og:description" content="<?php echo htmlspecialchars($a['summary'] ?? $a['excerpt'] ?? ''); ?>" />
     <meta property="og:image" content="<?php echo htmlspecialchars($ogImage); ?>" />
 </head>
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
-=======
->>>>>>> 1a0165571eb6996c378fbe1752f04eaedfe9c7d6
+
     <style>
         /* User Dropdown Menu Styles - LARGE PHOTO LIKE PROFILE.PHP */
         .user-dropdown {
@@ -287,12 +283,8 @@ if (strpos($img, 'http') === 0) {
         .comment-item {
             display: flex;
             gap: 15px;
-<<<<<<< HEAD
             margin-bottom: 18px;
             align-items: flex-start;
-=======
-            margin-bottom: 20px;
->>>>>>> 1a0165571eb6996c378fbe1752f04eaedfe9c7d6
         }
 
         .comment-avatar {
@@ -325,7 +317,6 @@ if (strpos($img, 'http') === 0) {
             flex: 1;
         }
 
-<<<<<<< HEAD
         .comment-card {
             background:#111;
             padding:12px 14px;
@@ -354,9 +345,6 @@ if (strpos($img, 'http') === 0) {
             color:#999;
             font-size:0.9rem;
         }
-
-=======
->>>>>>> 1a0165571eb6996c378fbe1752f04eaedfe9c7d6
         /* Comment Action Buttons */
         .comment-actions {
             display: flex;
@@ -507,10 +495,7 @@ if (strpos($img, 'http') === 0) {
         }
     </style>
 </head>
-<<<<<<< HEAD
->>>>>>> Stashed changes
-=======
->>>>>>> 1a0165571eb6996c378fbe1752f04eaedfe9c7d6
+
 <body>
   <!-- Bulles animées rouges -->
   <div class="bubbles">

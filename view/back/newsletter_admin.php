@@ -41,14 +41,6 @@ foreach ($categories as $c) {
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap" rel="stylesheet">
   <style>
-<<<<<<< Updated upstream
-      .admin-panel { padding: 2rem; color: #fff; }
-      .table-container { margin-top: 2 rem; background: rgba(0,0,0,0.5); padding: 1rem; border-radius: 8px; }
-      table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-      th, td { padding: 12px; text-align: left; border-bottom: 1px solid #444; }
-      th { color: #ff9900; }
-<<<<<<< HEAD
-=======
     .admin-panel { color:#fff; }
     .newsletter-card{
       border-radius:18px;
@@ -110,8 +102,6 @@ foreach ($categories as $c) {
       color:#ff6868;
       border-color:rgba(255,68,68,0.4);
     }
->>>>>>> Stashed changes
-=======
 
     /* Admin Dropdown Styles */
     .admin-dropdown {
@@ -226,7 +216,6 @@ foreach ($categories as $c) {
       background: rgba(255, 68, 68, 0.1);
       border-left-color: #ff4444;
     }
->>>>>>> 1a0165571eb6996c378fbe1752f04eaedfe9c7d6
   </style>
 </head>
 <body class="dashboard-body">
@@ -246,14 +235,9 @@ foreach ($categories as $c) {
     <a href="../front/index.php">← Return Homepage</a>
   </div>
 
-<<<<<<< Updated upstream
-  <div class="main">
-    <div class="topbar">
-=======
 
   <div class="main" style="padding:12px 1vw 10px 2vw;max-width:1800px;margin:0 auto;display:flex;flex-direction:column;gap:10px;background:radial-gradient(1200px at 20% 10%, rgba(255,122,0,0.05), transparent 55%), radial-gradient(900px at 80% 5%, rgba(255,122,0,0.06), transparent 50%);">
     <div class="topbar" style="margin-bottom:4px;">
->>>>>>> Stashed changes
       <h1>Newsletter Management</h1>
       <div class="admin-dropdown" id="adminDropdown">
         <div class="user admin-user">
@@ -282,53 +266,6 @@ foreach ($categories as $c) {
       </div>
     </div>
 
-<<<<<<< Updated upstream
-    <div class="content admin-panel">
-        <div class="card">
-            <h3>Subscribers List</h3>
-            <p>Total Subscribers: <?php echo count($subscribers); ?></p>
-            
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Email</th>
-                            <th>Interests IDs</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($subscribers as $s): ?>
-                        <tr>
-                            <td><?php echo $s['id']; ?></td>
-                            <td><?php echo htmlspecialchars($s['email']); ?></td>
-                            <td><?php 
-                                $sIds = array_filter(explode(',', $s['categories'] ?? ''));
-                                $sNames = [];
-                                foreach($sIds as $sid) { if(isset($catMap[$sid])) $sNames[] = $catMap[$sid]; }
-                                echo htmlspecialchars(empty($sNames) ? '-' : implode(', ', $sNames));
-                            ?></td>
-                            <td><?php echo $s['created_at']; ?></td>
-                            <td>
-                                <button class="btn-edit" 
-                                    onclick='openEditModal(<?php echo json_encode($s); ?>)'>
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button class="btn-delete" 
-                                    onclick='deleteSubscriber("<?php echo htmlspecialchars($s["email"]); ?>")'>
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                        <?php if (empty($subscribers)): ?>
-                        <tr><td colspan="5">No subscribers found.</td></tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-=======
     <div class="content admin-panel" style="padding:0;margin:0;display:flex;flex-direction:column;align-items:center;gap:10px;">
       <div class="card modern-card newsletter-card" style="margin-top:6px;">
         <div class="newsletter-hero">
@@ -381,7 +318,6 @@ foreach ($categories as $c) {
               <?php endif; ?>
             </tbody>
           </table>
->>>>>>> Stashed changes
         </div>
 
         <!-- Edit Modal -->
@@ -547,73 +483,6 @@ function openEditModal(subscriber) {
     }
 }
 
-function deleteSubscriber(email) {
-    if (!confirm('Are you sure you want to delete this subscriber: ' + email + '?')) {
-        return;
-    }
-    
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '../../controller/NewsletterController.php';
-    
-    const actionInput = document.createElement('input');
-    actionInput.type = 'hidden';
-    actionInput.name = 'action';
-    actionInput.value = 'delete_subscriber';
-    form.appendChild(actionInput);
-    
-    const emailInput = document.createElement('input');
-    emailInput.type = 'hidden';
-    emailInput.name = 'email';
-    emailInput.value = email;
-    form.appendChild(emailInput);
-    
-    document.body.appendChild(form);
-    form.submit();
-}
-function closeEditModal() {
-    document.getElementById('editModal').style.display = 'none';
-}
-
-// Close when clicking outside
-window.onclick = function(event) {
-    if (event.target == document.getElementById('editModal')) {
-        closeEditModal();
-    }
-}
-
-// Dropdown Menu Toggle
-document.addEventListener('DOMContentLoaded', function() {
-  const adminDropdown = document.getElementById('adminDropdown');
-  
-  if (adminDropdown) {
-    const adminUser = adminDropdown.querySelector('.admin-user');
-    
-    // Toggle dropdown on click
-    if (adminUser) {
-        adminUser.addEventListener('click', function(e) {
-          e.stopPropagation();
-          adminDropdown.classList.toggle('active');
-        });
-    }
-    
-    // Close dropdown when clicking outside
-    document.addEventListener('click', function(e) {
-      if (!adminDropdown.contains(e.target)) {
-        adminDropdown.classList.remove('active');
-      }
-    });
-    
-    // Close dropdown when pressing Escape
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        adminDropdown.classList.remove('active');
-      }
-    });
-  }
-});
-</script>
-=======
     function deleteSubscriber(email) {
       window.__deleteEmail = email;
       const lbl = document.getElementById('deleteEmailLabel');
@@ -707,6 +576,5 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   </script>
->>>>>>> Stashed changes
 </body>
 </html>
