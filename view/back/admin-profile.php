@@ -411,8 +411,12 @@ if ($currentUser->getImage()) {
     <a href="#">Shop</a>
     <a href="tradingb.php">Trade History</a>
     <a href="eventsb.php">Events</a>
-    <a href="#">News</a>
-    <a href="#">Support</a>
+    <a href="news_admin.php">News</a>
+    <a href="news_history.php" id="news-history-link">News History</a>
+    <a href="categories.php" id="categories-link">Categories</a>
+    <a href="newsletter_admin.php" id="newsletter-link">Newsletter</a>
+    <a href="reclamback.php">Support</a>
+    <a href="evaluations_publiques.php">Évaluations Publiques</a>
     <a href="../front/index.php">← Return Homepage</a>
   </div>
 

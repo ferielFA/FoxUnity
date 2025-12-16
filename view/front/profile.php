@@ -21,14 +21,16 @@ if ($currentUser->getImage()) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FoxUnity - My Profile</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
+
     <style>
         /* User Dropdown Menu Styles - SAME AS ADMIN */
         .user-dropdown {
@@ -145,17 +147,17 @@ if ($currentUser->getImage()) {
             font-weight: 600;
             transition: all 0.3s ease;
         }
-        
+
         .cart-icon:hover {
             color: #ff9933 !important;
             transform: translateY(-2px);
         }
-        
+
         .cart-icon i {
             color: #ff7a00;
             font-size: 18px;
         }
-        
+
         .cart-count {
             background: linear-gradient(135deg, #ff7a00, #ff4f00);
             color: white;
@@ -334,8 +336,13 @@ if ($currentUser->getImage()) {
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         .delete-box {
@@ -350,8 +357,15 @@ if ($currentUser->getImage()) {
         }
 
         @keyframes scaleIn {
-            from { transform: scale(0.8); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
         }
 
         .delete-box h3 {
@@ -384,7 +398,8 @@ if ($currentUser->getImage()) {
             justify-content: center;
         }
 
-        .btn-delete-confirm, .btn-delete-cancel {
+        .btn-delete-confirm,
+        .btn-delete-cancel {
             padding: 12px 30px;
             border: none;
             border-radius: 10px;
@@ -433,6 +448,7 @@ if ($currentUser->getImage()) {
         }
     </style>
 </head>
+
 <body>
     <!-- Bulles animées rouges -->
     <div class="bubbles">
@@ -452,17 +468,19 @@ if ($currentUser->getImage()) {
             <img src="../images/Nine__1_-removebg-preview.png" alt="FoxUnity Logo" class="site-logo">
             <span class="site-name">FoxUnity</span>
         </div>
-        
+
         <nav class="site-nav">
-            <a href="index.php">Home</a>
-            <a href="events.php">Events</a>
-            <a href="shop.html">Shop</a>
-            <a href="trading.php">Trading</a>
-            <a href="news.php">News</a>
-            <a href="reclamation.html">Complaints</a>
-      <a href="about.php">About Us</a>
-        </nav>
-        
+    <a href="index.php" class="active">Home</a>
+    <a href="events.php">Events</a>
+    <a href="shop.html">Shop</a>
+    <a href="trading.php">Trading</a>
+    <a href="news.php">News</a>
+    <a href="reclamation.php">Support</a>
+    <a href="contact_us.php">New Request</a>
+    <a href="public_reclamations.php"><i class="fas fa-star"></i> Public Evaluations</a>
+    <a href="about.php">About Us</a>
+</nav>
+
         <div class="header-right">
             <div class="user-dropdown" id="userDropdown">
                 <div class="username-display">
@@ -474,37 +492,37 @@ if ($currentUser->getImage()) {
                     <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
                     <i class="fas fa-chevron-down"></i>
                 </div>
-                
+
                 <div class="dropdown-menu">
                     <a href="profile.php" class="dropdown-item">
                         <i class="fas fa-user"></i>
                         <span>My Profile</span>
                     </a>
-                    
+
                     <a href="tradehis.php" class="dropdown-item">
                         <i class="fas fa-history"></i>
                         <span>History</span>
                     </a>
-                    
-                    <?php 
+
+                    <?php
                     $userRole = strtolower($currentUser->getRole());
-                    if ($userRole === 'admin' || $userRole === 'superadmin'): 
-                    ?>
-                    <a href="../back/dashboard.php" class="dropdown-item">
-                        <i class="fas fa-tachometer-alt"></i>
-                        <span>Dashboard</span>
-                    </a>
+                    if ($userRole === 'admin' || $userRole === 'superadmin'):
+                        ?>
+                        <a href="../back/dashboard.php" class="dropdown-item">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Dashboard</span>
+                        </a>
                     <?php endif; ?>
-                    
+
                     <div class="dropdown-divider"></div>
-                    
+
                     <a href="logout.php" class="dropdown-item logout">
                         <i class="fas fa-sign-out-alt"></i>
                         <span>Logout</span>
                     </a>
                 </div>
             </div>
-            
+
             <a href="panier.php" class="cart-icon">
                 <i class="fas fa-shopping-cart"></i> Cart
                 <span class="cart-count">0</span>
@@ -519,16 +537,19 @@ if ($currentUser->getImage()) {
                 <!-- Profile Header -->
                 <div class="profile-header">
                     <?php if ($userImage): ?>
-                        <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Profile Avatar" class="profile-avatar-large">
+                        <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Profile Avatar"
+                            class="profile-avatar-large">
                     <?php else: ?>
-                        <div class="profile-avatar-large" style="display: flex; align-items: center; justify-content: center; background: rgba(255, 122, 0, 0.1);">
+                        <div class="profile-avatar-large"
+                            style="display: flex; align-items: center; justify-content: center; background: rgba(255, 122, 0, 0.1);">
                             <i class="fas fa-user-circle" style="font-size: 80px; color: #ff7a00;"></i>
                         </div>
                     <?php endif; ?>
                     <div class="profile-info">
                         <h1 class="profile-username"><?php echo htmlspecialchars($currentUser->getUsername()); ?></h1>
                         <p class="profile-email"><?php echo htmlspecialchars($currentUser->getEmail()); ?></p>
-                        <span class="profile-role"><i class="fas fa-gamepad"></i> <?php echo htmlspecialchars($currentUser->getRole()); ?></span>
+                        <span class="profile-role"><i class="fas fa-gamepad"></i>
+                            <?php echo htmlspecialchars($currentUser->getRole()); ?></span>
                         <div class="profile-actions">
                             <a href="edit_profile.php" class="btn-edit-profile">
                                 <i class="fas fa-edit"></i> Edit Profile
@@ -540,30 +561,31 @@ if ($currentUser->getImage()) {
                 <!-- Profile Details -->
                 <div class="profile-details">
                     <h2 class="detail-title"><i class="fas fa-info-circle"></i> Account Information</h2>
-                    
+
                     <div class="detail-row">
                         <div class="detail-label"><i class="fas fa-user"></i> Username:</div>
                         <div class="detail-value"><?php echo htmlspecialchars($currentUser->getUsername()); ?></div>
                     </div>
-                    
+
                     <div class="detail-row">
                         <div class="detail-label"><i class="fas fa-envelope"></i> Email:</div>
                         <div class="detail-value"><?php echo htmlspecialchars($currentUser->getEmail()); ?></div>
                     </div>
-                    
+
                     <div class="detail-row">
                         <div class="detail-label"><i class="fas fa-calendar"></i> Date of Birth:</div>
                         <div class="detail-value"><?php echo htmlspecialchars($currentUser->getDob()); ?></div>
                     </div>
-                    
+
                     <div class="detail-row">
                         <div class="detail-label"><i class="fas fa-user-tag"></i> Role:</div>
                         <div class="detail-value"><?php echo htmlspecialchars($currentUser->getRole()); ?></div>
                     </div>
-                    
+
                     <div class="detail-row">
                         <div class="detail-label"><i class="fas fa-id-badge"></i> Member ID:</div>
-                        <div class="detail-value">#<?php echo str_pad($currentUser->getId(), 6, '0', STR_PAD_LEFT); ?></div>
+                        <div class="detail-value">#<?php echo str_pad($currentUser->getId(), 6, '0', STR_PAD_LEFT); ?>
+                        </div>
                     </div>
 
                     <!-- Delete Profile Section -->
@@ -592,7 +614,8 @@ if ($currentUser->getImage()) {
             </div>
             <div class="footer-section">
                 <h4>Back to Top</h4>
-                <a href="#" class="back-to-top-link" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;">
+                <a href="#" class="back-to-top-link"
+                    onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;">
                     <i class="fas fa-arrow-up"></i> Scroll to Top
                 </a>
             </div>
@@ -621,7 +644,8 @@ if ($currentUser->getImage()) {
     <div class="delete-modal" id="deleteModal">
         <div class="delete-box">
             <h3><i class="fas fa-exclamation-triangle"></i> Delete Account?</h3>
-            <p>This action cannot be undone. This will permanently delete your account and remove all your data from our servers.</p>
+            <p>This action cannot be undone. This will permanently delete your account and remove all your data from our
+                servers.</p>
             <div class="warning-text">
                 <i class="fas fa-skull-crossbones"></i> All your data will be lost forever!
             </div>
@@ -638,33 +662,33 @@ if ($currentUser->getImage()) {
 
     <script>
         // Dropdown Menu Toggle
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const userDropdown = document.getElementById('userDropdown');
-            
+
             if (userDropdown) {
                 const usernameDisplay = userDropdown.querySelector('.username-display');
-                
+
                 // Toggle dropdown on click
-                usernameDisplay.addEventListener('click', function(e) {
+                usernameDisplay.addEventListener('click', function (e) {
                     e.stopPropagation();
                     userDropdown.classList.toggle('active');
                 });
-                
+
                 // Close dropdown when clicking outside
-                document.addEventListener('click', function(e) {
+                document.addEventListener('click', function (e) {
                     if (!userDropdown.contains(e.target)) {
                         userDropdown.classList.remove('active');
                     }
                 });
-                
+
                 // Close dropdown when pressing Escape
-                document.addEventListener('keydown', function(e) {
+                document.addEventListener('keydown', function (e) {
                     if (e.key === 'Escape') {
                         userDropdown.classList.remove('active');
                     }
                 });
             }
-            
+
             // Update cart count from localStorage
             const cart = JSON.parse(localStorage.getItem('cart')) || [];
             const cartCount = document.querySelector('.cart-count');
@@ -680,19 +704,19 @@ if ($currentUser->getImage()) {
         const cancelDelete = document.getElementById('cancelDelete');
 
         if (deleteBtn) {
-            deleteBtn.addEventListener('click', function() {
+            deleteBtn.addEventListener('click', function () {
                 deleteModal.classList.add('show');
             });
         }
 
         if (cancelDelete) {
-            cancelDelete.addEventListener('click', function() {
+            cancelDelete.addEventListener('click', function () {
                 deleteModal.classList.remove('show');
             });
         }
 
         if (confirmDelete) {
-            confirmDelete.addEventListener('click', function() {
+            confirmDelete.addEventListener('click', function () {
                 // Create a form to submit the delete request
                 const form = document.createElement('form');
                 form.method = 'POST';
@@ -703,18 +727,19 @@ if ($currentUser->getImage()) {
         }
 
         // Close modal on outside click
-        deleteModal.addEventListener('click', function(e) {
+        deleteModal.addEventListener('click', function (e) {
             if (e.target === deleteModal) {
                 deleteModal.classList.remove('show');
             }
         });
 
         // Close modal on Escape key
-        document.addEventListener('keydown', function(e) {
+        document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape' && deleteModal.classList.contains('show')) {
                 deleteModal.classList.remove('show');
             }
         });
     </script>
 </body>
+
 </html>

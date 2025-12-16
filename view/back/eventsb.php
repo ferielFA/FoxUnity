@@ -3,6 +3,22 @@ require_once __DIR__ . '/../../controller/EvenementController.php';
 require_once __DIR__ . '/../../controller/ParticipationController.php';
 require_once __DIR__ . '/../../controller/TicketController.php';
 require_once __DIR__ . '/../../controller/CommentController.php';
+require_once __DIR__ . '/../../controller/UserController.php';
+
+// Check if user is logged in
+if (!UserController::isLoggedIn()) {
+  header('Location: ../front/login.php');
+  exit();
+}
+
+$currentUser = UserController::getCurrentUser();
+
+// Get user image
+$userImage = null;
+if ($currentUser && $currentUser->getImage()) {
+  $userImage = '../../view/' . $currentUser->getImage();
+}
+
 
 $eventController = new EvenementController();
 $participationController = new ParticipationController();
@@ -11,9 +27,9 @@ $commentController = new CommentController();
 
 // Handle delete event
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
-    $eventController->supprimer((int)$_POST['id_evenement']);
-    header("Location: eventsb.php");
-    exit;
+  $eventController->supprimer((int) $_POST['id_evenement']);
+  header("Location: eventsb.php");
+  exit;
 }
 
 // Get all events with participant counts
@@ -28,24 +44,26 @@ $totalTickets = $ticketController->countAllTickets();
 $now = new DateTime();
 
 foreach ($evenements as $item) {
-    $event = $item['evenement'];
-    $totalParticipants += $item['nb_participants'];
-    
-    if ($event->getDateFin() < $now) {
-        $expiredEvents++;
-    } else {
-        $upcomingEvents++;
-    }
+  $event = $item['evenement'];
+  $totalParticipants += $item['nb_participants'];
+
+  if ($event->getDateFin() < $now) {
+    $expiredEvents++;
+  } else {
+    $upcomingEvents++;
+  }
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Events Management - Dashboard</title>
   <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
     .events-management {
@@ -556,16 +574,22 @@ foreach ($evenements as $item) {
     }
 
     @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
     }
 
     @keyframes slideDown {
-      from { 
+      from {
         opacity: 0;
         transform: translateY(-50px);
       }
-      to { 
+
+      to {
         opacity: 1;
         transform: translateY(0);
       }
@@ -607,13 +631,13 @@ foreach ($evenements as $item) {
       .events-table table {
         min-width: 1100px;
       }
-      
+
       .events-table th,
       .events-table td {
         padding: 12px 8px;
         font-size: 0.85rem;
       }
-      
+
       .event-title-cell {
         max-width: 150px;
       }
@@ -623,13 +647,13 @@ foreach ($evenements as $item) {
       .stat-card {
         padding: 16px;
       }
-      
+
       .stat-icon {
         width: 45px;
         height: 45px;
         font-size: 20px;
       }
-      
+
       .stat-value {
         font-size: 1.6rem;
       }
@@ -672,7 +696,11 @@ foreach ($evenements as $item) {
     <a href="tradingb.php">Trade History</a>
     <a href="eventsb.php" class="active">Events</a>
     <a href="news_admin.php">News</a>
-    <a href="#">Support</a>
+    <a href="news_history.php" id="news-history-link">News History</a>
+    <a href="categories.php" id="categories-link">Categories</a>
+    <a href="newsletter_admin.php" id="newsletter-link">Newsletter</a>
+    <a href="reclamback.php">Support</a>
+    <a href="evaluations_publiques.php">Évaluations Publiques</a>
     <a href="../front/index.php">← Return Homepage</a>
   </div>
 
@@ -685,9 +713,30 @@ foreach ($evenements as $item) {
           <i class="fas fa-language"></i>
           <span id="currentLang">FR</span>
         </button>
-        <div class="user">
-          <img src="../images/fery.jpg" alt="User Avatar">
-          <span>FoxLeader</span>
+        <div class="admin-dropdown" id="adminDropdown">
+          <div class="user admin-user">
+            <?php if ($userImage): ?>
+              <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
+            <?php else: ?>
+              <i class="fas fa-user-circle"></i>
+            <?php endif; ?>
+            <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+
+          <div class="admin-dropdown-menu">
+            <a href="admin-profile.php" class="dropdown-item">
+              <i class="fas fa-user"></i>
+              <span>My Profile</span>
+            </a>
+
+            <div class="dropdown-divider"></div>
+
+            <a href="../front/logout.php" class="dropdown-item logout">
+              <i class="fas fa-sign-out-alt"></i>
+              <span>Logout</span>
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -711,7 +760,8 @@ foreach ($evenements as $item) {
               <i class="fas fa-calendar-check"></i>
             </div>
             <div class="stat-content">
-              <div class="stat-label" data-lang-en="Upcoming Events" data-lang-fr="Événements À Venir">Upcoming Events</div>
+              <div class="stat-label" data-lang-en="Upcoming Events" data-lang-fr="Événements À Venir">Upcoming Events
+              </div>
               <div class="stat-value"><?= $upcomingEvents ?></div>
             </div>
           </div>
@@ -721,7 +771,8 @@ foreach ($evenements as $item) {
               <i class="fas fa-calendar-times"></i>
             </div>
             <div class="stat-content">
-              <div class="stat-label" data-lang-en="Expired Events" data-lang-fr="Événements Expirés">Expired Events</div>
+              <div class="stat-label" data-lang-en="Expired Events" data-lang-fr="Événements Expirés">Expired Events
+              </div>
               <div class="stat-value"><?= $expiredEvents ?></div>
             </div>
           </div>
@@ -731,7 +782,8 @@ foreach ($evenements as $item) {
               <i class="fas fa-users"></i>
             </div>
             <div class="stat-content">
-              <div class="stat-label" data-lang-en="Total Participants" data-lang-fr="Total Participants">Total Participants</div>
+              <div class="stat-label" data-lang-en="Total Participants" data-lang-fr="Total Participants">Total
+                Participants</div>
               <div class="stat-value"><?= $totalParticipants ?></div>
             </div>
           </div>
@@ -759,9 +811,12 @@ foreach ($evenements as $item) {
                 <th data-lang-en="Location" data-lang-fr="Lieu" style="min-width: 120px;">Location</th>
                 <th data-lang-en="Start Date" data-lang-fr="Date Début" style="min-width: 120px;">Start Date</th>
                 <th data-lang-en="End Date" data-lang-fr="Date Fin" style="min-width: 120px;">End Date</th>
-                <th data-lang-en="Participants" data-lang-fr="Participants" style="text-align: center; min-width: 80px;">Participants</th>
-                <th data-lang-en="Tickets" data-lang-fr="Tickets" style="text-align: center; min-width: 80px;">Tickets</th>
-                <th data-lang-en="Comments" data-lang-fr="Commentaires" style="text-align: center; min-width: 80px;">Comments</th>
+                <th data-lang-en="Participants" data-lang-fr="Participants"
+                  style="text-align: center; min-width: 80px;">Participants</th>
+                <th data-lang-en="Tickets" data-lang-fr="Tickets" style="text-align: center; min-width: 80px;">Tickets
+                </th>
+                <th data-lang-en="Comments" data-lang-fr="Commentaires" style="text-align: center; min-width: 80px;">
+                  Comments</th>
                 <th data-lang-en="Status" data-lang-fr="Statut" style="text-align: center; min-width: 90px;">Status</th>
                 <th data-lang-en="Actions" data-lang-fr="Actions" style="min-width: 150px;">Actions</th>
               </tr>
@@ -772,16 +827,18 @@ foreach ($evenements as $item) {
                   <td colspan="9">
                     <div class="empty-state">
                       <i class="fas fa-calendar-times"></i>
-                      <p data-lang-en="No events found. Create a new event from the frontend." data-lang-fr="Aucun événement trouvé. Créez un nouvel événement depuis le frontend.">No events found. Create a new event from the frontend.</p>
+                      <p data-lang-en="No events found. Create a new event from the frontend."
+                        data-lang-fr="Aucun événement trouvé. Créez un nouvel événement depuis le frontend.">No events
+                        found. Create a new event from the frontend.</p>
                     </div>
                   </td>
                 </tr>
               <?php else: ?>
-                <?php foreach ($evenements as $item): 
+                <?php foreach ($evenements as $item):
                   $event = $item['evenement'];
                   $nbParticipants = $item['nb_participants'];
                   $now = new DateTime();
-                  
+
                   // Determine status
                   if ($event->getDateFin() < $now) {
                     $statusClass = 'status-expired';
@@ -790,49 +847,56 @@ foreach ($evenements as $item) {
                     $statusClass = 'status-available';
                     $statusLabel = 'Available';
                   }
-                ?>
-                <tr>
-                  <td class="event-title-cell" title="<?= htmlspecialchars($event->getTitre()) ?>"><?= htmlspecialchars($event->getTitre()) ?></td>
-                  <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<?= htmlspecialchars($event->getLieu()) ?>"><?= htmlspecialchars($event->getLieu()) ?></td>
-                  <td style="white-space: nowrap;"><?= $event->getDateDebut()->format('d/m/Y H:i') ?></td>
-                  <td style="white-space: nowrap;"><?= $event->getDateFin()->format('d/m/Y H:i') ?></td>
-                  <td style="text-align: center;"><?= $nbParticipants ?></td>
-                  <td style="text-align: center;">
-                    <?php 
+                  ?>
+                  <tr>
+                    <td class="event-title-cell" title="<?= htmlspecialchars($event->getTitre()) ?>">
+                      <?= htmlspecialchars($event->getTitre()) ?>
+                    </td>
+                    <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                      title="<?= htmlspecialchars($event->getLieu()) ?>"><?= htmlspecialchars($event->getLieu()) ?></td>
+                    <td style="white-space: nowrap;"><?= $event->getDateDebut()->format('d/m/Y H:i') ?></td>
+                    <td style="white-space: nowrap;"><?= $event->getDateFin()->format('d/m/Y H:i') ?></td>
+                    <td style="text-align: center;"><?= $nbParticipants ?></td>
+                    <td style="text-align: center;">
+                      <?php
                       $ticketCount = $ticketController->countTicketsByEvent($event->getIdEvenement());
-                    ?>
-                    <span class="ticket-badge" onclick="showTicketsModal(<?= $event->getIdEvenement() ?>, '<?= htmlspecialchars($event->getTitre(), ENT_QUOTES) ?>')">
-                      <i class="fas fa-ticket-alt"></i> <?= $ticketCount ?>
-                    </span>
-                  </td>
-                  <td style="text-align: center;">
-                    <?php 
+                      ?>
+                      <span class="ticket-badge"
+                        onclick="showTicketsModal(<?= $event->getIdEvenement() ?>, '<?= htmlspecialchars($event->getTitre(), ENT_QUOTES) ?>')">
+                        <i class="fas fa-ticket-alt"></i> <?= $ticketCount ?>
+                      </span>
+                    </td>
+                    <td style="text-align: center;">
+                      <?php
                       $commentCount = $commentController->countEventComments($event->getIdEvenement());
                       $ratingStats = $commentController->getEventRatingStats($event->getIdEvenement());
-                    ?>
-                    <a href="event_comments.php?id=<?= $event->getIdEvenement() ?>" class="comment-badge" style="text-decoration: none; cursor: pointer;">
-                      <i class="fas fa-comments"></i> <?= $commentCount ?>
-                      <?php if ($ratingStats['average'] > 0): ?>
-                        <span style="color: #f5c242; font-size: 0.9em;"> (<?= $ratingStats['average'] ?>★)</span>
-                      <?php endif; ?>
-                    </a>
-                  </td>
-                  <td style="text-align: center;"><span class="status-badge <?= $statusClass ?>"><?= $statusLabel ?></span></td>
-                  <td>
-                    <div class="action-buttons">
-                      <a href="event_comments.php?id=<?= $event->getIdEvenement() ?>" class="btn-action">
-                        <i class="fas fa-comments"></i> <span data-lang-en="Comments" data-lang-fr="Commentaires">Comments</span>
+                      ?>
+                      <a href="event_comments.php?id=<?= $event->getIdEvenement() ?>" class="comment-badge"
+                        style="text-decoration: none; cursor: pointer;">
+                        <i class="fas fa-comments"></i> <?= $commentCount ?>
+                        <?php if ($ratingStats['average'] > 0): ?>
+                          <span style="color: #f5c242; font-size: 0.9em;"> (<?= $ratingStats['average'] ?>★)</span>
+                        <?php endif; ?>
                       </a>
-                      <form method="POST" style="display:inline;" onsubmit="return confirmDelete();">
-                        <input type="hidden" name="action" value="delete">
-                        <input type="hidden" name="id_evenement" value="<?= $event->getIdEvenement() ?>">
-                        <button type="submit" class="btn-action delete">
-                          <i class="fas fa-trash"></i> <span data-lang-en="Delete" data-lang-fr="Supprimer">Delete</span>
-                        </button>
-                      </form>
-                    </div>
-                  </td>
-                </tr>
+                    </td>
+                    <td style="text-align: center;"><span
+                        class="status-badge <?= $statusClass ?>"><?= $statusLabel ?></span></td>
+                    <td>
+                      <div class="action-buttons">
+                        <a href="event_comments.php?id=<?= $event->getIdEvenement() ?>" class="btn-action">
+                          <i class="fas fa-comments"></i> <span data-lang-en="Comments"
+                            data-lang-fr="Commentaires">Comments</span>
+                        </a>
+                        <form method="POST" style="display:inline;" onsubmit="return confirmDelete();">
+                          <input type="hidden" name="action" value="delete">
+                          <input type="hidden" name="id_evenement" value="<?= $event->getIdEvenement() ?>">
+                          <button type="submit" class="btn-action delete">
+                            <i class="fas fa-trash"></i> <span data-lang-en="Delete" data-lang-fr="Supprimer">Delete</span>
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
                 <?php endforeach; ?>
               <?php endif; ?>
             </tbody>
@@ -878,7 +942,7 @@ foreach ($evenements as $item) {
 
       // Update all elements with language attributes
       document.querySelectorAll('[data-lang-en]').forEach(element => {
-        const text = currentLanguage === 'en' 
+        const text = currentLanguage === 'en'
           ? element.getAttribute('data-lang-en')
           : element.getAttribute('data-lang-fr');
         element.textContent = text;
@@ -895,7 +959,7 @@ foreach ($evenements as $item) {
     }
 
     function confirmDelete() {
-      const message = currentLanguage === 'en' 
+      const message = currentLanguage === 'en'
         ? 'Are you sure you want to delete this event?'
         : 'Êtes-vous sûr de vouloir supprimer cet événement ?';
       return confirm(message);
@@ -943,7 +1007,7 @@ foreach ($evenements as $item) {
 
       modalTitle.textContent = titles[type][currentLanguage];
 
-      switch(type) {
+      switch (type) {
         case 'total':
           loadAllEvents();
           break;
@@ -968,7 +1032,7 @@ foreach ($evenements as $item) {
     }
 
     // Close modal when clicking outside
-    document.getElementById('eventModal').addEventListener('click', function(e) {
+    document.getElementById('eventModal').addEventListener('click', function (e) {
       if (e.target === this) {
         closeModal();
       }
@@ -982,7 +1046,7 @@ foreach ($evenements as $item) {
       try {
         const response = await fetch('get_events_data.php?type=all');
         const data = await response.json();
-        
+
         if (data.length === 0) {
           const noEventsText = currentLanguage === 'en' ? 'No events found.' : 'Aucun événement trouvé.';
           modalBody.innerHTML = `<p style="text-align:center; color:#969696;">${noEventsText}</p>`;
@@ -993,7 +1057,7 @@ foreach ($evenements as $item) {
         data.forEach(event => {
           const statusText = currentLanguage === 'en' ? event.status : (event.status === 'Available' ? 'Disponible' : 'Expiré');
           const participantsText = currentLanguage === 'en' ? 'participants' : 'participants';
-          
+
           html += `
             <div class="event-card-modal">
               <h3>${event.title}</h3>
@@ -1033,7 +1097,7 @@ foreach ($evenements as $item) {
       try {
         const response = await fetch('get_events_data.php?type=upcoming');
         const data = await response.json();
-        
+
         if (data.length === 0) {
           const noEventsText = currentLanguage === 'en' ? 'No upcoming events found.' : 'Aucun événement à venir trouvé.';
           modalBody.innerHTML = `<p style="text-align:center; color:#969696;">${noEventsText}</p>`;
@@ -1044,7 +1108,7 @@ foreach ($evenements as $item) {
         data.forEach(event => {
           const statusText = currentLanguage === 'en' ? event.status : (event.status === 'Available' ? 'Disponible' : 'Expiré');
           const participantsText = currentLanguage === 'en' ? 'participants' : 'participants';
-          
+
           html += `
             <div class="event-card-modal">
               <h3>${event.title}</h3>
@@ -1084,7 +1148,7 @@ foreach ($evenements as $item) {
       try {
         const response = await fetch('get_events_data.php?type=expired');
         const data = await response.json();
-        
+
         if (data.length === 0) {
           const noEventsText = currentLanguage === 'en' ? 'No expired events found.' : 'Aucun événement expiré trouvé.';
           modalBody.innerHTML = `<p style="text-align:center; color:#969696;">${noEventsText}</p>`;
@@ -1095,7 +1159,7 @@ foreach ($evenements as $item) {
         data.forEach(event => {
           const statusText = currentLanguage === 'en' ? event.status : (event.status === 'Available' ? 'Disponible' : 'Expiré');
           const participantsText = currentLanguage === 'en' ? 'participants' : 'participants';
-          
+
           html += `
             <div class="event-card-modal">
               <h3>${event.title}</h3>
@@ -1135,7 +1199,7 @@ foreach ($evenements as $item) {
       try {
         const response = await fetch('get_participants.php');
         const data = await response.json();
-        
+
         if (data.length === 0) {
           const noParticipantsText = currentLanguage === 'en' ? 'No participants found.' : 'Aucun participant trouvé.';
           modalBody.innerHTML = `<p style="text-align:center; color:#969696;">${noParticipantsText}</p>`;
@@ -1163,7 +1227,7 @@ foreach ($evenements as $item) {
                 <i class="fas fa-calendar-alt"></i> ${eventTitle}
               </div>
           `;
-          
+
           groupedData[eventTitle].forEach(participant => {
             html += `
               <div class="participant-item">
@@ -1182,7 +1246,7 @@ foreach ($evenements as $item) {
               </div>
             `;
           });
-          
+
           html += '</div>';
         });
 
@@ -1225,8 +1289,8 @@ foreach ($evenements as $item) {
         tickets.forEach(ticket => {
           const statusClass = `ticket-status-${ticket.status}`;
           const statusText = ticket.status === 'active' ? (currentLanguage === 'en' ? 'Active' : 'Actif') :
-                           ticket.status === 'used' ? (currentLanguage === 'en' ? 'Used' : 'Utilisé') :
-                           (currentLanguage === 'en' ? 'Cancelled' : 'Annulé');
+            ticket.status === 'used' ? (currentLanguage === 'en' ? 'Used' : 'Utilisé') :
+              (currentLanguage === 'en' ? 'Cancelled' : 'Annulé');
 
           html += `
             <div class="ticket-item">
@@ -1307,8 +1371,8 @@ foreach ($evenements as $item) {
         tickets.forEach(ticket => {
           const statusClass = `ticket-status-${ticket.status}`;
           const statusText = ticket.status === 'active' ? (currentLanguage === 'en' ? 'Active' : 'Actif') :
-                           ticket.status === 'used' ? (currentLanguage === 'en' ? 'Used' : 'Utilisé') :
-                           (currentLanguage === 'en' ? 'Cancelled' : 'Annulé');
+            ticket.status === 'used' ? (currentLanguage === 'en' ? 'Used' : 'Utilisé') :
+              (currentLanguage === 'en' ? 'Cancelled' : 'Annulé');
 
           html += `
             <div class="ticket-item">
@@ -1343,7 +1407,31 @@ foreach ($evenements as $item) {
         modalBody.innerHTML = `<p style="text-align:center; color:#ff6b6b;">${errorText}</p>`;
       }
     }
+    // Admin Dropdown Logic
+    const adminDropdown = document.getElementById('adminDropdown');
+    if (adminDropdown) {
+      const adminUser = adminDropdown.querySelector('.admin-user');
+      if (adminUser) {
+        adminUser.addEventListener('click', function(e) {
+          e.stopPropagation();
+          adminDropdown.classList.toggle('active');
+        });
+      }
+      
+      document.addEventListener('click', function(e) {
+        if (!adminDropdown.contains(e.target)) {
+          adminDropdown.classList.remove('active');
+        }
+      });
+      
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          adminDropdown.classList.remove('active');
+        }
+      });
+    }
   </script>
-  
+
 </body>
+
 </html>

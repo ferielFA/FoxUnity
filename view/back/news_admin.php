@@ -168,7 +168,7 @@ $commentsDir = __DIR__ . '/uploads/comments';
   <div class="sidebar">
     <img src="../images/Nine__1_-removebg-preview.png" alt="Nine Tailed Fox Logo" class="dashboard-logo">
     <h2>Dashboard</h2>
-    <a href="dashboard.php" class="">Overview</a>
+    <a href="dashboard.php">Overview</a>
     <a href="users.php">Users</a>
     <a href="#">Shop</a>
     <a href="tradingb.php">Trade History</a>
@@ -177,7 +177,8 @@ $commentsDir = __DIR__ . '/uploads/comments';
     <a href="news_history.php" id="news-history-link">News History</a>
     <a href="categories.php" id="categories-link">Categories</a>
     <a href="newsletter_admin.php" id="newsletter-link">Newsletter</a>
-    <a href="#">Support</a>
+    <a href="reclamback.php">Support</a>
+    <a href="evaluations_publiques.php">Évaluations Publiques</a>
     <a href="../front/index.php">← Return Homepage</a>
   </div>
 

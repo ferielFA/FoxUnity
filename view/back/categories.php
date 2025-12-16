@@ -174,7 +174,8 @@ if ($currentUser->getImage()) {
     <a href="news_admin.php">News</a>
     <a href="news_history.php">News History</a>
     <a href="categories.php" class="active">Categories</a>
-    <a href="#">Support</a>
+    <a href="reclamback.php">Support</a>
+    <a href="evaluations_publiques.php">Évaluations Publiques</a>
     <a href="../front/index.php">← Return Homepage</a>
   </div>
 

@@ -11,6 +11,7 @@
     opacity: 0;
     transform: translateY(30px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -18,27 +19,61 @@
 }
 
 @keyframes fadeIn {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
 }
 
 @keyframes glowPulse {
-  0% { box-shadow: 0 0 10px #ff7a00; }
-  50% { box-shadow: 0 0 25px #ff7a00; }
-  100% { box-shadow: 0 0 10px #ff7a00; }
+  0% {
+    box-shadow: 0 0 10px #ff7a00;
+  }
+
+  50% {
+    box-shadow: 0 0 25px #ff7a00;
+  }
+
+  100% {
+    box-shadow: 0 0 10px #ff7a00;
+  }
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 @keyframes darkGradientShift {
-  0% { background-position: 0% 50%; }
-  25% { background-position: 50% 0%; }
-  50% { background-position: 100% 50%; }
-  75% { background-position: 50% 100%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  25% {
+    background-position: 50% 0%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  75% {
+    background-position: 50% 100%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 /* ======== BODY ======== */
@@ -66,8 +101,15 @@ body {
 }
 
 @keyframes fadeInDown {
-  0% { opacity: 0; transform: translateY(-40px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(-40px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .site-logo {
@@ -189,6 +231,42 @@ body {
   align-items: center;
   padding-top: 30px;
   border-right: 2px solid #ff7a00;
+  /* SCROLLER AJOUTÉ */
+  overflow-y: scroll !important;
+  overflow-x: hidden;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  padding-bottom: 20px;
+  scroll-behavior: smooth;
+}
+
+/* Style du scrollbar - Chrome, Edge, Safari */
+.sidebar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 10px;
+  margin: 5px 0;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #ff7a00, #ff9900);
+  border-radius: 10px;
+  border: 2px solid rgba(0, 0, 0, 0.5);
+  transition: background 0.3s ease;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #ff9900, #ffaa00);
+  box-shadow: 0 0 10px #ff7a00;
+}
+
+/* Style pour Firefox */
+.sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: #ff7a00 rgba(0, 0, 0, 0.5);
 }
 
 .sidebar img.dashboard-logo {
@@ -233,6 +311,17 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
+  /* Enable scrolling for main content */
+  height: 100vh;
+  /* Full height to match sidebar */
+}
+
+/* Add spacing to all direct children of main except topbar */
+.main> :not(.topbar) {
+  padding-left: 40px;
+  padding-right: 40px;
+  margin-bottom: 30px;
 }
 
 .topbar {
@@ -328,9 +417,17 @@ body {
 }
 
 @keyframes fadeInOut {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
+
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 1;
+  }
 }
+
 /* ======== FOOTER ======== */
 .site-footer {
   background: #0d0d0d;
@@ -345,4 +442,374 @@ body {
 .site-footer span {
   color: #ff7a00;
   animation: glowPulse 4s infinite ease-in-out;
+}
+
+/* =========================================
+   DASHBOARD SPECIFIC STYLES (Moved from inline)
+   ========================================= */
+
+/* Cards Extra Interaction */
+.card {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(255, 122, 0, 0.3);
+}
+
+.content.overview-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 25px;
+}
+
+/* User Dropdown Menu Styles - COHERENT AVEC USERS.PHP */
+.admin-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.admin-user {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+  padding: 5px 10px;
+  border-radius: 8px;
+}
+
+.admin-user:hover {
+  background: rgba(255, 122, 0, 0.1);
+}
+
+.admin-user img {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #ff7a00;
+}
+
+.admin-user i.fa-user-circle {
+  font-size: 35px;
+  color: #ff7a00;
+}
+
+.admin-user span {
+  color: #fff;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.admin-user i.fa-chevron-down {
+  font-size: 12px;
+  color: #ff7a00;
+  transition: transform 0.3s ease;
+}
+
+.admin-dropdown.active .admin-user i.fa-chevron-down {
+  transform: rotate(180deg);
+}
+
+.admin-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 10px;
+  background: rgba(20, 20, 20, 0.98);
+  border: 2px solid rgba(255, 122, 0, 0.3);
+  border-radius: 12px;
+  min-width: 200px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.admin-dropdown.active .admin-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.dropdown-item {
+  padding: 12px 15px;
+  color: #fff;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+  border-left: 3px solid transparent;
+}
+
+.dropdown-item:hover {
+  background: rgba(255, 122, 0, 0.1);
+  border-left-color: #ff7a00;
+}
+
+.dropdown-item i {
+  font-size: 16px;
+  color: #ff7a00;
+  width: 20px;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: rgba(255, 122, 0, 0.2);
+  margin: 5px 0;
+}
+
+.dropdown-item.logout {
+  color: #ff4444;
+}
+
+.dropdown-item.logout i {
+  color: #ff4444;
+}
+
+.dropdown-item.logout:hover {
+  background: rgba(255, 68, 68, 0.1);
+  border-left-color: #ff4444;
+}
+
+/* Trading History Styles */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: rgba(255, 122, 0, 0.1);
+  border: 1px solid #ff7a00;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+}
+
+.stat-number {
+  font-size: 2.5em;
+  font-weight: bold;
+  color: #ff7a00;
+  margin: 10px 0;
+  font-family: 'Orbitron', sans-serif;
+}
+
+.stat-label {
+  color: #ccc;
+  font-size: 0.9em;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.trade-history-section {
+  margin: 40px 0;
+  padding: 20px;
+  background: rgba(255, 122, 0, 0.1);
+  border-radius: 12px;
+  border: 1px solid #ff7a00;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 20px;
+}
+
+.history-table th,
+.history-table td {
+  padding: 15px;
+  text-align: left;
+  border-bottom: 1px solid #333;
+}
+
+.history-table th {
+  background: rgba(255, 122, 0, 0.2);
+  color: #fff;
+  font-weight: 600;
+  font-family: 'Orbitron', sans-serif;
+}
+
+.history-table tr:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.history-table tr:last-child td {
+  border-bottom: none;
+}
+
+.action-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.action-created {
+  background: rgba(46, 213, 115, 0.2);
+  color: #2ed573;
+  border: 1px solid #2ed573;
+}
+
+.action-updated {
+  background: rgba(255, 165, 0, 0.2);
+  color: #ffa500;
+  border: 1px solid #ffa500;
+}
+
+.action-deleted {
+  background: rgba(255, 71, 87, 0.2);
+  color: #ff4757;
+  border: 1px solid #ff4757;
+}
+
+.action-finished {
+  background: rgba(0, 123, 255, 0.2);
+  color: #007bff;
+  border: 1px solid #007bff;
+}
+
+.table-container {
+  max-height: 600px;
+  overflow-y: auto;
+  border-radius: 12px;
+}
+
+.no-data {
+  text-align: center;
+  padding: 40px;
+  color: #888;
+}
+
+.search-filter {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.search-filter input,
+.search-filter select {
+  padding: 12px 15px;
+  border-radius: 8px;
+  border: 1px solid #333;
+  background: #1a1a1a;
+  color: #fff;
+  min-width: 200px;
+  font-family: 'Poppins', sans-serif;
+}
+
+.search-filter input:focus,
+.search-filter select:focus {
+  outline: none;
+  border-color: #ff7a00;
+}
+
+.price {
+  color: #ff7a00;
+  font-weight: bold;
+  font-family: 'Orbitron', sans-serif;
+}
+
+.username {
+  color: #4fc3f7;
+  font-weight: 600;
+}
+
+.section-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2em;
+  margin-bottom: 20px;
+  color: #fff;
+  text-align: center;
+}
+
+.section-title span {
+  color: #ff7a00;
+}
+
+.history-filter {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.history-filter button {
+  background: #333;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.3s;
+  font-family: 'Poppins', sans-serif;
+}
+
+.history-filter button.active {
+  background: #ff7a00;
+  color: #000;
+  font-weight: 600;
+}
+
+.history-filter button:hover:not(.active) {
+  background: #555;
+}
+
+.skin-game {
+  text-transform: capitalize;
+  font-weight: 600;
+}
+
+.skin-game.valorant {
+  color: #ff4655;
+}
+
+.skin-game.cs2 {
+  color: #f9a602;
+}
+
+.skin-game.fortnite {
+  color: #5bc0f8;
+}
+
+.skin-game.apex {
+  color: #ea4335;
+}
+
+.skin-game.custom {
+  color: #9c27b0;
+}
+
+.value-note {
+  text-align: center;
+  color: #888;
+  font-size: 0.9em;
+  margin-top: 10px;
+  font-style: italic;
+}
+
+.stat-note {
+  text-align: center;
+  color: #888;
+  font-size: 0.8em;
+  margin-top: 5px;
+  font-style: italic;
 }
