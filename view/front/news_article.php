@@ -4,6 +4,19 @@
 // Uses NewsArticleController (MVC)
 
 require_once __DIR__ . '/../../controller/NewsArticleController.php';
+require_once __DIR__ . '/../../controller/UserController.php';
+
+$isLoggedIn = UserController::isLoggedIn();
+$currentUser = null;
+
+if ($isLoggedIn) {
+    $currentUser = UserController::getCurrentUser();
+}
+
+$userImage = null;
+if ($currentUser && $currentUser->getImage()) {
+    $userImage = '../../view/' . $currentUser->getImage();
+}
 
 // NewsArticleController ($__newsArticleController) already handles:
 // - 404 check
@@ -56,8 +69,11 @@ if (strpos($img, 'http') === 0) {
     <meta property="og:description" content="<?php echo htmlspecialchars($a['summary'] ?? $a['excerpt'] ?? ''); ?>" />
     <meta property="og:image" content="<?php echo htmlspecialchars($ogImage); ?>" />
 </head>
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
+=======
+>>>>>>> 1a0165571eb6996c378fbe1752f04eaedfe9c7d6
     <style>
         /* User Dropdown Menu Styles - LARGE PHOTO LIKE PROFILE.PHP */
         .user-dropdown {
@@ -271,8 +287,12 @@ if (strpos($img, 'http') === 0) {
         .comment-item {
             display: flex;
             gap: 15px;
+<<<<<<< HEAD
             margin-bottom: 18px;
             align-items: flex-start;
+=======
+            margin-bottom: 20px;
+>>>>>>> 1a0165571eb6996c378fbe1752f04eaedfe9c7d6
         }
 
         .comment-avatar {
@@ -305,6 +325,7 @@ if (strpos($img, 'http') === 0) {
             flex: 1;
         }
 
+<<<<<<< HEAD
         .comment-card {
             background:#111;
             padding:12px 14px;
@@ -334,6 +355,8 @@ if (strpos($img, 'http') === 0) {
             font-size:0.9rem;
         }
 
+=======
+>>>>>>> 1a0165571eb6996c378fbe1752f04eaedfe9c7d6
         /* Comment Action Buttons */
         .comment-actions {
             display: flex;
@@ -484,7 +507,10 @@ if (strpos($img, 'http') === 0) {
         }
     </style>
 </head>
+<<<<<<< HEAD
 >>>>>>> Stashed changes
+=======
+>>>>>>> 1a0165571eb6996c378fbe1752f04eaedfe9c7d6
 <body>
   <!-- Bulles animées rouges -->
   <div class="bubbles">
@@ -506,21 +532,72 @@ if (strpos($img, 'http') === 0) {
     
     <nav class="site-nav">
       <a href="http://localhost/projet_web/view/front/index.php">Home</a>
-      <a href="../front/events.html">Events</a>
-      <a href="../front/shop.html">Shop</a>
-      <a href="../front/trading.html">Trading</a>
+      <a href="events.php">Events</a>
+      <a href="shop.html">Shop</a>
+      <a href="trading.php">Trading</a>
       <a href="news.php" class="active">News</a>
-      <a href="../front/reclamation.html">Support</a>
-      <a href="../front/about.html">About Us</a>
+      <a href="reclamation.html">Support</a>
+      <a href="about.php">About Us</a>
     </nav>
     
     <div class="header-right">
-      <a href="../front/login.html" class="login-register-link">
-        <i class="fas fa-user"></i> Login / Register
-      </a>
-      <a href="../front/profile.html" class="profile-icon">
-        <i class="fas fa-user-circle"></i>
-      </a>
+            <div class="user-dropdown" id="userDropdown">
+                <div class="username-display">
+                    <?php if ($isLoggedIn && $currentUser): ?>
+                        <?php if ($userImage): ?>
+                            <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Profile">
+                        <?php else: ?>
+                            <i class="fas fa-user-circle"></i>
+                        <?php endif; ?>
+                        <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
+                    <?php else: ?>
+                        <i class="fas fa-user-circle"></i>
+                        <span>Guest</span>
+                    <?php endif; ?>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                
+                <div class="dropdown-menu">
+                    <?php if ($isLoggedIn && $currentUser): ?>
+                    <a href="profile.php" class="dropdown-item">
+                        <i class="fas fa-user"></i>
+                        <span>My Profile</span>
+                    </a>
+                    
+                    <a href="tradehis.php" class="dropdown-item">
+                        <i class="fas fa-history"></i>
+                        <span>History</span>
+                    </a>
+                    
+                    <?php 
+                    $userRole = strtolower($currentUser->getRole());
+                    if ($userRole === 'admin' || $userRole === 'superadmin'): 
+                    ?>
+                    <a href="../back/dashboard.php" class="dropdown-item">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <?php endif; ?>
+                    
+                    <div class="dropdown-divider"></div>
+                    
+                    <a href="logout.php" class="dropdown-item logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </a>
+                    <?php else: ?>
+                    <a href="login.php" class="dropdown-item">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>Login/Register</span>
+                    </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+            
+            <a href="panier.php" class="cart-icon">
+                <i class="fas fa-shopping-cart"></i> Cart
+                <span class="cart-count">0</span>
+            </a>
     </div>
   </header>
 
@@ -609,11 +686,6 @@ if (strpos($img, 'http') === 0) {
         }
         ?>
       </div>
-        <?php if (!empty($tocHtml)): ?>
-        <aside class="toc-container">
-          <?php echo $tocHtml; ?>
-        </aside>
-        <?php endif; ?>
       
       <!-- Comments -->
       <div id="comments" class="comments-section" style="max-width:900px;margin:0 auto 60px;padding:0 40px">
@@ -637,7 +709,8 @@ if (strpos($img, 'http') === 0) {
                <input type="radio" id="star1" name="rating" value="1" /><label for="star1" title="1 star"></label>
              </div>
           </div>
-          <input type="text" name="name" placeholder="Your name" style="width:100%;padding:8px;margin:6px 0;border-radius:4px;border:1px solid #333;background:#0b0b0b;color:#fff">
+          <input type="text" name="name" placeholder="Your name" value="<?php echo $isLoggedIn && $currentUser ? htmlspecialchars($currentUser->getUsername()) : ''; ?>" <?php echo $isLoggedIn && $currentUser ? 'readonly' : ''; ?> style="width:100%;padding:8px;margin:6px 0;border-radius:4px;border:1px solid #333;background:#0b0b0b;color:#fff">
+          <input type="hidden" name="email" value="<?php echo $isLoggedIn && $currentUser ? htmlspecialchars($currentUser->getEmail()) : 'guest@foxunity.com'; ?>">
           <textarea name="comment" rows="4" placeholder="Your comment" style="width:100%;padding:8px;margin:6px 0;border-radius:4px;border:1px solid #333;background:#0b0b0b;color:#fff"></textarea>
           <button type="submit" name="comment_submit" style="background:#ff9900;color:#000;padding:8px 12px;border-radius:6px;border:0;cursor:pointer;font-weight:600">Post Comment</button>
         </form>
@@ -648,8 +721,6 @@ if (strpos($img, 'http') === 0) {
           </div>
         <?php endif; ?>
 
-<<<<<<< Updated upstream
-=======
         <?php
 
         // Helper function to render comments recursively
@@ -766,40 +837,179 @@ if (strpos($img, 'http') === 0) {
         <?php
         }
         ?>
-
->>>>>>> Stashed changes
         <?php if (empty($comments)): ?>
           <p style="color:#bbb;margin:8px 0">Be the first to comment on this article.</p>
         <?php else: ?>
           <?php foreach ($comments as $c): ?>
-<<<<<<< Updated upstream
-            <div class="comment" style="background:#111;padding:12px;border-radius:8px;margin-bottom:10px">
-              <div class="comment-header" style="display:flex;justify-content:space-between;align-items:center">
-                <div class="comment-meta" style="font-weight:700;color:#fff">
-                <?php echo htmlspecialchars($c['name']); ?>
-                <?php if(($c['sentiment'] ?? 'neutral') === 'positive'): ?>
-                  <span title="Positive Vibes" style="margin-left:8px; background:rgba(40,167,69,0.2); color:#28a745; padding:2px 6px; border-radius:4px; font-size:0.75rem;">
-                    <i class="fas fa-heart"></i> Positive Vibes
-                  </span>
-                <?php endif; ?>
-                <span class="comment-date" style="font-weight:400;color:#999;margin-left:8px;font-size:0.9rem"><?php echo htmlspecialchars($c['date']); ?></span>
-              </div>
-              <?php if (!empty($c['rating'])): ?>
-                <div style="color:#ffc107;font-size:0.9rem">
-                  <?php for($i=1; $i<=5; $i++) echo $i <= $c['rating'] ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>'; ?>
-                </div>
-              <?php endif; ?>
-              </div>
-              <div class="comment-text" style="margin-top:8px;color:#ddd"><?php echo nl2br(htmlspecialchars($c['text'])); ?></div>
-            </div>
-=======
             <?php renderComment($c, $isLoggedIn, $currentUser); ?>
->>>>>>> Stashed changes
           <?php endforeach; ?>
         <?php endif; ?>
 
 
       </div>
+
+  <script>
+    // Social Sharing Functions
+    function shareOnTwitter() {
+      const url = window.location.href;
+      const title = document.querySelector('h1').textContent;
+      const text = encodeURIComponent(title + ' - FoxUnity Gaming News');
+      window.open('https://twitter.com/intent/tweet?text=' + text + '&url=' + encodeURIComponent(url), '_blank', 'width=600,height=400');
+    }
+
+    function shareOnFacebook() {
+      const url = window.location.href;
+      window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url), '_blank', 'width=600,height=400');
+    }
+
+    function openInstagram() {
+      window.open('https://www.instagram.com/', '_blank');
+    }
+
+    function copyArticleLink(button) {
+      const url = window.location.href;
+      navigator.clipboard.writeText(url).then(function() {
+        const textSpan = button.querySelector('.copy-text');
+        const originalText = textSpan.textContent;
+        textSpan.textContent = 'Copied!';
+        button.classList.add('copied');
+        setTimeout(function() {
+          textSpan.textContent = originalText;
+          button.classList.remove('copied');
+        }, 2000);
+      }).catch(function(err) {
+        alert('Failed to copy link');
+      });
+    }
+
+    // Comment Reply and Edit Functions
+    function toggleReplyForm(commentId) {
+      const replyForm = document.getElementById('reply-form-' + commentId);
+      const allReplyForms = document.querySelectorAll('.reply-form');
+      
+      // Close all other reply forms
+      allReplyForms.forEach(form => {
+        if (form.id !== 'reply-form-' + commentId) {
+          form.classList.remove('active');
+        }
+      });
+      
+      // Toggle current form
+      replyForm.classList.toggle('active');
+    }
+
+    function cancelReply(commentId) {
+      const replyForm = document.getElementById('reply-form-' + commentId);
+      const replyText = document.getElementById('reply-text-' + commentId);
+      replyForm.classList.remove('active');
+      replyText.value = '';
+    }
+
+    function submitReply(commentId) {
+      const replyText = document.getElementById('reply-text-' + commentId).value.trim();
+      
+      if (!replyText) {
+        return;
+      }
+      
+      // Get current user name (from the comment form)
+      const userName = document.querySelector('input[name="name"]').value || 'Guest';
+      
+      // Create reply element
+      const repliesContainer = document.getElementById('replies-' + commentId);
+      const replyItem = document.createElement('div');
+      replyItem.className = 'reply-item';
+      
+      const now = new Date();
+      const dateStr = now.getFullYear() + '-' + 
+                      String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                      String(now.getDate()).padStart(2, '0') + ' ' +
+                      String(now.getHours()).padStart(2, '0') + ':' + 
+                      String(now.getMinutes()).padStart(2, '0');
+      
+      replyItem.innerHTML = `
+        <div class="reply-header">
+          <span class="reply-author">${escapeHtml(userName)}</span>
+          <span class="reply-date">${dateStr}</span>
+        </div>
+        <div class="reply-text">${escapeHtml(replyText).replace(/\n/g, '<br>')}</div>
+      `;
+      
+      repliesContainer.appendChild(replyItem);
+      cancelReply(commentId);
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function toggleEditForm(commentId) {
+      const editForm = document.getElementById('edit-form-' + commentId);
+      const commentText = document.querySelector('[data-comment-id="' + commentId + '"]');
+      const allEditForms = document.querySelectorAll('.edit-form');
+      
+      // Close all other edit forms
+      allEditForms.forEach(form => {
+        if (form.id !== 'edit-form-' + commentId) {
+          form.classList.remove('active');
+        }
+      });
+      
+      // Toggle current form
+      if (editForm.classList.contains('active')) {
+        editForm.classList.remove('active');
+        commentText.classList.remove('editing');
+      } else {
+        editForm.classList.add('active');
+        commentText.classList.add('editing');
+      }
+    }
+
+    function cancelEdit(commentId) {
+      const editForm = document.getElementById('edit-form-' + commentId);
+      const commentText = document.querySelector('[data-comment-id="' + commentId + '"]');
+      editForm.classList.remove('active');
+      commentText.classList.remove('editing');
+    }
+
+    function submitEdit(commentId) {
+      const editText = document.getElementById('edit-text-' + commentId).value.trim();
+      
+      if (!editText) {
+        alert('Comment cannot be empty');
+        return;
+      }
+      
+      // Submit edit via form
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = window.location.href;
+      
+      const actionInput = document.createElement('input');
+      actionInput.type = 'hidden';
+      actionInput.name = 'edit_comment';
+      actionInput.value = '1';
+      form.appendChild(actionInput);
+      
+      const idInput = document.createElement('input');
+      idInput.type = 'hidden';
+      idInput.name = 'comment_id';
+      idInput.value = commentId;
+      form.appendChild(idInput);
+      
+      const textInput = document.createElement('input');
+      textInput.type = 'hidden';
+      textInput.name = 'comment_text';
+      textInput.value = editText;
+      form.appendChild(textInput);
+      
+      document.body.appendChild(form);
+      form.submit();
+    }
+  </script>
+
   <?php if ($isAdmin): ?>
   <script>
     // AJAX handlers for admin comment edit/delete/clear
@@ -1148,4 +1358,34 @@ if (strpos($img, 'http') === 0) {
     }
   </style>
 </body>
+<script>
+    // Dropdown Menu Toggle
+    document.addEventListener('DOMContentLoaded', function() {
+        const userDropdown = document.getElementById('userDropdown');
+        
+        if (userDropdown) {
+            const usernameDisplay = userDropdown.querySelector('.username-display');
+            
+            // Toggle dropdown on click
+            usernameDisplay.addEventListener('click', function(e) {
+                e.stopPropagation();
+                userDropdown.classList.toggle('active');
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!userDropdown.contains(e.target)) {
+                    userDropdown.classList.remove('active');
+                }
+            });
+            
+            // Close dropdown when pressing Escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    userDropdown.classList.remove('active');
+                }
+            });
+        }
+    });
+</script>
 </html>

@@ -80,6 +80,15 @@ class NewsletterController {
                 [$ok, $msg] = Subscriber::add($email, $cats);
                 
                 $this->redirectBackToAdmin($ok ? 'Subscription updated successfully.' : $msg, $ok ? 'success' : 'error');
+            } elseif ($action === 'delete_subscriber') {
+                $email = $_POST['email'] ?? '';
+                
+                if (empty($email)) {
+                    $this->redirectBackToAdmin('Email is required.', 'error');
+                }
+                
+                $ok = Subscriber::deleteByEmail($email);
+                $this->redirectBackToAdmin($ok ? 'Subscriber deleted successfully.' : 'Failed to delete subscriber.', $ok ? 'success' : 'error');
             }
         }
     }
