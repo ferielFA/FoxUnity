@@ -98,8 +98,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Handle "Join Event" button click
+// Handle "Join Event" button click - Show confirmation first
 if (isset($_GET['join']) && is_numeric($_GET['join'])) {
+<<<<<<< HEAD
     $selectedEvent = $eventController->lireParId((int) $_GET['join']);
 
     // If user is logged in, automatically register them without showing form
@@ -129,13 +130,56 @@ if (isset($_GET['join']) && is_numeric($_GET['join'])) {
                 $message = '<div class="alert success"><i class="fas fa-check-circle"></i> Registration confirmed! Welcome aboard!</div>';
                 header("Location: events.php?success=1");
                 exit;
+=======
+    $selectedEvent = $eventController->lireParId((int)$_GET['join']);
+    
+    // Check if this is a confirmed join action
+    if (isset($_GET['confirm']) && $_GET['confirm'] === '1') {
+        // User confirmed - proceed with registration
+        if ($isLoggedIn && $currentUser && $selectedEvent) {
+            // Check if already registered
+            $isAlreadyRegistered = $participationController->verifierInscription(
+                $currentUser->getEmail(), 
+                (int)$_GET['join']
+            );
+            
+            if ($isAlreadyRegistered) {
+                $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> You are already registered for this event!</div>';
+>>>>>>> 61a21efec5e20e3e0663e79fe7ec2732b3e77ddb
             } else {
-                $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> Error occurred during registration.</div>';
+                // Register the logged-in user
+                $participation = new Participation(
+                    null,
+                    (int)$_GET['join'],
+                    $currentUser->getId(),
+                    $currentUser->getUsername(),
+                    $currentUser->getEmail(),
+                    new DateTime()
+                );
+                
+                $result = $participationController->inscrire($participation);
+                
+                if ($result) {
+                    $message = '<div class="alert success"><i class="fas fa-check-circle"></i> Registration confirmed! Welcome aboard!</div>';
+                    header("Location: events.php?success=1");
+                    exit;
+                } else {
+                    $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> Error occurred during registration.</div>';
+                }
             }
+        } else {
+            // Show form for non-logged-in users
+            $showParticipationForm = $selectedEvent !== null;
         }
     } else {
-        // Show form only if user is not logged in
-        $showParticipationForm = $selectedEvent !== null;
+        // First click - show participation form/confirmation
+        if ($isLoggedIn && $currentUser) {
+            // For logged-in users, show confirmation modal
+            $showParticipationForm = true;
+        } else {
+            // For non-logged-in users, show form
+            $showParticipationForm = $selectedEvent !== null;
+        }
     }
 }
 
@@ -1380,6 +1424,60 @@ unset($eventItem); // Break reference
                         </form>
                     </div>
                 </div>
+<<<<<<< HEAD
+=======
+
+                <?php if ($isLoggedIn && $currentUser): ?>
+                    <!-- Confirmation for logged-in users -->
+                    <div style="padding: 20px; text-align: center;">
+                        <p style="font-size: 18px; margin-bottom: 20px; color: #333;">
+                            <i class="fas fa-user-check" style="color: #4CAF50; font-size: 48px; display: block; margin-bottom: 15px;"></i>
+                            Do you want to register for this event?
+                        </p>
+                        <p style="color: #666; margin-bottom: 30px;">
+                            <strong>Name:</strong> <?= htmlspecialchars($currentUser->getUsername()) ?><br>
+                            <strong>Email:</strong> <?= htmlspecialchars($currentUser->getEmail()) ?>
+                        </p>
+                        <div class="form-actions">
+                            <a href="events.php?join=<?= $selectedEvent->getIdEvenement() ?>&confirm=1" class="btn-submit" style="text-decoration: none;">
+                                <i class="fas fa-check-circle"></i> <span>Yes, Register Me</span>
+                            </a>
+                            <a href="events.php" class="btn-cancel" style="text-decoration:none; display:flex; align-items:center; justify-content:center;">
+                                <i class="fas fa-times-circle"></i> <span>Cancel</span>
+                            </a>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <!-- Form for non-logged-in users -->
+                    <form method="POST" action="" id="participationForm" novalidate>
+                        <input type="hidden" name="action" value="participate">
+                        <input type="hidden" name="id_evenement" value="<?= $selectedEvent->getIdEvenement() ?>">
+                        
+                        <div class="form-group">
+                            <label for="nom_participant" data-lang-en="Your Name *" data-lang-fr="Votre Nom *">Your Name *</label>
+                            <input type="text" id="nom_participant" name="nom_participant" placeholder="Enter your full name" data-lang-en="Enter your full name" data-lang-fr="Entrez votre nom complet">
+                            <div class="error-message" id="error-nom_participant"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email_participant" data-lang-en="Your Email *" data-lang-fr="Votre Email *">Your Email *</label>
+                            <input type="text" id="email_participant" name="email_participant" placeholder="your.email@example.com" data-lang-en="your.email@example.com" data-lang-fr="votre.email@exemple.com">
+                            <div class="error-message" id="error-email_participant"></div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn-submit" data-lang-en="Confirm Registration" data-lang-fr="Confirmer l'Inscription">
+                                <i class="fas fa-check-circle"></i> <span>Confirm Registration</span>
+                            </button>
+                            <a href="events.php" class="btn-cancel" style="text-decoration:none; display:flex; align-items:center; justify-content:center;" data-lang-en="Cancel" data-lang-fr="Annuler">
+                                <i class="fas fa-times-circle"></i> <span>Cancel</span>
+                            </a>
+                        </div>
+                    </form>
+                <?php endif; ?>
+            </div>
+        </div>
+>>>>>>> 61a21efec5e20e3e0663e79fe7ec2732b3e77ddb
         <?php endif; ?>
 
         <section class="events-section">
@@ -1485,6 +1583,7 @@ unset($eventItem); // Break reference
                                 data-lang-fr="Aucun événement trouvé.">No events found.</p>
                         </div>
                 <?php else: ?>
+<<<<<<< HEAD
                         <?php
                         $eventIndex = 0;
                         foreach ($displayedEvents as $item):
@@ -1550,6 +1649,72 @@ unset($eventItem); // Break reference
                                     </div>
                                 </div>
                         <?php endforeach; ?>
+=======
+                    <?php 
+                    $eventIndex = 0;
+                    foreach ($displayedEvents as $item):
+                        $event = $item['evenement'];
+                        $nbParticipants = $item['nb_participants'];
+                        $statuts = [
+                            'upcoming' => 'À venir',
+                            'ongoing' => 'En cours',
+                            'completed' => 'Terminé',
+                            'cancelled' => 'Annulé'
+                        ];
+                        $eventIndex++;
+                    ?>
+                <div class="event-card event-item" data-event-index="<?= $eventIndex ?>" style="cursor: pointer; <?= $eventIndex > 3 ? 'display: none;' : '' ?>" onclick="window.location.href='event_details.php?id=<?= $event->getIdEvenement() ?>'">
+                    <div class="event-card-content">
+                        <span class="badge badge-<?= $event->getStatut() ?>">
+                            <?= $statuts[$event->getStatut()] ?>
+                        </span>
+                        <div class="event-title"><?= htmlspecialchars($event->getTitre()) ?></div>
+                        <div class="event-meta">
+                            <i class="fas fa-calendar"></i>
+                            <?= $event->getDateDebut()->format('M d, Y - H:i') ?>
+                        </div>
+                        <div class="event-meta">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <?= htmlspecialchars($event->getLieu()) ?>
+                        </div>
+                        <div class="event-description">
+                            <?= htmlspecialchars($event->getDescription()) ?>
+                        </div>
+                    </div>
+                    <div class="event-footer">
+                        <div class="participants-count">
+                            <i class="fas fa-users"></i>
+                            <?= $nbParticipants ?> <span data-lang-en="participants" data-lang-fr="participants">participants</span>
+                        </div>
+                        <?php 
+                        // Check if current user is the event creator
+                        $isCreator = $isLoggedIn && $currentUser && $event->getCreateurId() == $currentUser->getId();
+                        ?>
+                        <?php if ($isCreator): ?>
+                            <button class="btn-join" disabled style="opacity:0.7;cursor:not-allowed;background:#3b82f6" onclick="event.stopPropagation();">
+                                <i class="fas fa-crown"></i> <span data-lang-en="You Created This" data-lang-fr="Vous l'avez créé">You Created This</span>
+                            </button>
+                        <?php elseif ($event->getStatut() === 'upcoming'): ?>
+                            <a href="?join=<?= $event->getIdEvenement() ?>" class="btn-join" onclick="event.stopPropagation();" data-lang-en="Join Event" data-lang-fr="Rejoindre">
+                                <i class="fas fa-user-plus"></i> <span>Join Event</span>
+                            </a>
+                        <?php elseif ($event->getStatut() === 'completed'): ?>
+                            <button class="btn-join" disabled style="opacity:0.5;cursor:not-allowed;background:#6b7280" onclick="event.stopPropagation();">
+                                <i class="fas fa-check"></i> <span data-lang-en="Event Ended" data-lang-fr="Événement terminé">Event Ended</span>
+                            </button>
+                        <?php elseif ($event->getStatut() === 'ongoing'): ?>
+                            <button class="btn-join" disabled style="opacity:0.5;cursor:not-allowed;background:#10b981" onclick="event.stopPropagation();">
+                                <i class="fas fa-clock"></i> <span data-lang-en="In Progress" data-lang-fr="En cours">In Progress</span>
+                            </button>
+                        <?php else: ?>
+                            <button class="btn-join" disabled style="opacity:0.5;cursor:not-allowed" onclick="event.stopPropagation();" data-lang-en="Unavailable" data-lang-fr="Indisponible">
+                                <i class="fas fa-ban"></i> <span>Unavailable</span>
+                            </button>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+>>>>>>> 61a21efec5e20e3e0663e79fe7ec2732b3e77ddb
                 <?php endif; ?>
             </div>
 

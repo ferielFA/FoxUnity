@@ -119,6 +119,31 @@ class ParticipationController {
         }
     }
 
+    public function lireParId(int $id_participation): ?Participation {
+        try {
+            $sql = "SELECT * FROM participation WHERE id_participation = :id_participation";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':id_participation' => $id_participation]);
+            
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row) {
+                return new Participation(
+                    $row['id_participation'],
+                    $row['id_evenement'],
+                    $row['user_id'] ?? null,
+                    $row['nom_participant'],
+                    $row['email_participant'],
+                    new DateTime($row['date_participation'])
+                );
+            }
+            
+            return null;
+        } catch (PDOException $e) {
+            error_log("Erreur lecture participation: " . $e->getMessage());
+            return null;
+        }
+    }
+
     public function desinscrire(string $email, int $id_evenement): bool {
         try {
             $sql = "DELETE FROM participation 
