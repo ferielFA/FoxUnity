@@ -55,6 +55,85 @@ $showTradeHistory = isset($_GET['section']) && $_GET['section'] === 'trades';
         <?= $showTradeHistory ? 'block' : 'none' ?>
         !important;
     }
+
+    /* Admin Dropdown - Inline to ensure it loads */
+    .admin-dropdown {
+      position: relative;
+    }
+
+    .admin-user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      padding: 8px 15px;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+    }
+
+    .admin-user:hover {
+      background: rgba(255, 122, 0, 0.15);
+    }
+
+    .admin-dropdown-menu {
+      position: absolute;
+      top: 65px;
+      right: 0;
+      background: rgba(15, 15, 35, 0.98);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 122, 0, 0.4);
+      border-radius: 12px;
+      min-width: 220px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: all 0.3s ease;
+      z-index: 1000;
+      overflow: hidden;
+    }
+
+    .admin-dropdown-menu.show {
+      opacity: 1 !important;
+      visibility: visible !important;
+      transform: translateY(0) !important;
+    }
+
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 20px;
+      color: #fff;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      font-size: 14px;
+    }
+
+    .dropdown-item:hover {
+      background: rgba(255, 122, 0, 0.25);
+      padding-left: 25px;
+    }
+
+    .dropdown-item i {
+      font-size: 16px;
+      color: #ff7a00;
+      width: 20px;
+    }
+
+    .dropdown-divider {
+      height: 1px;
+      background: rgba(255, 122, 0, 0.3);
+      margin: 5px 15px;
+    }
+
+    .dropdown-item.logout:hover {
+      background: rgba(239, 68, 68, 0.25);
+    }
+
+    .dropdown-item.logout i {
+      color: #ef4444;
+    }
   </style>
 </head>
 
@@ -368,6 +447,27 @@ $showTradeHistory = isset($_GET['section']) && $_GET['section'] === 'trades';
 
       filterHistory();
     <?php endif; ?>
+
+    // Admin Dropdown Toggle
+    const adminDropdown = document.getElementById('adminDropdown');
+    if (adminDropdown) {
+      const adminUser = adminDropdown.querySelector('.admin-user');
+      const dropdownMenu = adminDropdown.querySelector('.admin-dropdown-menu');
+
+      if (adminUser && dropdownMenu) {
+        adminUser.addEventListener('click', (e) => {
+          e.stopPropagation();
+          dropdownMenu.classList.toggle('show');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+          if (!adminDropdown.contains(e.target)) {
+            dropdownMenu.classList.remove('show');
+          }
+        });
+      }
+    }
   </script>
 
 </body>
