@@ -100,8 +100,9 @@ class TicketController {
         $filename = 'ticket_' . $idParticipation . '_' . $idEvenement . '_' . time() . '.png';
         $filepath = $qrCodeDir . $filename;
         
-        // QR code content - URL accessible from phone on local network
-        $qrContent = VERIFY_TICKET_URL . '?token=' . urlencode($ticketNumber);
+        // QR code content - Direct link to ticket display page
+        // Using ID-based URL instead of token for direct access
+        $qrContent = BASE_URL . '/view/front/ticket_view.php?p=' . $idParticipation . '&e=' . $idEvenement;
         
         // Generate QR code (level L = Low error correction, size 4, margin 2)
         QRcode::png($qrContent, $filepath, QR_ECLEVEL_L, 4, 2);
