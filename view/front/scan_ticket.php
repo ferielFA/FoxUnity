@@ -527,10 +527,22 @@ if (isset($_GET['token'])) {
                         // QR code successfully scanned
                         console.log("Scanned:", decodedText);
                         html5QrCode.stop().then(() => {
-                            window.location.href = 'scan_ticket.php?token=' + encodeURIComponent(decodedText);
+                            // Check if the scanned text is a URL
+                            if (decodedText.startsWith('http://') || decodedText.startsWith('https://')) {
+                                // It's a URL, redirect directly
+                                window.location.href = decodedText;
+                            } else {
+                                // It's a token, reload with token parameter
+                                window.location.href = 'scan_ticket.php?token=' + encodeURIComponent(decodedText);
+                            }
                         }).catch(err => {
                             console.error("Error stopping camera:", err);
-                            window.location.href = 'scan_ticket.php?token=' + encodeURIComponent(decodedText);
+                            // Check if the scanned text is a URL
+                            if (decodedText.startsWith('http://') || decodedText.startsWith('https://')) {
+                                window.location.href = decodedText;
+                            } else {
+                                window.location.href = 'scan_ticket.php?token=' + encodeURIComponent(decodedText);
+                            }
                         });
                     },
                     (errorMessage) => {
@@ -548,10 +560,19 @@ if (isset($_GET['token'])) {
                         (decodedText, decodedResult) => {
                             console.log("Scanned:", decodedText);
                             html5QrCode.stop().then(() => {
-                                window.location.href = 'scan_ticket.php?token=' + encodeURIComponent(decodedText);
+                                // Check if the scanned text is a URL
+                                if (decodedText.startsWith('http://') || decodedText.startsWith('https://')) {
+                                    window.location.href = decodedText;
+                                } else {
+                                    window.location.href = 'scan_ticket.php?token=' + encodeURIComponent(decodedText);
+                                }
                             }).catch(err => {
                                 console.error("Error stopping camera:", err);
-                                window.location.href = 'scan_ticket.php?token=' + encodeURIComponent(decodedText);
+                                if (decodedText.startsWith('http://') || decodedText.startsWith('https://')) {
+                                    window.location.href = decodedText;
+                                } else {
+                                    window.location.href = 'scan_ticket.php?token=' + encodeURIComponent(decodedText);
+                                }
                             });
                         },
                         (errorMessage) => {}

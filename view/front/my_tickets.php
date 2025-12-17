@@ -792,8 +792,15 @@ function getQRCodeDisplayPath($qrPath) {
                     // QR code successfully scanned
                     statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Ticket found! Loading...';
                     stopScanning();
-                    // Redirect to scan_ticket.php with token
-                    window.location.href = 'scan_ticket.php?token=' + encodeURIComponent(decodedText);
+                    
+                    // Check if the scanned text is a URL
+                    if (decodedText.startsWith('http://') || decodedText.startsWith('https://')) {
+                        // It's a URL, redirect directly
+                        window.location.href = decodedText;
+                    } else {
+                        // It's a token, redirect to scan_ticket.php
+                        window.location.href = 'scan_ticket.php?token=' + encodeURIComponent(decodedText);
+                    }
                 },
                 (errorMessage) => {
                     // Scanning errors (can be ignored)
