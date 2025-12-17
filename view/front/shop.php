@@ -5,12 +5,43 @@ require_once __DIR__ . '/../../controller/UserController.php';
 $productController = new ProductController();
 
 $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
-$perPage = 8; // Grid items per page
-$search = isset($_GET['search']) ? $_GET['search'] : '';
-$sortBy = isset($_GET['sort']) ? $_GET['sort'] : 'created_at';
-$order = isset($_GET['order']) ? $_GET['order'] : 'DESC';
+$perPage = 8;
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$categoryFilter = isset($_GET['category']) ? $_GET['category'] : 'all';
 
-$filters = ['search' => $search];
+// Handle sort parameter - convert compound values to simple ones
+$sortParam = isset($_GET['sort']) ? $_GET['sort'] : 'created_at';
+$order = 'DESC';
+
+// Parse compound sort values
+if ($sortParam === 'price_asc') {
+    $sortBy = 'price';
+    $order = 'ASC';
+} elseif ($sortParam === 'price_desc') {
+    $sortBy = 'price';
+    $order = 'DESC';
+} elseif ($sortParam === 'stock_asc') {
+    $sortBy = 'stock';
+    $order = 'ASC';
+} elseif ($sortParam === 'stock_desc') {
+    $sortBy = 'stock';
+    $order = 'DESC';
+} elseif ($sortParam === 'name') {
+    $sortBy = 'name';
+    $order = 'ASC';
+} elseif ($sortParam === 'category') {
+    $sortBy = 'category';
+    $order = 'ASC';
+} else {
+    $sortBy = $sortParam;
+    $order = 'DESC';
+}
+
+$filters = [
+    'search' => $search,
+    'category' => $categoryFilter
+];
+
 $totalProducts = $productController->countProducts($filters);
 $totalPages = ceil($totalProducts / $perPage);
 $offset = ($page - 1) * $perPage;
@@ -38,7 +69,6 @@ if ($currentUser && $currentUser->getImage()) {
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Reusing User Dropdown Styles from other pages to maintain consistency */
         .user-dropdown {
             position: relative;
             display: inline-block;
@@ -152,7 +182,6 @@ if ($currentUser && $currentUser->getImage()) {
             border-left-color: #ff4444;
         }
 
-        /* Cart Icon */
         .cart-icon {
             color: #ff7a00 !important;
             position: relative;
@@ -185,7 +214,6 @@ if ($currentUser && $currentUser->getImage()) {
             box-shadow: 0 2px 8px rgba(255, 122, 0, 0.4);
         }
 
-        /* Shop Layout */
         .shop-section {
             padding: 120px 40px 60px;
             max-width: 1400px;
@@ -214,10 +242,112 @@ if ($currentUser && $currentUser->getImage()) {
             -webkit-text-fill-color: #ff7a00;
         }
 
+        /* IMPROVED FILTERS */
+        .shop-filters {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .filter-input,
+        .filter-select {
+            padding: 12px 20px;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 122, 0, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            outline: none;
+            transition: all 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .filter-input {
+            min-width: 280px;
+            flex: 1;
+        }
+
+        .filter-input:focus,
+        .filter-select:focus {
+            border-color: #ff7a00;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 15px rgba(255, 122, 0, 0.2);
+        }
+
+        .filter-select {
+            cursor: pointer;
+            min-width: 180px;
+        }
+
+        .filter-select option {
+            background: #1a1a1a;
+            color: #fff;
+        }
+
+        .filter-btn {
+            background: linear-gradient(135deg, #ff7a00, #ff4f00);
+            border: none;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 122, 0, 0.3);
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 122, 0, 0.4);
+        }
+
+        .clear-btn {
+            background: transparent;
+            border: 1px solid #555;
+            color: #aaa;
+            padding: 12px 25px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .clear-btn:hover {
+            border-color: #ff7a00;
+            color: #ff7a00;
+        }
+
+        /* Active Filters Badge */
+        .active-filters {
+            text-align: center;
+            margin: 20px 0;
+            padding: 12px;
+            background: rgba(255, 122, 0, 0.05);
+            border-radius: 10px;
+            border-left: 3px solid #ff7a00;
+        }
+
+        .filter-badge {
+            display: inline-block;
+            background: rgba(255, 122, 0, 0.2);
+            color: #ff7a00;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin: 5px;
+            border: 1px solid rgba(255, 122, 0, 0.4);
+        }
+
         .products-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 30px;
+            margin-top: 40px;
         }
 
         .product-card {
@@ -258,11 +388,17 @@ if ($currentUser && $currentUser->getImage()) {
         }
 
         .product-category {
-            color: #888;
-            font-size: 0.9rem;
-            margin-bottom: 5px;
+            display: inline-block;
+            background: rgba(255, 122, 0, 0.1);
+            color: #ff7a00;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
             text-transform: uppercase;
             letter-spacing: 1px;
+            border: 1px solid rgba(255, 122, 0, 0.3);
+            width: fit-content;
         }
 
         .product-title {
@@ -275,9 +411,25 @@ if ($currentUser && $currentUser->getImage()) {
         .product-description {
             color: #aaa;
             font-size: 0.95rem;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             line-height: 1.5;
             flex-grow: 1;
+        }
+
+        .btn-description {
+            background: none;
+            border: none;
+            color: #ff7a00;
+            text-decoration: underline;
+            cursor: pointer;
+            margin-bottom: 15px;
+            text-align: left;
+            padding: 0;
+            transition: color 0.3s ease;
+        }
+
+        .btn-description:hover {
+            color: #ff9933;
         }
 
         .product-footer {
@@ -292,42 +444,161 @@ if ($currentUser && $currentUser->getImage()) {
         .product-price {
             color: #ff7a00;
             font-family: 'Orbitron', sans-serif;
-            font-size: 1.5rem;
+            font-size: 1.6rem;
             font-weight: 700;
         }
 
-        .add-to-cart-btn {
-            background: transparent;
-            border: 2px solid #ff7a00;
-            color: #ff7a00;
-            padding: 10px 20px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+        .product-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    gap: 15px;
+}
 
-        .add-to-cart-btn:hover {
-            background: #ff7a00;
-            color: #fff;
-            box-shadow: 0 0 15px rgba(255, 122, 0, 0.4);
-        }
+.product-price {
+    color: #ff7a00;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.add-to-cart-btn {
+    background: linear-gradient(135deg, #ff7a00, #ff4f00);
+    border: none;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba(255, 122, 0, 0.3);
+    flex-shrink: 0;
+    white-space: nowrap;
+    position: relative;
+    overflow: hidden;
+}
+
+.add-to-cart-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.add-to-cart-btn:hover::before {
+    left: 100%;
+}
+
+.add-to-cart-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 25px rgba(255, 122, 0, 0.5);
+    background: linear-gradient(135deg, #ff8c1a, #ff6600);
+}
+
+.add-to-cart-btn:active {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 15px rgba(255, 122, 0, 0.4);
+}
+
+.add-to-cart-btn i {
+    font-size: 1.1rem;
+    transition: transform 0.3s ease;
+}
+
+.add-to-cart-btn:hover i {
+    transform: scale(1.15);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .product-footer {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    
+    .add-to-cart-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 14px 20px;
+    }
+    
+    .product-price {
+        text-align: center;
+        font-size: 1.8rem;
+    }
+}
 
         .no-products {
             grid-column: 1 / -1;
             text-align: center;
-            padding: 50px;
+            padding: 60px 20px;
             color: #aaa;
-            font-size: 1.2rem;
+        }
+
+        .no-products i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: #333;
+            display: block;
+        }
+
+        /* IMPROVED PAGINATION */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 50px;
+            flex-wrap: wrap;
+        }
+
+        .page-link {
+            padding: 12px 18px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #fff;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .page-link:hover {
+            background: rgba(255, 122, 0, 0.2);
+            border-color: #ff7a00;
+            transform: translateY(-2px);
+        }
+
+        .page-link.active {
+            background: linear-gradient(135deg, #ff7a00, #ff4f00);
+            border-color: #ff7a00;
+            font-weight: 700;
+            box-shadow: 0 4px 15px rgba(255, 122, 0, 0.4);
+        }
+
+        .page-link.nav-btn {
+            padding: 12px 20px;
+            background: rgba(255, 122, 0, 0.1);
+            border-color: #ff7a00;
         }
     </style>
 </head>
 
 <body>
-    <!-- HEADER -->
     <header class="site-header">
         <div class="logo-section">
             <img src="../images/Nine__1_-removebg-preview.png" alt="FoxUnity Logo" class="site-logo">
@@ -369,17 +640,14 @@ if ($currentUser && $currentUser->getImage()) {
                             <i class="fas fa-user"></i>
                             <span>My Profile</span>
                         </a>
-
                         <a href="tradehis.php" class="dropdown-item">
                             <i class="fas fa-history"></i>
                             <span>Trade History</span>
                         </a>
-
                         <a href="events.php?view=history" class="dropdown-item">
                             <i class="fas fa-ticket-alt"></i>
                             <span>Event History</span>
                         </a>
-
                         <?php
                         $userRole = strtolower($currentUser->getRole());
                         if ($userRole === 'admin' || $userRole === 'superadmin'):
@@ -389,9 +657,7 @@ if ($currentUser && $currentUser->getImage()) {
                                 <span>Dashboard</span>
                             </a>
                         <?php endif; ?>
-
                         <div class="dropdown-divider"></div>
-
                         <a href="logout.php" class="dropdown-item logout">
                             <i class="fas fa-sign-out-alt"></i>
                             <span>Logout</span>
@@ -416,48 +682,82 @@ if ($currentUser && $currentUser->getImage()) {
         <section class="shop-section">
             <div class="section-header">
                 <h1 class="section-title">Gaming <span>Gear</span></h1>
-                <p style="color: #aaa; font-size: 1.1rem; margin-bottom: 30px;">Level up your setup with premium
-                    equipment.</p>
+                <p style="color: #aaa; font-size: 1.1rem; margin-bottom: 30px;">
+                    Level up your setup with premium equipment
+                    <?php if ($totalProducts > 0): ?>
+                        <span style="color: #ff7a00; font-weight: 600;"> • <?php echo $totalProducts; ?> products
+                            available</span>
+                    <?php endif; ?>
+                </p>
 
-                <form method="GET" class="shop-filters"
-                    style="display:flex; justify-content:center; gap:15px; flex-wrap:wrap; max-width:800px; margin:0 auto;">
-                    <input type="text" name="search" placeholder="Search..."
-                        value="<?php echo htmlspecialchars($search); ?>"
-                        style="padding:10px 20px; border-radius:30px; border:none; background:rgba(255,255,255,0.1); color:#fff; width:250px; outline:none;">
+                <!-- IMPROVED FILTER FORM -->
+                <form method="GET" class="shop-filters">
+                    <input type="text" name="search" placeholder="🔍 Search products..."
+                        value="<?php echo htmlspecialchars($search); ?>" class="filter-input">
 
-                    <select name="sort"
-                        style="padding:10px 20px; border-radius:30px; border:none; background:rgba(255,255,255,0.1); color:#fff; outline:none; cursor:pointer;">
-                        <option value="created_at" <?php echo $sortBy == 'created_at' ? 'selected' : ''; ?>
-                            style="background:#222;">Newest</option>
-                        <option value="price" <?php echo $sortBy == 'price' ? 'selected' : ''; ?>
-                            style="background:#222;">
-                            Price</option>
-                        <option value="name" <?php echo $sortBy == 'name' ? 'selected' : ''; ?> style="background:#222;">
-                            Name
+                    <select name="category" class="filter-select">
+                        <option value="all" <?php echo $categoryFilter == 'all' ? 'selected' : ''; ?>>📁 All Categories
+                        </option>
+                        <option value="Hardware" <?php echo $categoryFilter == 'Hardware' ? 'selected' : ''; ?>>🖥️
+                            Hardware</option>
+                        <option value="Accessory" <?php echo $categoryFilter == 'Accessory' ? 'selected' : ''; ?>>🎮
+                            Accessory</option>
+                        <option value="Merchandise" <?php echo $categoryFilter == 'Merchandise' ? 'selected' : ''; ?>>👕
+                            Merchandise</option>
+                        <option value="Peripherals" <?php echo $categoryFilter == 'Peripherals' ? 'selected' : ''; ?>>⌨️
+                            Peripherals</option>
+                    </select>
+
+                    <select name="sort" class="filter-select">
+                        <option value="created_at" <?php echo $sortParam == 'created_at' ? 'selected' : ''; ?>>📅 Newest
+                            First</option>
+                        <option value="price_asc" <?php echo $sortParam == 'price_asc' ? 'selected' : ''; ?>>💰 Price:
+                            Low → High</option>
+                        <option value="price_desc" <?php echo $sortParam == 'price_desc' ? 'selected' : ''; ?>>💰 Price:
+                            High → Low</option>
+                        <option value="name" <?php echo $sortParam == 'name' ? 'selected' : ''; ?>>🔤 Name (A-Z)
                         </option>
                     </select>
 
-                    <select name="order"
-                        style="padding:10px 20px; border-radius:30px; border:none; background:rgba(255,255,255,0.1); color:#fff; outline:none; cursor:pointer;">
-                        <option value="DESC" <?php echo $order == 'DESC' ? 'selected' : ''; ?> style="background:#222;">
-                            Desc
-                        </option>
-                        <option value="ASC" <?php echo $order == 'ASC' ? 'selected' : ''; ?> style="background:#222;">Asc
-                        </option>
-                    </select>
-
-                    <button type="submit"
-                        style="background:#ff7a00; border:none; color:white; padding:10px 25px; border-radius:30px; cursor:pointer; font-weight:600;">
-                        <i class="fas fa-search"></i>
+                    <button type="submit" class="filter-btn">
+                        <i class="fas fa-search"></i> Search
                     </button>
+
+                    <?php if ($search || $categoryFilter != 'all' || $sortParam != 'created_at'): ?>
+                        <a href="shop.php" class="clear-btn">
+                            <i class="fas fa-times"></i> Clear
+                        </a>
+                    <?php endif; ?>
                 </form>
+
+                <!-- Active Filters Display -->
+                <?php if ($search || $categoryFilter != 'all'): ?>
+                    <div class="active-filters">
+                        <small style="color: #aaa;">Active filters:</small>
+                        <?php if ($search): ?>
+                            <span class="filter-badge">🔍 Search: "<?php echo htmlspecialchars($search); ?>"</span>
+                        <?php endif; ?>
+                        <?php if ($categoryFilter != 'all'): ?>
+                            <span class="filter-badge">📁 <?php echo htmlspecialchars($categoryFilter); ?></span>
+                        <?php endif; ?>
+                        <small style="color: #666; margin-left: 10px;">
+                            (<?php echo $totalProducts; ?> result<?php echo $totalProducts != 1 ? 's' : ''; ?>)
+                        </small>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <div class="products-grid">
                 <?php if (empty($products)): ?>
                     <div class="no-products">
-                        <i class="fas fa-box-open" style="font-size: 4rem; margin-bottom: 20px; color: #333;"></i>
-                        <p>No products available at the moment.</p>
+                        <i class="fas fa-box-open"></i>
+                        <h3 style="color: #666; margin-bottom: 10px;">No products found</h3>
+                        <p>Try adjusting your filters or search terms</p>
+                        <?php if ($search || $categoryFilter != 'all'): ?>
+                            <a href="shop.php" class="filter-btn" style="display: inline-block; margin-top: 20px;">
+                                <i class="fas fa-refresh"></i> View All Products
+                            </a>
+                        <?php endif; ?>
                     </div>
                 <?php else: ?>
                     <?php foreach ($products as $product): ?>
@@ -467,22 +767,28 @@ if ($currentUser && $currentUser->getImage()) {
                                 onerror="this.src='https://via.placeholder.com/300x300?text=No+Image'">
 
                             <div class="product-content">
-                                <div class="product-category"><?php echo htmlspecialchars($product->getCategory()); ?></div>
+                                <span class="product-category"><?php echo htmlspecialchars($product->getCategory()); ?></span>
                                 <h3 class="product-title"><?php echo htmlspecialchars($product->getName()); ?></h3>
                                 <p class="product-description">
-                                    <?php echo htmlspecialchars(substr($product->getDescription(), 0, 100)) . (strlen($product->getDescription()) > 100 ? '...' : ''); ?>
+                                    <?php 
+                                    $desc = $product->getDescription();
+                                    echo htmlspecialchars(substr($desc, 0, 100)) . (strlen($desc) > 100 ? '...' : ''); 
+                                    ?>
                                 </p>
 
-                                <button class="btn-description"
-                                    onclick="openDescriptionModal('<?php echo htmlspecialchars(addslashes($product->getDescription())); ?>', '<?php echo htmlspecialchars(addslashes($product->getName())); ?>')"
-                                    style="background:none; border:none; color:#aaa; text-decoration:underline; cursor:pointer; margin-bottom:15px; text-align:left; padding:0;">
-                                    View Description
-                                </button>
+                                <?php if (!empty($desc) && strlen($desc) > 100): ?>
+                                    <button class="btn-description"
+                                        onclick="openDescriptionModal('<?php echo htmlspecialchars(addslashes($desc)); ?>', '<?php echo htmlspecialchars(addslashes($product->getName())); ?>')">
+                                        <i class="fas fa-info-circle"></i> View Full Description
+                                    </button>
+                                <?php endif; ?>
 
                                 <div class="product-footer">
-                                    <div class="product-price">$<?php echo number_format($product->getPrice(), 2); ?></div>
-                                    <button class="add-to-cart-btn" onclick="addToCart(<?php echo $product->getId(); ?>)">
-                                        <i class="fas fa-cart-plus"></i> Add
+                                    <div class="product-price">$<?php echo number_format($product->getPrice(), 2); ?>
+                                    </div>
+                                    <button class="add-to-cart-btn"
+                                        onclick="addToCart(<?php echo $product->getId(); ?>)">
+                                        <i class="fas fa-cart-plus"></i> Add to Cart
                                     </button>
                                 </div>
                             </div>
@@ -491,65 +797,69 @@ if ($currentUser && $currentUser->getImage()) {
                 <?php endif; ?>
             </div>
 
-            <!-- Pagination -->
+            <!-- IMPROVED PAGINATION -->
             <?php if ($totalPages > 1): ?>
-                <div class="pagination" style="display:flex; justify-content:center; gap:10px; margin-top:50px;">
+                <div class="pagination">
                     <?php if ($page > 1): ?>
-                        <a href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>&sort=<?php echo $sortBy; ?>&order=<?php echo $order; ?>"
-                            style="padding:10px 20px; background:rgba(255,255,255,0.1); border-radius:20px; color:#fff; text-decoration:none;">&laquo;
-                            Prev</a>
+                        <a href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>&category=<?php echo urlencode($categoryFilter); ?>&sort=<?php echo urlencode($sortParam); ?>"
+                            class="page-link nav-btn">
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </a>
                     <?php endif; ?>
 
-                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                        <a href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>&sort=<?php echo $sortBy; ?>&order=<?php echo $order; ?>"
-                            style="padding:10px 15px; border-radius:50%; color:#fff; text-decoration:none; 
-                              <?php echo $i == $page ? 'background:#ff7a00; font-weight:bold;' : 'background:rgba(255,255,255,0.1);'; ?>">
+                    <?php
+                    $startPage = max(1, $page - 2);
+                    $endPage = min($totalPages, $page + 2);
+
+                    if ($startPage > 1): ?>
+                        <a href="?page=1&search=<?php echo urlencode($search); ?>&category=<?php echo urlencode($categoryFilter); ?>&sort=<?php echo urlencode($sortParam); ?>"
+                            class="page-link">1</a>
+                        <?php if ($startPage > 2): ?>
+                            <span style="color: #666;">...</span>
+                        <?php endif; ?>
+                    <?php endif; ?>
+
+                    <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                        <a href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>&category=<?php echo urlencode($categoryFilter); ?>&sort=<?php echo urlencode($sortParam); ?>"
+                            class="page-link <?php echo $i == $page ? 'active' : ''; ?>">
                             <?php echo $i; ?>
                         </a>
                     <?php endfor; ?>
 
+                    <?php if ($endPage < $totalPages): ?>
+                        <?php if ($endPage < $totalPages - 1): ?>
+                            <span style="color: #666;">...</span>
+                        <?php endif; ?>
+                        <a href="?page=<?php echo $totalPages; ?>&search=<?php echo urlencode($search); ?>&category=<?php echo urlencode($categoryFilter); ?>&sort=<?php echo urlencode($sortParam); ?>"
+                            class="page-link"><?php echo $totalPages; ?></a>
+                    <?php endif; ?>
+
                     <?php if ($page < $totalPages): ?>
-                        <a href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>&sort=<?php echo $sortBy; ?>&order=<?php echo $order; ?>"
-                            style="padding:10px 20px; background:rgba(255,255,255,0.1); border-radius:20px; color:#fff; text-decoration:none;">Next
-                            &raquo;</a>
+                        <a href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>&category=<?php echo urlencode($categoryFilter); ?>&sort=<?php echo urlencode($sortParam); ?>"
+                            class="page-link nav-btn">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </a>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
 
             <!-- Description Modal -->
             <div id="descriptionModal" class="modal"
-                style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; justify-content:center; align-items:center;">
+                style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:10000; justify-content:center; align-items:center;">
                 <div class="modal-content"
-                    style="background:#1a1a1a; padding:30px; border-radius:15px; border:1px solid #ff7a00; max-width:500px; width:90%; position:relative;">
+                    style="background:#1a1a1a; padding:35px; border-radius:20px; border:2px solid #ff7a00; max-width:600px; width:90%; position:relative; box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
                     <span class="close-modal" onclick="closeDescriptionModal()"
-                        style="position:absolute; top:15px; right:15px; color:#ff7a00; font-size:24px; cursor:pointer;">&times;</span>
-                    <h3 id="modalTitle" style="color:#fff; margin-bottom:15px; font-family:'Orbitron', sans-serif;">
+                        style="position:absolute; top:20px; right:25px; color:#ff7a00; font-size:28px; cursor:pointer; transition: transform 0.3s;"
+                        onmouseover="this.style.transform='scale(1.2)'"
+                        onmouseout="this.style.transform='scale(1)'">&times;</span>
+                    <h3 id="modalTitle"
+                        style="color:#fff; margin-bottom:20px; font-family:'Orbitron', sans-serif; font-size:1.8rem;">
                     </h3>
-                    <p id="modalDescription" style="color:#ccc; line-height:1.6;"></p>
+                    <p id="modalDescription" style="color:#ccc; line-height:1.8; font-size:1.05rem;"></p>
                 </div>
             </div>
         </section>
     </main>
-
-    <script>
-        function openDescriptionModal(description, title) {
-            document.getElementById('modalTitle').textContent = title;
-            document.getElementById('modalDescription').textContent = description || 'No description available.';
-            document.getElementById('descriptionModal').style.display = 'flex';
-        }
-
-        function closeDescriptionModal() {
-            document.getElementById('descriptionModal').style.display = 'none';
-        }
-
-        // Close on outside click
-        window.onclick = function (event) {
-            const modal = document.getElementById('descriptionModal');
-            if (event.target === modal) {
-                modal.style.display = 'none';
-            }
-        }
-    </script>
 
     <footer class="site-footer">
         <div class="footer-content">
@@ -566,7 +876,7 @@ if ($currentUser && $currentUser->getImage()) {
             </div>
             <div class="footer-section">
                 <h4>Support</h4>
-                <a href="reclamation.html">Contact Support</a>
+                <a href="reclamation.php">Contact Support</a>
                 <a href="#">FAQ</a>
                 <a href="#">Privacy Policy</a>
             </div>
@@ -578,7 +888,6 @@ if ($currentUser && $currentUser->getImage()) {
                     <a href="#"><i class="fab fa-youtube"></i></a>
                 </div>
             </div>
-
         </div>
         <div class="footer-bottom">
             <p>© 2025 FoxUnity. All rights reserved. Made with <span>♥</span> by gamers for gamers</p>
@@ -601,24 +910,36 @@ if ($currentUser && $currentUser->getImage()) {
             }
         });
 
+        // Description Modal
+        function openDescriptionModal(description, title) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalDescription').textContent = description || 'No description available.';
+            document.getElementById('descriptionModal').style.display = 'flex';
+        }
+
+        function closeDescriptionModal() {
+            document.getElementById('descriptionModal').style.display = 'none';
+        }
+
+        window.onclick = function (event) {
+            const modal = document.getElementById('descriptionModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+
         // Add to Cart Logic
         function addToCart(productId) {
             let cart = JSON.parse(localStorage.getItem('cart')) || [];
-
-            // Check if item already exists (optional, maybe allow multiples?)
-            // Assuming for now we allow multiples or just add it.
-            // But usually we check duplicates.
             const exists = cart.some(item => item.id === productId && item.type === 'product');
 
             if (!exists) {
                 cart.push({ id: productId, type: 'product' });
                 localStorage.setItem('cart', JSON.stringify(cart));
 
-                // Update Badge
                 const cartCount = document.querySelector('.cart-count');
                 if (cartCount) cartCount.textContent = cart.length;
 
-                // Redirect to cart
                 window.location.href = 'panier.php';
             } else {
                 alert('This item is already in your cart!');

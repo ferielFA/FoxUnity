@@ -186,7 +186,7 @@ foreach ($articles as $article) {
     <a href="news_history.php" class="active">News History</a>
     <a href="categories.php">Categories</a>
     <a href="newsletter_admin.php">Newsletter</a>
-    <a href="#">Support</a>
+    <a href="evaluations_publiques.php">Évaluations Publiques</a>
     <a href="../front/index.php">← Return Homepage</a>
   </div>
 

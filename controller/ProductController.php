@@ -17,13 +17,14 @@ class ProductController
             $sql = "SELECT * FROM produit WHERE 1=1";
             $params = [];
 
-            // Search Filter
-            if (!empty($filters['search'])) {
-                $sql .= " AND (name LIKE :search OR description LIKE :search)";
-                $params[':search'] = '%' . $filters['search'] . '%';
-            }
+            // Search Filter - FIXED: Convert search term to lowercase before binding
+if (!empty($filters['search']) && trim($filters['search']) !== '') {
+    $searchTerm = strtolower(trim($filters['search']));
+    $sql .= " AND (LOWER(name) LIKE :search OR LOWER(COALESCE(description, '')) LIKE :search)";
+    $params[':search'] = '%' . $searchTerm . '%';
+}
 
-            // Category Filter
+            // Category Filter - Exact match
             if (!empty($filters['category']) && $filters['category'] !== 'all') {
                 $sql .= " AND category = :category";
                 $params[':category'] = $filters['category'];
@@ -39,19 +40,25 @@ class ProductController
                 $params[':max_price'] = $filters['max_price'];
             }
 
-            // Sorting
-            $allowedSorts = ['price', 'name', 'created_at', 'stock'];
-            if (!in_array($sortBy, $allowedSorts))
+            // Sorting - IMPROVED
+            $allowedSorts = ['price', 'name', 'created_at', 'stock', 'category'];
+            if (!in_array($sortBy, $allowedSorts)) {
                 $sortBy = 'created_at';
+            }
+            
             $sortOrder = strtoupper($sortOrder) === 'ASC' ? 'ASC' : 'DESC';
 
-            $sql .= " ORDER BY $sortBy $sortOrder";
+            // Special handling for category sorting
+            if ($sortBy === 'category') {
+                // Sort by category first (ASC), then by name within each category
+                $sql .= " ORDER BY category ASC, name ASC";
+            } else {
+                $sql .= " ORDER BY $sortBy $sortOrder";
+            }
 
             // Pagination
             if ($limit !== null) {
                 $sql .= " LIMIT :limit OFFSET :offset";
-                // PDO limits need to be integers
-                // We bind strictly or just inject if safe. Since limit/offset are ints:
             }
 
             $stmt = $pdo->prepare($sql);
@@ -96,10 +103,13 @@ class ProductController
             $sql = "SELECT COUNT(*) FROM produit WHERE 1=1";
             $params = [];
 
-            if (!empty($filters['search'])) {
-                $sql .= " AND (name LIKE :search OR description LIKE :search)";
-                $params[':search'] = '%' . $filters['search'] . '%';
-            }
+            // Search Filter - FIXED: Convert search term to lowercase before binding
+if (!empty($filters['search']) && trim($filters['search']) !== '') {
+    $searchTerm = strtolower(trim($filters['search']));
+    $sql .= " AND (LOWER(name) LIKE :search OR LOWER(COALESCE(description, '')) LIKE :search)";
+    $params[':search'] = '%' . $searchTerm . '%';
+}
+            
             if (!empty($filters['category']) && $filters['category'] !== 'all') {
                 $sql .= " AND category = :category";
                 $params[':category'] = $filters['category'];
@@ -109,6 +119,7 @@ class ProductController
             $stmt->execute($params);
             return $stmt->fetchColumn();
         } catch (PDOException $e) {
+            error_log("Error counting products: " . $e->getMessage());
             return 0;
         }
     }
@@ -210,11 +221,11 @@ class ProductController
             $stmt = $pdo->query($sql);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
-            // Check if purchase table has different columns or joins fail
             error_log("Error fetching purchase history: " . $e->getMessage());
             return [];
         }
     }
+
     public function addProduct($data)
     {
         try {
@@ -230,7 +241,7 @@ class ProductController
                 ':stock' => $data['stock'],
                 ':category' => $data['category'],
                 ':image' => $data['image'] ?? null,
-                ':publisher_id' => $data['publisher_id'] ?? 1 // Default to admin/system
+                ':publisher_id' => $data['publisher_id'] ?? 1
             ]);
         } catch (PDOException $e) {
             error_log("Error adding product: " . $e->getMessage());
@@ -282,6 +293,62 @@ class ProductController
             }
             error_log("BuyProduct Error: " . $e->getMessage());
             return ['success' => false, 'error' => "Database error during purchase"];
+        }
+    }
+
+    /**
+     * Get category statistics for dashboard/analytics
+     */
+    public function getCategoryStats()
+    {
+        try {
+            $pdo = getDB();
+            $sql = "SELECT category, 
+                           COUNT(*) as product_count, 
+                           SUM(stock) as total_stock,
+                           AVG(price) as avg_price
+                    FROM produit 
+                    GROUP BY category 
+                    ORDER BY product_count DESC";
+            $stmt = $pdo->query($sql);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error fetching category stats: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get low stock products (stock <= threshold)
+     */
+    public function getLowStockProducts($threshold = 5)
+    {
+        try {
+            $pdo = getDB();
+            $sql = "SELECT * FROM produit WHERE stock <= :threshold ORDER BY stock ASC";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([':threshold' => $threshold]);
+
+            $products = [];
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $products[] = new Product(
+                    $row['produit_id'],
+                    $row['publisher_id'],
+                    $row['name'],
+                    $row['description'],
+                    $row['price'],
+                    $row['stock'],
+                    $row['category'],
+                    $row['brand'],
+                    $row['image'],
+                    $row['created_at'],
+                    $row['updated_at']
+                );
+            }
+            return $products;
+        } catch (PDOException $e) {
+            error_log("Error fetching low stock products: " . $e->getMessage());
+            return [];
         }
     }
 }

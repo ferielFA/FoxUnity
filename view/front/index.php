@@ -426,6 +426,190 @@ if ($currentUser && $currentUser->getImage()) {
             margin-right: 5px;
             color: #ffd700;
         }
+
+        /* ============================================
+           FLOATING CHATBOT BUTTON - BOTTOM LEFT CORNER
+           ============================================ */
+        .floating-chatbot {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #ff7a00, #ff4f00);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(255, 122, 0, 0.6);
+            transition: all 0.3s ease;
+            z-index: 9999;
+            text-decoration: none;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            animation: pulse-glow 2.5s infinite;
+        }
+
+        .floating-chatbot:hover {
+            transform: scale(1.15) translateY(-5px);
+            box-shadow: 0 15px 40px rgba(255, 122, 0, 0.8);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .floating-chatbot i {
+            font-size: 32px;
+            color: #fff;
+            animation: bounce-icon 2s infinite ease-in-out;
+        }
+
+        .floating-chatbot:hover i {
+            animation: shake 0.6s;
+        }
+
+        /* Online Status Badge */
+        .chatbot-status-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #00ff88;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 3px solid #1a1a1a;
+            animation: pulse-badge 2s infinite;
+        }
+
+        /* Tooltip on Hover */
+        .chatbot-tooltip {
+            position: absolute;
+            bottom: 50%;
+            left: calc(100% + 18px);
+            transform: translateY(50%);
+            background: rgba(10, 10, 10, 0.98);
+            color: #fff;
+            padding: 12px 18px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 122, 0, 0.4);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .chatbot-tooltip::before {
+            content: '';
+            position: absolute;
+            right: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 10px solid transparent;
+            border-right-color: rgba(255, 122, 0, 0.4);
+        }
+
+        .chatbot-tooltip::after {
+            content: '';
+            position: absolute;
+            right: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 8px solid transparent;
+            border-right-color: rgba(10, 10, 10, 0.98);
+            margin-right: 2px;
+        }
+
+        .floating-chatbot:hover .chatbot-tooltip {
+            opacity: 1;
+            left: calc(100% + 22px);
+        }
+
+        /* Animations */
+        @keyframes pulse-glow {
+            0%, 100% {
+                box-shadow: 0 10px 30px rgba(255, 122, 0, 0.6);
+            }
+            50% {
+                box-shadow: 0 10px 40px rgba(255, 122, 0, 0.9), 0 0 0 0 rgba(255, 122, 0, 0.4);
+            }
+        }
+
+        @keyframes pulse-badge {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.3);
+                opacity: 0.7;
+            }
+        }
+
+        @keyframes bounce-icon {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg);
+            }
+            25% {
+                transform: translateY(-4px) rotate(-5deg);
+            }
+            50% {
+                transform: translateY(0) rotate(0deg);
+            }
+            75% {
+                transform: translateY(-2px) rotate(5deg);
+            }
+        }
+
+        @keyframes shake {
+            0%, 100% { 
+                transform: rotate(0deg); 
+            }
+            10%, 30%, 50%, 70%, 90% { 
+                transform: rotate(-8deg); 
+            }
+            20%, 40%, 60%, 80% { 
+                transform: rotate(8deg); 
+            }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .floating-chatbot {
+                width: 60px;
+                height: 60px;
+                bottom: 20px;
+                left: 20px;
+            }
+
+            .floating-chatbot i {
+                font-size: 26px;
+            }
+
+            .chatbot-tooltip {
+                display: none;
+            }
+
+            .chatbot-status-badge {
+                width: 15px;
+                height: 15px;
+                border-width: 2px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .floating-chatbot {
+                width: 55px;
+                height: 55px;
+                bottom: 15px;
+                left: 15px;
+            }
+
+            .floating-chatbot i {
+                font-size: 24px;
+            }
+        }
     </style>
 </head>
 
@@ -441,6 +625,13 @@ if ($currentUser && $currentUser->getImage()) {
         <div class="bubble"></div>
         <div class="bubble"></div>
     </div>
+
+    <!-- FLOATING CHATBOT BUTTON -->
+    <a href="chatbot.php" class="floating-chatbot" title="Chat with AI Assistant">
+        <i class="fas fa-robot"></i>
+        <span class="chatbot-status-badge"></span>
+        <span class="chatbot-tooltip">💬 Need Help? Chat with AI!</span>
+    </a>
 
     <!-- HEADER -->
     <header class="site-header">

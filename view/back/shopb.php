@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Image Upload Handling
             if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-                $uploadDir = __DIR__ . '/../../view/front/uploads/'; // Adjust path as needed
+                $uploadDir = __DIR__ . '/../../view/front/uploads/';
                 if (!file_exists($uploadDir)) {
                     mkdir($uploadDir, 0777, true);
                 }
@@ -47,14 +47,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $targetPath = $uploadDir . $fileName;
 
                 if (move_uploaded_file($_FILES['image']['tmp_name'], $targetPath)) {
-                    // Update the image path in the database (relative to view)
                     $data['image'] = 'front/uploads/' . $fileName;
                 } else {
                     $error = "Failed to upload image.";
                 }
             }
 
-            // Basic server-side validation check
             if ($data['price'] < 0 || $data['stock'] < 0) {
                 $error = "Price and Stock cannot be negative.";
             } else {
@@ -74,7 +72,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'publisher_id' => $currentUser->getId()
             ];
 
-            // Image Upload Handling
             if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
                 $uploadDir = __DIR__ . '/../../view/front/uploads/';
                 if (!file_exists($uploadDir)) {
@@ -106,15 +103,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
 $perPage = 6;
-$search = isset($_GET['search']) ? $_GET['search'] : '';
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $categoryFilter = isset($_GET['category']) ? $_GET['category'] : 'all';
-$sortBy = isset($_GET['sort']) ? $_GET['sort'] : 'created_at';
-$order = isset($_GET['order']) ? $_GET['order'] : 'DESC';
+
+// Handle sort parameter - convert compound values to simple ones
+$sortParam = isset($_GET['sort']) ? $_GET['sort'] : 'created_at';
+$order = 'DESC'; // default
+
+// Parse compound sort values
+if ($sortParam === 'price_asc') {
+    $sortBy = 'price';
+    $order = 'ASC';
+} elseif ($sortParam === 'price_desc') {
+    $sortBy = 'price';
+    $order = 'DESC';
+} elseif ($sortParam === 'stock_asc') {
+    $sortBy = 'stock';
+    $order = 'ASC';
+} elseif ($sortParam === 'stock_desc') {
+    $sortBy = 'stock';
+    $order = 'DESC';
+} elseif ($sortParam === 'name') {
+    $sortBy = 'name';
+    $order = 'ASC';
+} elseif ($sortParam === 'category') {
+    $sortBy = 'category';
+    $order = 'ASC';
+} else {
+    $sortBy = $sortParam;
+    $order = 'DESC';
+}
 
 $filters = [
     'search' => $search,
     'category' => $categoryFilter
 ];
+
+// DEBUG - REMOVE AFTER TESTING
+error_log("SEARCH DEBUG: search='$search', category='$categoryFilter', sortBy='$sortBy', order='$order'");
+if (!empty($search)) {
+    error_log("Search is NOT empty: '$search'");
+} else {
+    error_log("Search IS empty");
+}
+
 $totalProducts = $productController->countProducts($filters);
 $totalPages = ceil($totalProducts / $perPage);
 $offset = ($page - 1) * $perPage;
@@ -190,7 +222,6 @@ $purchases = $productController->getPurchaseHistory();
             background: #e74c3c;
         }
 
-        /* Updated Modal Styles */
         .modal {
             display: none;
             position: fixed;
@@ -255,7 +286,6 @@ $purchases = $productController->getPurchaseHistory();
             border-color: #ff7a00;
         }
 
-        /* Error State Styling */
         .form-group input.is-invalid,
         .form-group select.is-invalid {
             border-color: #ff4757 !important;
@@ -296,7 +326,6 @@ $purchases = $productController->getPurchaseHistory();
             background: #e74c3c;
         }
 
-        /* Toast Notification */
         .toast {
             position: fixed;
             top: 20px;
@@ -334,19 +363,28 @@ $purchases = $productController->getPurchaseHistory();
         .toast.error i {
             color: #ff4757;
         }
+
+        .filter-badge {
+            display: inline-block;
+            background: rgba(255, 122, 0, 0.2);
+            color: #ff7a00;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin-left: 10px;
+            border: 1px solid rgba(255, 122, 0, 0.4);
+        }
     </style>
 </head>
 
 <body class="dashboard-body">
     <div class="stars"></div>
 
-    <!-- REQUIRED Toast Notification Element -->
     <div id="toast" class="toast">
         <i class="fas fa-check-circle"></i>
         <span id="toastMessage">Action successful</span>
     </div>
 
-    <!-- SIDEBAR -->
     <div class="sidebar">
         <img src="../images/Nine__1_-removebg-preview.png" alt="Logo" class="dashboard-logo">
         <h2>Dashboard</h2>
@@ -401,70 +439,87 @@ $purchases = $productController->getPurchaseHistory();
             <div class="management-section">
                 <div
                     style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,122,0,0.3); padding-bottom:10px; margin-bottom:20px;">
-                    <h2 class="section-title" style="border:none; margin:0;"><i class="fas fa-boxes"></i> Product
-                        Inventory</h2>
+                    <h2 class="section-title" style="border:none; margin:0;">
+                        <i class="fas fa-boxes"></i> Product Inventory
+                        <?php if ($totalProducts > 0): ?>
+                            <span class="filter-badge"><?php echo $totalProducts; ?> products</span>
+                        <?php endif; ?>
+                    </h2>
                     <button class="btn-confirm" style="width:auto; padding:10px 20px;" onclick="openAddModal()">
                         <i class="fas fa-plus"></i> Add New Product
                     </button>
                 </div>
 
+                <!-- IMPROVED FILTER FORM -->
                 <form method="GET" class="filter-controls"
                     style="margin-bottom: 25px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap; background: rgba(255, 255, 255, 0.02); padding: 15px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                    
+                    <!-- Search Input -->
                     <div style="flex: 1; min-width: 250px;">
-                        <input type="text" name="search" placeholder="Search by product name..."
+                        <input type="text" name="search" placeholder="🔍 Search by product name..."
                             value="<?php echo htmlspecialchars($search); ?>" class="filter-input"
                             style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; outline:none;">
                     </div>
 
+                    <!-- Category Filter -->
                     <div style="flex: 0 0 auto;">
-                        <select name="sort" class="filter-select" onchange="this.form.submit()"
+                        <select name="category" class="filter-select"
                             style="padding: 12px; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; cursor: pointer; outline:none; min-width: 180px;">
-                            <option value="created_at" <?php echo $sortBy == 'created_at' ? 'selected' : ''; ?>>Date Added
-                            </option>
-                            <option value="category" <?php echo $sortBy == 'category' ? 'selected' : ''; ?>>Category
-                            </option>
-                            <option value="stock" <?php echo $sortBy == 'stock' ? 'selected' : ''; ?>>Stock</option>
-                            <option value="price_asc" <?php echo ($sortBy == 'price' && $order == 'ASC') ? 'selected' : ''; ?>>Price: Low to High</option>
-                            <option value="price_desc" <?php echo ($sortBy == 'price' && $order == 'DESC') ? 'selected' : ''; ?>>Price: High to Low</option>
+                            <option value="all" <?php echo $categoryFilter == 'all' ? 'selected' : ''; ?>>📁 All Categories</option>
+                            <option value="Hardware" <?php echo $categoryFilter == 'Hardware' ? 'selected' : ''; ?>>🖥️ Hardware</option>
+                            <option value="Accessory" <?php echo $categoryFilter == 'Accessory' ? 'selected' : ''; ?>>🎮 Accessory</option>
+                            <option value="Merchandise" <?php echo $categoryFilter == 'Merchandise' ? 'selected' : ''; ?>>👕 Merchandise</option>
+                            <option value="Peripherals" <?php echo $categoryFilter == 'Peripherals' ? 'selected' : ''; ?>>⌨️ Peripherals</option>
                         </select>
                     </div>
 
-                    <!-- Hidden Order Input handled by JS -->
-                    <input type="hidden" name="order" id="orderInput" value="<?php echo $order; ?>">
+                    <!-- Sort Options -->
+                    <div style="flex: 0 0 auto;">
+                        <select name="sort" class="filter-select"
+                            style="padding: 12px; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; cursor: pointer; outline:none; min-width: 220px;">
+                            <option value="created_at" <?php echo $sortParam == 'created_at' ? 'selected' : ''; ?>>📅 Date Added (Recent First)</option>
+                            <option value="category" <?php echo $sortParam == 'category' ? 'selected' : ''; ?>>📁 Category (A-Z)</option>
+                            <option value="name" <?php echo $sortParam == 'name' ? 'selected' : ''; ?>>🔤 Name (A-Z)</option>
+                            <option value="price_asc" <?php echo $sortParam == 'price_asc' ? 'selected' : ''; ?>>💰 Price: Low → High</option>
+                            <option value="price_desc" <?php echo $sortParam == 'price_desc' ? 'selected' : ''; ?>>💰 Price: High → Low</option>
+                            <option value="stock_desc" <?php echo $sortParam == 'stock_desc' ? 'selected' : ''; ?>>📦 Stock: High → Low</option>
+                            <option value="stock_asc" <?php echo $sortParam == 'stock_asc' ? 'selected' : ''; ?>>📦 Stock: Low → High</option>
+                        </select>
+                    </div>
 
+                    <input type="hidden" name="page" value="1">
+
+                    <!-- Action Buttons -->
                     <div style="display: flex; gap: 10px;">
                         <button type="submit" class="filter-btn"
                             style="padding: 12px 25px; background: #ff7a00; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: background 0.3s;">
-                            <i class="fas fa-search"></i> Search
+                            <i class="fas fa-filter"></i> Apply Filters
                         </button>
 
-                        <?php if ($search || $sortBy != 'created_at'): ?>
+                        <?php if ($search || $categoryFilter != 'all' || $sortParam != 'created_at'): ?>
                             <a href="shopb.php" class="filter-btn"
                                 style="padding: 12px 20px; background: transparent; border: 1px solid #555; color: #ccc; border-radius: 8px; text-decoration: none; display: flex; align-items: center; gap: 8px; transition: all 0.3s;">
-                                <i class="fas fa-times"></i> Clear
+                                <i class="fas fa-times"></i> Clear All
                             </a>
                         <?php endif; ?>
                     </div>
                 </form>
 
-                <script>
-                    document.querySelector('select[name="sort"]').addEventListener('change', function () {
-                        let val = this.value;
-                        let orderInput = document.getElementById('orderInput');
-                        if (val === 'price_asc') {
-                            this.value = 'price';
-                            orderInput.value = 'ASC';
-                        } else if (val === 'price_desc') {
-                            this.value = 'price';
-                            orderInput.value = 'DESC';
-                        } else {
-                            // Default order for others (DESC for date, ASC for stock? or standard DESC)
-                            // User asked for "Stock" but didn't specify order. Usually high stock is good or bad? 
-                            // Let's default to DESC so big numbers first.
-                            orderInput.value = 'DESC';
-                        }
-                    });
-                </script>
+                <!-- Active Filters Display -->
+                <?php if ($search || $categoryFilter != 'all'): ?>
+                    <div style="margin-bottom: 15px; padding: 10px; background: rgba(255, 122, 0, 0.05); border-left: 3px solid #ff7a00; border-radius: 5px;">
+                        <small style="color: #aaa;">Active filters:</small>
+                        <?php if ($search): ?>
+                            <span class="filter-badge">Search: "<?php echo htmlspecialchars($search); ?>"</span>
+                        <?php endif; ?>
+                        <?php if ($categoryFilter != 'all'): ?>
+                            <span class="filter-badge">Category: <?php echo htmlspecialchars($categoryFilter); ?></span>
+                        <?php endif; ?>
+                        <small style="color: #666; margin-left: 10px;">
+                            (Found <?php echo $totalProducts; ?> products)
+                        </small>
+                    </div>
+                <?php endif; ?>
 
                 <div style="overflow-x: auto;">
                     <table class="admin-table">
@@ -480,67 +535,115 @@ $purchases = $productController->getPurchaseHistory();
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($products as $p): ?>
+                            <?php if (empty($products)): ?>
                                 <tr>
-                                    <td>#<?php echo $p->getId(); ?></td>
-                                    <td>
-                                        <img src="<?php echo $p->getImage() ? '../../view/' . $p->getImage() : '../images/placeholder-product.png'; ?>"
-                                            style="width: 40px; height: 40px; object-fit: cover; border-radius: 5px;"
-                                            onerror="this.src='../images/placeholder-product.png'">
-                                    </td>
-                                    <td><?php echo htmlspecialchars($p->getName()); ?></td>
-                                    <td><?php echo htmlspecialchars($p->getCategory()); ?></td>
-                                    <td>$<?php echo number_format($p->getPrice(), 2); ?></td>
-                                    <td><?php echo $p->getStock(); ?></td>
-                                    <td>
-                                        <button class="action-btn btn-edit" onclick="openEditModal(<?php echo htmlspecialchars(json_encode([
-                                            'id' => $p->getId(),
-                                            'name' => $p->getName(),
-                                            'price' => $p->getPrice(),
-                                            'stock' => $p->getStock(),
-                                            'category' => $p->getCategory()
-                                        ])); ?>)">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-
-                                        <button type="button" class="action-btn btn-delete"
-                                            onclick="openDeleteModal(<?php echo $p->getId(); ?>)">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                    <td colspan="7" style="text-align:center; color:#888; padding: 40px;">
+                                        <i class="fas fa-inbox" style="font-size: 3em; opacity: 0.3; display: block; margin-bottom: 15px;"></i>
+                                        No products found matching your filters.
+                                        <?php if ($search || $categoryFilter != 'all'): ?>
+                                            <br><a href="shopb.php" style="color: #ff7a00; text-decoration: none; margin-top: 10px; display: inline-block;">Clear filters</a>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
-                            <?php endforeach; ?>
+                            <?php else: ?>
+                                <?php foreach ($products as $p): ?>
+                                    <tr>
+                                        <td>#<?php echo $p->getId(); ?></td>
+                                        <td>
+                                            <img src="<?php echo $p->getImage() ? '../../view/' . $p->getImage() : '../images/placeholder-product.png'; ?>"
+                                                style="width: 40px; height: 40px; object-fit: cover; border-radius: 5px;"
+                                                onerror="this.src='../images/placeholder-product.png'">
+                                        </td>
+                                        <td><?php echo htmlspecialchars($p->getName()); ?></td>
+                                        <td>
+                                            <span style="background: rgba(255,122,0,0.1); padding: 4px 10px; border-radius: 12px; font-size: 0.85em; border: 1px solid rgba(255,122,0,0.3);">
+                                                <?php echo htmlspecialchars($p->getCategory()); ?>
+                                            </span>
+                                        </td>
+                                        <td style="color: #2ed573; font-weight: 600;">$<?php echo number_format($p->getPrice(), 2); ?></td>
+                                        <td>
+                                            <?php 
+                                            $stock = $p->getStock();
+                                            $stockColor = $stock > 10 ? '#2ed573' : ($stock > 0 ? '#ffa502' : '#ff4757');
+                                            ?>
+                                            <span style="color: <?php echo $stockColor; ?>; font-weight: 600;">
+                                                <?php echo $stock; ?>
+                                                <?php if ($stock == 0): ?>
+                                                    <i class="fas fa-exclamation-circle" style="margin-left: 5px;"></i>
+                                                <?php endif; ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div style="display: flex; gap: 8px; align-items: center;">
+                                                <button class="action-btn btn-edit" onclick="openEditModal(<?php echo htmlspecialchars(json_encode([
+                                                    'id' => $p->getId(),
+                                                    'name' => $p->getName(),
+                                                    'price' => $p->getPrice(),
+                                                    'stock' => $p->getStock(),
+                                                    'category' => $p->getCategory()
+                                                ])); ?>)">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+
+                                                <button type="button" class="action-btn btn-delete"
+                                                    onclick="openDeleteModal(<?php echo $p->getId(); ?>)">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </tbody>
                     </table>
 
                     <!-- Pagination -->
                     <?php if ($totalPages > 1): ?>
-                        <div class="pagination" style="display: flex; gap: 10px; margin-top: 20px; justify-content: start;">
+                        <div class="pagination" style="display: flex; gap: 10px; margin-top: 20px; justify-content: center; align-items: center;">
                             <?php if ($page > 1): ?>
-                                <a href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>&sort=<?php echo $sortBy; ?>&order=<?php echo $order; ?>"
+                                <a href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>&category=<?php echo urlencode($categoryFilter); ?>&sort=<?php echo urlencode($sortParam); ?>"
                                     class="page-link"
-                                    style="padding: 8px 15px; background: rgba(255,122,0,0.1); border: 1px solid #ff7a00; color: #fff; text-decoration: none; border-radius: 5px;">&laquo;
-                                    Prev</a>
+                                    style="padding: 10px 15px; background: rgba(255,122,0,0.1); border: 1px solid #ff7a00; color: #fff; text-decoration: none; border-radius: 5px; transition: all 0.3s;">&laquo; Prev</a>
                             <?php endif; ?>
 
-                            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                                <a href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>&sort=<?php echo $sortBy; ?>&order=<?php echo $order; ?>"
-                                    class="page-link" style="padding: 8px 15px; 
+                            <?php 
+                            $startPage = max(1, $page - 2);
+                            $endPage = min($totalPages, $page + 2);
+                            
+                            if ($startPage > 1): ?>
+                                <a href="?page=1&search=<?php echo urlencode($search); ?>&category=<?php echo urlencode($categoryFilter); ?>&sort=<?php echo urlencode($sortParam); ?>" 
+                                   class="page-link" style="padding: 10px 15px; background: rgba(255,255,255,0.05); border: 1px solid #444; color: #fff; text-decoration: none; border-radius: 5px;">1</a>
+                                <?php if ($startPage > 2): ?>
+                                    <span style="color: #666;">...</span>
+                                <?php endif; ?>
+                            <?php endif; ?>
+
+                            <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                                <a href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>&category=<?php echo urlencode($categoryFilter); ?>&sort=<?php echo urlencode($sortParam); ?>"
+                                    class="page-link" style="padding: 10px 15px; 
                                            background: <?php echo $i == $page ? '#ff7a00' : 'rgba(255,255,255,0.05)'; ?>; 
                                            border: 1px solid <?php echo $i == $page ? '#ff7a00' : '#444'; ?>; 
                                            color: #fff; 
                                            text-decoration: none; 
                                            border-radius: 5px;
-                                           margin: 0 5px;">
+                                           font-weight: <?php echo $i == $page ? '700' : '400'; ?>;
+                                           transition: all 0.3s;">
                                     <?php echo $i; ?>
                                 </a>
                             <?php endfor; ?>
 
+                            <?php if ($endPage < $totalPages): ?>
+                                <?php if ($endPage < $totalPages - 1): ?>
+                                    <span style="color: #666;">...</span>
+                                <?php endif; ?>
+                                <a href="?page=<?php echo $totalPages; ?>&search=<?php echo urlencode($search); ?>&category=<?php echo urlencode($categoryFilter); ?>&sort=<?php echo urlencode($sortParam); ?>" 
+                                   class="page-link" style="padding: 10px 15px; background: rgba(255,255,255,0.05); border: 1px solid #444; color: #fff; text-decoration: none; border-radius: 5px;"><?php echo $totalPages; ?></a>
+                            <?php endif; ?>
+
                             <?php if ($page < $totalPages): ?>
-                                <a href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>&sort=<?php echo $sortBy; ?>&order=<?php echo $order; ?>"
+                                <a href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>&category=<?php echo urlencode($categoryFilter); ?>&sort=<?php echo urlencode($sortParam); ?>"
                                     class="page-link"
-                                    style="padding: 8px 15px; background: rgba(255,122,0,0.1); border: 1px solid #ff7a00; color: #fff; text-decoration: none; border-radius: 5px;">Next
-                                    &raquo;</a>
+                                    style="padding: 10px 15px; background: rgba(255,122,0,0.1); border: 1px solid #ff7a00; color: #fff; text-decoration: none; border-radius: 5px; transition: all 0.3s;">Next &raquo;</a>
                             <?php endif; ?>
                         </div>
                     <?php endif; ?>
@@ -576,7 +679,7 @@ $purchases = $productController->getPurchaseHistory();
                                         </td>
                                         <td><?php echo htmlspecialchars($ph['username']); ?></td>
                                         <td><?php echo htmlspecialchars($ph['product_name']); ?></td>
-                                        <td>$<?php echo number_format($ph['amount'], 2); ?></td>
+                                        <td style="color: #2ed573; font-weight: 600;">$<?php echo number_format($ph['amount'], 2); ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php endif; ?>
@@ -740,7 +843,6 @@ $purchases = $productController->getPurchaseHistory();
         }
 
         function validateAddForm() {
-            // Re-using same logic concept, or simple check
             const name = document.getElementById('add_name').value;
             const price = document.getElementById('add_price').value;
             const stock = document.getElementById('add_stock').value;
@@ -758,7 +860,6 @@ $purchases = $productController->getPurchaseHistory();
             document.getElementById('edit_stock').value = product.stock;
             document.getElementById('edit_category').value = product.category;
 
-            // Clear Validation Styles
             document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
 
             document.getElementById('editModal').style.display = 'flex';
@@ -773,41 +874,34 @@ $purchases = $productController->getPurchaseHistory();
             document.getElementById(modalId).style.display = 'none';
         }
 
-        // Close on outside click
         window.onclick = function (event) {
             if (event.target.classList.contains('modal')) {
                 event.target.style.display = 'none';
             }
         }
 
-        // Form Submission Logic
         const editForm = document.getElementById('editForm');
 
         editForm.addEventListener('submit', function (e) {
-            e.preventDefault(); // Stop default submission
+            e.preventDefault();
 
             if (validateEditForm()) {
-                // Open Save Modal instead of submitting immediately
                 document.getElementById('saveModal').style.display = 'flex';
             }
         });
 
         function submitEditForm() {
-            // Actual submission
             editForm.submit();
         }
 
-        // JS Validation
         function validateEditForm() {
             let isValid = true;
 
-            // Get Elements
             const nameEl = document.getElementById('edit_name');
             const categoryEl = document.getElementById('edit_category');
             const priceEl = document.getElementById('edit_price');
             const stockEl = document.getElementById('edit_stock');
 
-            // Helper to set error
             const setError = (element, isError) => {
                 if (isError) {
                     element.classList.add('is-invalid');
@@ -816,7 +910,6 @@ $purchases = $productController->getPurchaseHistory();
                 }
             };
 
-            // Validate Name
             if (nameEl.value.trim() === '') {
                 setError(nameEl, true);
                 isValid = false;
@@ -824,7 +917,6 @@ $purchases = $productController->getPurchaseHistory();
                 setError(nameEl, false);
             }
 
-            // Validate Category
             if (categoryEl.value === '') {
                 setError(categoryEl, true);
                 isValid = false;
@@ -832,7 +924,6 @@ $purchases = $productController->getPurchaseHistory();
                 setError(categoryEl, false);
             }
 
-            // Validate Price
             if (priceEl.value === '' || parseFloat(priceEl.value) < 0) {
                 setError(priceEl, true);
                 isValid = false;
@@ -840,7 +931,6 @@ $purchases = $productController->getPurchaseHistory();
                 setError(priceEl, false);
             }
 
-            // Validate Stock
             if (stockEl.value === '' || parseInt(stockEl.value) < 0) {
                 setError(stockEl, true);
                 isValid = false;
@@ -855,7 +945,6 @@ $purchases = $productController->getPurchaseHistory();
             return isValid;
         }
 
-        // Toast Notification System
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
             const msgSpan = document.getElementById('toastMessage');
@@ -863,7 +952,6 @@ $purchases = $productController->getPurchaseHistory();
 
             msgSpan.textContent = message;
 
-            // Reset classes
             toast.className = 'toast';
             if (type === 'success') {
                 toast.classList.add('success');
@@ -873,17 +961,14 @@ $purchases = $productController->getPurchaseHistory();
                 icon.className = 'fas fa-times-circle';
             }
 
-            // Show
-            void toast.offsetWidth; // Trigger reflow
+            void toast.offsetWidth;
             toast.classList.add('show');
 
-            // Hide after 5 seconds
             setTimeout(() => {
                 toast.classList.remove('show');
             }, 5000);
         }
 
-        // Trigger toast from PHP
         <?php if ($message): ?>
             showToast("<?php echo addslashes($message); ?>", "success");
         <?php endif; ?>
@@ -891,7 +976,63 @@ $purchases = $productController->getPurchaseHistory();
         <?php if ($error): ?>
             showToast("<?php echo addslashes($error); ?>", "error");
         <?php endif; ?>
-    </script>
+
+        // ============ SIMPLE SEARCH IMPLEMENTATION (using form submit) ============
+        
+        const searchInput = document.getElementById('searchInput');
+        const categorySelect = document.getElementById('categorySelect');
+        const sortSelect = document.getElementById('sortSelect');
+        const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+        const filterForm = document.getElementById('filterForm');
+
+        // Debounce function
+        let searchTimeout;
+        function debounce(func, wait) {
+            return function executedFunction(...args) {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => func(...args), wait);
+            };
+        }
+
+        // Auto-submit form on search input (debounced)
+        if (searchInput) {
+            searchInput.addEventListener('input', debounce(function() {
+                if (this.value.length === 0 || this.value.length >= 2) {
+                    filterForm.submit();
+                }
+            }, 800)); // Wait 800ms after user stops typing
+
+            // Also submit on Enter key
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    filterForm.submit();
+                }
+            });
+        }
+
+        // Auto-submit on category change
+        if (categorySelect) {
+            categorySelect.addEventListener('change', function() {
+                filterForm.submit();
+            });
+        }
+
+        // Auto-submit on sort change
+        if (sortSelect) {
+            sortSelect.addEventListener('change', function() {
+                filterForm.submit();
+            });
+        }
+
+        // Apply filters button
+        if (applyFiltersBtn) {
+            applyFiltersBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                filterForm.submit();
+            });
+        }
+</script>
 </body>
 
 </html>
