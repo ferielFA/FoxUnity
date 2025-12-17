@@ -43,7 +43,10 @@ $commentsDir = __DIR__ . '/uploads/comments';
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>News Admin - Dashboard</title>
   <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
   <style>
     /* Admin Dropdown Styles (Matches dashboard.php) */
     .admin-dropdown {
@@ -75,7 +78,7 @@ $commentsDir = __DIR__ . '/uploads/comments';
 
     .admin-user i.fa-user-circle {
       font-size: 35px;
-      color: #ff7a00;
+      color: #fff;
     }
 
     .admin-user span {
@@ -86,7 +89,7 @@ $commentsDir = __DIR__ . '/uploads/comments';
 
     .admin-user i.fa-chevron-down {
       font-size: 12px;
-      color: #ff7a00;
+      color: #fff;
       transition: transform 0.3s ease;
     }
 
@@ -99,8 +102,9 @@ $commentsDir = __DIR__ . '/uploads/comments';
       top: 100%;
       right: 0;
       margin-top: 10px;
-      background: rgba(20, 20, 20, 0.98);
-      border: 2px solid rgba(255, 122, 0, 0.3);
+      background: rgba(15, 15, 35, 0.98);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 122, 0, 0.4);
       border-radius: 12px;
       min-width: 200px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
@@ -176,39 +180,45 @@ $commentsDir = __DIR__ . '/uploads/comments';
     <a href="tradingb.php">Trade History</a>
     <a href="eventsb.php">Events</a>
     <a href="news_admin.php" class="active">News</a>
-    <a href="news_history.php" id="news-history-link">News History</a>
-    <a href="categories.php" id="categories-link">Categories</a>
-    <a href="newsletter_admin.php" id="newsletter-link">Newsletter</a>
-    <a href="evaluations_publiques.php">Évaluations Publiques</a>
+    <a href="news_history.php">News History</a>
+    <a href="categories.php">Categories</a>
+    <a href="newsletter_admin.php">Newsletter</a>
+    <a href="reclamback.php">Support</a>
+    <a href="evaluations_publiques.php">Public Evaluations</a>
     <a href="../front/index.php">← Return Homepage</a>
   </div>
 
   <div class="main" style="padding:0 1vw 30px 2vw;max-width:1800px;margin:0 auto;">
     <div class="topbar" style="margin-top:16px;">
       <h1>News Administration</h1>
-      <div class="admin-dropdown" id="adminDropdown">
-        <div class="user admin-user">
-          <?php if ($userImage): ?>
-            <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
-          <?php else: ?>
-            <i class="fas fa-user-circle"></i>
-          <?php endif; ?>
-          <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
-          <i class="fas fa-chevron-down"></i>
-        </div>
+      <div class="topbar-right" style="display: flex; align-items: center; gap: 20px;">
+        <!-- Système de Notifications Tout-en-un -->
+        <?php include __DIR__ . '/includes/notifications.php'; ?>
 
-        <div class="admin-dropdown-menu">
-          <a href="admin-profile.php" class="dropdown-item">
-            <i class="fas fa-user"></i>
-            <span>My Profile</span>
-          </a>
+        <div class="admin-dropdown" id="adminDropdown">
+          <div class="user admin-user">
+            <?php if ($userImage): ?>
+              <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
+            <?php else: ?>
+              <i class="fas fa-user-circle"></i>
+            <?php endif; ?>
+            <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
+            <i class="fas fa-chevron-down"></i>
+          </div>
 
-          <div class="dropdown-divider"></div>
+          <div class="admin-dropdown-menu">
+            <a href="admin-profile.php" class="dropdown-item">
+              <i class="fas fa-user"></i>
+              <span>My Profile</span>
+            </a>
 
-          <a href="../front/logout.php" class="dropdown-item logout">
-            <i class="fas fa-sign-out-alt"></i>
-            <span>Logout</span>
-          </a>
+            <div class="dropdown-divider"></div>
+
+            <a href="../front/logout.php" class="dropdown-item logout">
+              <i class="fas fa-sign-out-alt"></i>
+              <span>Logout</span>
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -426,10 +436,12 @@ $commentsDir = __DIR__ . '/uploads/comments';
             <div style="margin-top:10px">
               <?php foreach ($messages as $m): ?>
                 <div style="color:#b6ffb3;padding:8px;border-radius:6px;background:#0b2b10;margin-bottom:6px">
-                  <?php echo htmlspecialchars($m); ?></div><?php endforeach; ?>
+                  <?php echo htmlspecialchars($m); ?>
+                </div><?php endforeach; ?>
               <?php foreach ($errors as $e): ?>
                 <div style="color:#ffd6d6;padding:8px;border-radius:6px;background:#2b0b0b;margin-bottom:6px">
-                  <?php echo htmlspecialchars($e); ?></div><?php endforeach; ?>
+                  <?php echo htmlspecialchars($e); ?>
+                </div><?php endforeach; ?>
             </div>
           <?php endif; ?>
 
@@ -479,7 +491,8 @@ $commentsDir = __DIR__ . '/uploads/comments';
                     <?php foreach ($categories as $c): ?>
                       <option value="<?php echo intval($c['idCategorie']); ?>" <?php if (!empty($it['idCategorie']) && intval($it['idCategorie']) === intval($c['idCategorie']))
                            echo 'selected'; ?>>
-                        <?php echo htmlspecialchars($c['nom']); ?></option>
+                        <?php echo htmlspecialchars($c['nom']); ?>
+                      </option>
                     <?php endforeach; ?>
                   </select>
                   <input id="fld-category" name="category" value="<?php echo htmlspecialchars($it['category'] ?? ''); ?>"

@@ -428,29 +428,34 @@ if ($currentUser->getImage()) {
   <div class="main">
     <div class="topbar">
       <h1>Admin Profile</h1>
-      <div class="admin-dropdown" id="adminDropdown">
-        <div class="user admin-user">
-          <?php if ($userImage): ?>
-            <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
-          <?php else: ?>
-            <i class="fas fa-user-circle" style="font-size: 35px; color: #ff7a00;"></i>
-          <?php endif; ?>
-          <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
-          <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
-        </div>
+      <div class="topbar-right" style="display: flex; align-items: center; gap: 20px;">
+        <!-- Système de Notifications Tout-en-un -->
+        <?php include __DIR__ . '/includes/notifications.php'; ?>
 
-        <div class="admin-dropdown-menu">
-          <a href="admin-profile.php" class="dropdown-item">
-            <i class="fas fa-user"></i>
-            <span>My Profile</span>
-          </a>
+        <div class="admin-dropdown" id="adminDropdown">
+          <div class="user admin-user">
+            <?php if ($userImage): ?>
+              <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
+            <?php else: ?>
+              <i class="fas fa-user-circle" style="font-size: 35px; color: #ff7a00;"></i>
+            <?php endif; ?>
+            <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
+            <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+          </div>
 
-          <div class="dropdown-divider"></div>
+          <div class="admin-dropdown-menu">
+            <a href="admin-profile.php" class="dropdown-item">
+              <i class="fas fa-user"></i>
+              <span>My Profile</span>
+            </a>
 
-          <a href="../front/logout.php" class="dropdown-item logout">
-            <i class="fas fa-sign-out-alt"></i>
-            <span>Logout</span>
-          </a>
+            <div class="dropdown-divider"></div>
+
+            <a href="../front/logout.php" class="dropdown-item logout">
+              <i class="fas fa-sign-out-alt"></i>
+              <span>Logout</span>
+            </a>
+          </div>
         </div>
       </div>
     </div>

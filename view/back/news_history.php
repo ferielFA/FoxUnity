@@ -50,7 +50,10 @@ foreach ($articles as $article) {
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>News History - Dashboard</title>
   <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
   <style>
     /* Admin Dropdown Styles */
     .admin-dropdown {
@@ -82,7 +85,7 @@ foreach ($articles as $article) {
 
     .admin-user i.fa-user-circle {
       font-size: 35px;
-      color: #ff7a00;
+      color: #fff;
     }
 
     .admin-user span {
@@ -93,7 +96,7 @@ foreach ($articles as $article) {
 
     .admin-user i.fa-chevron-down {
       font-size: 12px;
-      color: #ff7a00;
+      color: #fff;
       transition: transform 0.3s ease;
     }
 
@@ -106,8 +109,9 @@ foreach ($articles as $article) {
       top: 100%;
       right: 0;
       margin-top: 10px;
-      background: rgba(20, 20, 20, 0.98);
-      border: 2px solid rgba(255, 122, 0, 0.3);
+      background: rgba(15, 15, 35, 0.98);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 122, 0, 0.4);
       border-radius: 12px;
       min-width: 200px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
@@ -186,36 +190,42 @@ foreach ($articles as $article) {
     <a href="news_history.php" class="active">News History</a>
     <a href="categories.php">Categories</a>
     <a href="newsletter_admin.php">Newsletter</a>
-    <a href="evaluations_publiques.php">Évaluations Publiques</a>
+    <a href="reclamback.php">Support</a>
+    <a href="evaluations_publiques.php">Public Evaluations</a>
     <a href="../front/index.php">← Return Homepage</a>
   </div>
 
   <div class="main">
     <div class="topbar">
       <h1>News History</h1>
-      <div class="admin-dropdown" id="adminDropdown">
-        <div class="user admin-user">
-          <?php if ($userImage): ?>
-            <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
-          <?php else: ?>
-            <i class="fas fa-user-circle"></i>
-          <?php endif; ?>
-          <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
-          <i class="fas fa-chevron-down"></i>
-        </div>
+      <div class="topbar-right" style="display: flex; align-items: center; gap: 20px;">
+        <!-- Système de Notifications Tout-en-un -->
+        <?php include __DIR__ . '/includes/notifications.php'; ?>
 
-        <div class="admin-dropdown-menu">
-          <a href="admin-profile.php" class="dropdown-item">
-            <i class="fas fa-user"></i>
-            <span>My Profile</span>
-          </a>
+        <div class="admin-dropdown" id="adminDropdown">
+          <div class="user admin-user">
+            <?php if ($userImage): ?>
+              <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
+            <?php else: ?>
+              <i class="fas fa-user-circle"></i>
+            <?php endif; ?>
+            <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
+            <i class="fas fa-chevron-down"></i>
+          </div>
 
-          <div class="dropdown-divider"></div>
+          <div class="admin-dropdown-menu">
+            <a href="admin-profile.php" class="dropdown-item">
+              <i class="fas fa-user"></i>
+              <span>My Profile</span>
+            </a>
 
-          <a href="../front/logout.php" class="dropdown-item logout">
-            <i class="fas fa-sign-out-alt"></i>
-            <span>Logout</span>
-          </a>
+            <div class="dropdown-divider"></div>
+
+            <a href="../front/logout.php" class="dropdown-item logout">
+              <i class="fas fa-sign-out-alt"></i>
+              <span>Logout</span>
+            </a>
+          </div>
         </div>
       </div>
     </div>

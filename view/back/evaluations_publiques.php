@@ -38,7 +38,7 @@ $allSatisfactions = $satisfactionController->getAllSatisfactions();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FoxUnity - Évaluations Publiques</title>
+    <title>FoxUnity - Public Evaluations</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@700&display=swap"
         rel="stylesheet">
@@ -58,7 +58,61 @@ $allSatisfactions = $satisfactionController->getAllSatisfactions();
             --danger-color: #f44336;
         }
 
+        /* Espacement supplémentaire pour éviter la compression */
+        .main {
+            padding: 40px 60px !important;
+            margin-left: 30px !important;
+        }
 
+        .topbar {
+            margin-bottom: 40px !important;
+            padding: 30px 50px !important;
+        }
+
+        .stats-grid {
+            margin-bottom: 40px !important;
+            gap: 25px !important;
+        }
+
+        .reviews-section {
+            margin-bottom: 40px !important;
+        }
+
+        .reviews-list {
+            gap: 30px !important;
+        }
+
+        .review-card {
+            padding: 30px !important;
+        }
+
+        /* Admin Dropdown Active State */
+        .admin-dropdown.active .admin-dropdown-menu {
+            opacity: 1 !important;
+            visibility: visible !important;
+            transform: translateY(0) !important;
+        }
+
+        .admin-user i.fa-user-circle {
+            font-size: 35px;
+            color: #fff;
+        }
+
+        .admin-user span {
+            color: #fff;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .admin-user i.fa-chevron-down {
+            font-size: 12px;
+            color: #fff;
+            transition: transform 0.3s ease;
+        }
+
+        .admin-dropdown.active .admin-user i.fa-chevron-down {
+            transform: rotate(180deg);
+        }
 
         /* Stats Cards */
         .stats-grid {
@@ -489,37 +543,42 @@ $allSatisfactions = $satisfactionController->getAllSatisfactions();
         <a href="categories.php" id="categories-link">Categories</a>
         <a href="newsletter_admin.php" id="newsletter-link">Newsletter</a>
         <a href="reclamback.php">Support</a>
-        <a href="evaluations_publiques.php" class="active">Évaluations Publiques</a>
+        <a href="evaluations_publiques.php" class="active">Public Evaluations</a>
         <a href="../front/index.php">← Return Homepage</a>
     </div>
 
     <!-- Main Content -->
     <div class="main">
         <div class="topbar">
-            <h1>Évaluations <span>Publiques</span></h1>
-            <div class="admin-dropdown" id="adminDropdown">
-                <div class="user admin-user">
-                    <?php if ($userImage): ?>
-                        <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
-                    <?php else: ?>
-                        <i class="fas fa-user-circle"></i>
-                    <?php endif; ?>
-                    <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
-                    <i class="fas fa-chevron-down"></i>
-                </div>
+            <h1>Public <span>Evaluations</span></h1>
+            <div class="topbar-right" style="display: flex; align-items: center; gap: 20px;">
+                <!-- Système de Notifications Tout-en-un -->
+                <?php include __DIR__ . '/includes/notifications.php'; ?>
 
-                <div class="admin-dropdown-menu">
-                    <a href="admin-profile.php" class="dropdown-item">
-                        <i class="fas fa-user"></i>
-                        <span>My Profile</span>
-                    </a>
+                <div class="admin-dropdown" id="adminDropdown">
+                    <div class="user admin-user">
+                        <?php if ($userImage): ?>
+                            <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
+                        <?php else: ?>
+                            <i class="fas fa-user-circle"></i>
+                        <?php endif; ?>
+                        <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
 
-                    <div class="dropdown-divider"></div>
+                    <div class="admin-dropdown-menu">
+                        <a href="admin-profile.php" class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            <span>My Profile</span>
+                        </a>
 
-                    <a href="../front/logout.php" class="dropdown-item logout">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>Logout</span>
-                    </a>
+                        <div class="dropdown-divider"></div>
+
+                        <a href="../front/logout.php" class="dropdown-item logout">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -707,50 +766,55 @@ $allSatisfactions = $satisfactionController->getAllSatisfactions();
                 </div>
             </div>
 
-            <script>
-                // Attachment Modal Functions
-                function openAttachmentModal(element) {
-                    const modal = document.getElementById('attachment-modal');
-                    const modalContent = document.getElementById('attachment-modal-content');
-                    const downloadLink = document.getElementById('attachment-download-link');
-                    const fileSrc = element.getAttribute('data-src');
-                    const fileType = element.getAttribute('data-type');
+            <footer class="site-footer">
+                © 2025 <span>Nine Tailed Fox</span>. All Rights Reserved.
+            </footer>
+        </div>
 
-                    if (!modal || !modalContent) {
-                        console.error('Attachment modal elements not found');
-                        return;
-                    }
+        <script>
+            // Attachment Modal Functions
+            function openAttachmentModal(element) {
+                const modal = document.getElementById('attachment-modal');
+                const modalContent = document.getElementById('attachment-modal-content');
+                const downloadLink = document.getElementById('attachment-download-link');
+                const fileSrc = element.getAttribute('data-src');
+                const fileType = element.getAttribute('data-type');
 
-                    modal.style.display = 'flex';
-                    if (downloadLink) {
-                        downloadLink.href = fileSrc;
-                    }
+                if (!modal || !modalContent) {
+                    console.error('Attachment modal elements not found');
+                    return;
+                }
 
-                    if (fileType === 'image') {
-                        console.log('Opening image modal with src:', fileSrc);
+                modal.style.display = 'flex';
+                if (downloadLink) {
+                    downloadLink.href = fileSrc;
+                }
 
-                        // Afficher directement l'image avec gestion d'erreur
-                        modalContent.innerHTML = `
+                if (fileType === 'image') {
+                    console.log('Opening image modal with src:', fileSrc);
+
+                    // Afficher directement l'image avec gestion d'erreur
+                    modalContent.innerHTML = `
                     <img src="${fileSrc}" 
                          alt="Full size attachment" 
                          style="max-width: 100%; max-height: 85vh; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: block; margin: 0 auto;"
                          onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\\'text-align: center; padding: 40px; color: #ff7a00;\\'><i class=\\'fas fa-exclamation-triangle\\' style=\\'font-size: 48px; margin-bottom: 20px; display: block;\\'></i><p style=\\'font-size: 18px; margin-bottom: 10px;\\'>Impossible de charger l\\'image</p><p style=\\'font-size: 14px; color: #aaa; word-break: break-all;\\'>Chemin: ${fileSrc}</p><a href=\\'${fileSrc}\\' target=\\'_blank\\' style=\\'color: #ff7a00; text-decoration: none; margin-top: 20px; display: inline-block;\\'><i class=\\'fas fa-external-link-alt\\'></i> Ouvrir dans un nouvel onglet</a></div>';">
                 `;
-                    } else if (fileType === 'video') {
-                        const videoExt = fileSrc.split('.').pop();
-                        const video = document.createElement('video');
-                        video.controls = true;
-                        video.autoplay = true;
-                        video.style.cssText = 'max-width: 100%; max-height: 85vh; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: block; margin: 0 auto;';
+                } else if (fileType === 'video') {
+                    const videoExt = fileSrc.split('.').pop();
+                    const video = document.createElement('video');
+                    video.controls = true;
+                    video.autoplay = true;
+                    video.style.cssText = 'max-width: 100%; max-height: 85vh; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: block; margin: 0 auto;';
 
-                        const source = document.createElement('source');
-                        source.src = fileSrc;
-                        source.type = `video/${videoExt}`;
-                        video.appendChild(source);
+                    const source = document.createElement('source');
+                    source.src = fileSrc;
+                    source.type = `video/${videoExt}`;
+                    video.appendChild(source);
 
-                        video.onerror = function () {
-                            console.error('Erreur de chargement de la vidéo:', fileSrc);
-                            modalContent.innerHTML = `
+                    video.onerror = function () {
+                        console.error('Erreur de chargement de la vidéo:', fileSrc);
+                        modalContent.innerHTML = `
                         <div style="text-align: center; padding: 40px; color: #ff7a00;">
                             <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 20px; display: block;"></i>
                             <p style="font-size: 18px; margin-bottom: 10px;">Impossible de charger la vidéo</p>
@@ -760,83 +824,83 @@ $allSatisfactions = $satisfactionController->getAllSatisfactions();
                             </a>
                         </div>
                     `;
-                        };
+                    };
 
-                        modalContent.innerHTML = '';
-                        modalContent.appendChild(video);
-                    }
-
-                    // Prevent body scroll when modal is open
-                    document.body.style.overflow = 'hidden';
+                    modalContent.innerHTML = '';
+                    modalContent.appendChild(video);
                 }
 
-                function closeAttachmentModal() {
+                // Prevent body scroll when modal is open
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeAttachmentModal() {
+                const modal = document.getElementById('attachment-modal');
+                const modalContent = document.getElementById('attachment-modal-content');
+
+                if (!modal) return;
+
+                modal.style.display = 'none';
+                if (modalContent) {
+                    modalContent.innerHTML = '';
+                }
+
+                // Restore body scroll
+                document.body.style.overflow = '';
+            }
+
+            // Close modal when clicking outside (only if modal exists)
+            const attachmentModal = document.getElementById('attachment-modal');
+            if (attachmentModal) {
+                attachmentModal.addEventListener('click', function (e) {
+                    if (e.target === this) {
+                        closeAttachmentModal();
+                    }
+                });
+            }
+
+            // Close modal with Escape key
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
                     const modal = document.getElementById('attachment-modal');
-                    const modalContent = document.getElementById('attachment-modal-content');
-
-                    if (!modal) return;
-
-                    modal.style.display = 'none';
-                    if (modalContent) {
-                        modalContent.innerHTML = '';
+                    if (modal && modal.style.display === 'flex') {
+                        closeAttachmentModal();
                     }
-
-                    // Restore body scroll
-                    document.body.style.overflow = '';
                 }
+            });
 
-                // Close modal when clicking outside (only if modal exists)
-                const attachmentModal = document.getElementById('attachment-modal');
-                if (attachmentModal) {
-                    attachmentModal.addEventListener('click', function (e) {
-                        if (e.target === this) {
-                            closeAttachmentModal();
-                        }
+            document.querySelectorAll('.sidebar a').forEach(item => {
+                item.addEventListener('click', function () {
+                    document.querySelectorAll('.sidebar a').forEach(nav => {
+                        nav.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                });
+            });
+            // Admin Dropdown Logic
+            const adminDropdown = document.getElementById('adminDropdown');
+            if (adminDropdown) {
+                const adminUser = adminDropdown.querySelector('.admin-user');
+                if (adminUser) {
+                    adminUser.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        adminDropdown.classList.toggle('active');
                     });
                 }
 
-                // Close modal with Escape key
+                document.addEventListener('click', function (e) {
+                    if (!adminDropdown.contains(e.target)) {
+                        adminDropdown.classList.remove('active');
+                    }
+                });
+
                 document.addEventListener('keydown', function (e) {
                     if (e.key === 'Escape') {
-                        const modal = document.getElementById('attachment-modal');
-                        if (modal && modal.style.display === 'flex') {
-                            closeAttachmentModal();
-                        }
+                        adminDropdown.classList.remove('active');
                     }
                 });
-
-                document.querySelectorAll('.sidebar a').forEach(item => {
-                    item.addEventListener('click', function () {
-                        document.querySelectorAll('.sidebar a').forEach(nav => {
-                            nav.classList.remove('active');
-                        });
-                        this.classList.add('active');
-                    });
-                });
-                // Admin Dropdown Logic
-                const adminDropdown = document.getElementById('adminDropdown');
-                if (adminDropdown) {
-                    const adminUser = adminDropdown.querySelector('.admin-user');
-                    if (adminUser) {
-                        adminUser.addEventListener('click', function (e) {
-                            e.stopPropagation();
-                            adminDropdown.classList.toggle('active');
-                        });
-                    }
-
-                    document.addEventListener('click', function (e) {
-                        if (!adminDropdown.contains(e.target)) {
-                            adminDropdown.classList.remove('active');
-                        }
-                    });
-
-                    document.addEventListener('keydown', function (e) {
-                        if (e.key === 'Escape') {
-                            adminDropdown.classList.remove('active');
-                        }
-                    });
-                }
-            </script>
+            }
+        </script>
 </body>
 
 </html>

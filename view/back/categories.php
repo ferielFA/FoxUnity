@@ -24,13 +24,10 @@ if ($currentUser->getImage()) {
 }
 
 // Fetch categories for display
-// Ideally this should be handled by a controller method that returns data, but for this view we might need to fetch directly or use model
 $categories = Categorie::getAll();
-// Fetch article counts per category (optional optimization, for now we can just show 0 or implement a count method)
 $counts = [];
 foreach ($categories as $c) {
-  // Basic counting if needed or just skip
-  $counts[$c['idCategorie']] = 0; // Placeholder
+  $counts[$c['idCategorie']] = 0;
 }
 ?>
 <!doctype html>
@@ -41,6 +38,10 @@ foreach ($categories as $c) {
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Categories - Dashboard</title>
   <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
   <style>
     /* Modal matching admin theme */
     #cat-modal {
@@ -67,7 +68,7 @@ foreach ($categories as $c) {
     #cat-modal h3 {
       font-family: 'Orbitron', sans-serif;
       color: #ff7a00;
-      margin-bottom: 10px
+      margin-bottom: 10px;
     }
 
     .msg-success {
@@ -76,7 +77,7 @@ foreach ($categories as $c) {
       padding: 10px;
       border-radius: 8px;
       margin-bottom: 10px;
-      border-left: 4px solid #2db34a
+      border-left: 4px solid #2db34a;
     }
 
     .msg-error {
@@ -85,11 +86,11 @@ foreach ($categories as $c) {
       padding: 10px;
       border-radius: 8px;
       margin-bottom: 10px;
-      border-left: 4px solid #c33
+      border-left: 4px solid #c33;
     }
 
     .table-actions .btn {
-      margin-right: 6px
+      margin-right: 6px;
     }
 
     /* Admin Dropdown Styles */
@@ -122,7 +123,7 @@ foreach ($categories as $c) {
 
     .admin-user i.fa-user-circle {
       font-size: 35px;
-      color: #ff7a00;
+      color: #fff;
     }
 
     .admin-user span {
@@ -133,7 +134,7 @@ foreach ($categories as $c) {
 
     .admin-user i.fa-chevron-down {
       font-size: 12px;
-      color: #ff7a00;
+      color: #fff;
       transition: transform 0.3s ease;
     }
 
@@ -146,8 +147,9 @@ foreach ($categories as $c) {
       top: 100%;
       right: 0;
       margin-top: 10px;
-      background: rgba(20, 20, 20, 0.98);
-      border: 2px solid rgba(255, 122, 0, 0.3);
+      background: rgba(15, 15, 35, 0.98);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 122, 0, 0.4);
       border-radius: 12px;
       min-width: 200px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
@@ -349,17 +351,32 @@ foreach ($categories as $c) {
 
     .category-badge {
       color: #b0b0b0;
-      /* Faded gray text */
       background: rgba(255, 255, 255, 0.05);
-      /* Very subtle background */
       border: 1px solid rgba(255, 255, 255, 0.1);
       padding: 4px 10px;
       border-radius: 6px;
       font-size: 0.9em;
       font-weight: 500;
     }
+
+    /* FOOTER CORRIGÉ - Ne cache plus le contenu */
+    .site-footer {
+      position: relative;
+      width: 100%;
+      text-align: center;
+      padding: 20px;
+      margin-top: 30px;
+      border-top: 1px solid rgba(255, 122, 0, 0.3);
+      background: transparent;
+      color: #ccc;
+      font-size: 14px;
+    }
+
+    .site-footer span {
+      color: #ff7a00;
+      font-weight: 600;
+    }
   </style>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 
 <body class="dashboard-body">
@@ -375,43 +392,50 @@ foreach ($categories as $c) {
     <a href="news_history.php">News History</a>
     <a href="categories.php" class="active">Categories</a>
     <a href="newsletter_admin.php">Newsletter</a>
+    <a href="reclamback.php">Support</a>
     <a href="evaluations_publiques.php">Évaluations Publiques</a>
     <a href="../front/index.php">← Return Homepage</a>
   </div>
 
   <div class="main"
-    style="padding:18px 1vw 14px 2vw;max-width:1800px;margin:0 auto;min-height:calc(100vh - 70px);display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;background:radial-gradient(1200px at 20% 20%, rgba(255,122,0,0.05), transparent 55%), radial-gradient(900px at 80% 10%, rgba(255,122,0,0.06), transparent 50%);">
+    style="padding:18px 1vw 14px 2vw;max-width:1800px;margin:0 auto;min-height:auto;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;background:radial-gradient(1200px at 20% 20%, rgba(255,122,0,0.05), transparent 55%), radial-gradient(900px at 80% 10%, rgba(255,122,0,0.06), transparent 50%);">
+
     <div class="topbar">
       <h1>Categories Management</h1>
-      <div class="admin-dropdown" id="adminDropdown">
-        <div class="user admin-user">
-          <?php if ($userImage): ?>
-            <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
-          <?php else: ?>
-            <i class="fas fa-user-circle"></i>
-          <?php endif; ?>
-          <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
-          <i class="fas fa-chevron-down"></i>
-        </div>
+      <div class="topbar-right" style="display: flex; align-items: center; gap: 20px;">
+        <!-- Système de Notifications Tout-en-un -->
+        <?php include __DIR__ . '/includes/notifications.php'; ?>
 
-        <div class="admin-dropdown-menu">
-          <a href="admin-profile.php" class="dropdown-item">
-            <i class="fas fa-user"></i>
-            <span>My Profile</span>
-          </a>
+        <div class="admin-dropdown" id="adminDropdown">
+          <div class="user admin-user">
+            <?php if ($userImage): ?>
+              <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
+            <?php else: ?>
+              <i class="fas fa-user-circle"></i>
+            <?php endif; ?>
+            <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
+            <i class="fas fa-chevron-down"></i>
+          </div>
 
-          <div class="dropdown-divider"></div>
+          <div class="admin-dropdown-menu">
+            <a href="admin-profile.php" class="dropdown-item">
+              <i class="fas fa-user"></i>
+              <span>My Profile</span>
+            </a>
 
-          <a href="../front/logout.php" class="dropdown-item logout">
-            <i class="fas fa-sign-out-alt"></i>
-            <span>Logout</span>
-          </a>
+            <div class="dropdown-divider"></div>
+
+            <a href="../front/logout.php" class="dropdown-item logout">
+              <i class="fas fa-sign-out-alt"></i>
+              <span>Logout</span>
+            </a>
+          </div>
         </div>
       </div>
     </div>
 
     <div class="content"
-      style="padding:0;margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;width:100%;">
+      style="padding:0;margin:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:10px;width:100%;">
       <div class="card modern-card cat-card" style="margin:8px auto 0 auto;">
 
         <!-- Messages -->
@@ -498,6 +522,12 @@ foreach ($categories as $c) {
         </div>
       </div>
     </div>
+
+    <!-- FOOTER BIEN POSITIONNÉ - À L'INTÉRIEUR DE .main -->
+    <footer class="site-footer">
+      © 2025 <span>Nine Tailed Fox</span>. All Rights Reserved.
+    </footer>
+
   </div>
 
   <!-- Add/Edit Modal -->
@@ -565,7 +595,7 @@ foreach ($categories as $c) {
       modal.style.display = 'flex';
       if (data) {
         title.textContent = 'Edit Category';
-        inputAction.value = 'update'; // Controller expects 'update' or 'edit'
+        inputAction.value = 'update';
         inputId.value = data.idCategorie;
         document.getElementById('cat-name').value = data.nom;
         document.getElementById('cat-slug').value = data.slug;
@@ -605,7 +635,6 @@ foreach ($categories as $c) {
       if (adminDropdown) {
         const adminUser = adminDropdown.querySelector('.admin-user');
 
-        // Toggle dropdown on click
         if (adminUser) {
           adminUser.addEventListener('click', function (e) {
             e.stopPropagation();
@@ -613,14 +642,12 @@ foreach ($categories as $c) {
           });
         }
 
-        // Close dropdown when clicking outside
         document.addEventListener('click', function (e) {
           if (!adminDropdown.contains(e.target)) {
             adminDropdown.classList.remove('active');
           }
         });
 
-        // Close dropdown when pressing Escape
         document.addEventListener('keydown', function (e) {
           if (e.key === 'Escape') {
             adminDropdown.classList.remove('active');

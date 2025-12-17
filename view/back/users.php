@@ -112,7 +112,6 @@ if ($currentUser->getImage()) {
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
   <style>
     .user-table-container {
       background: rgba(20, 20, 20, 0.95);
@@ -865,11 +864,11 @@ if ($currentUser->getImage()) {
     <a href="tradingb.php">Trade History</a>
     <a href="eventsb.php">Events</a>
     <a href="news_admin.php">News</a>
-    <a href="news_history.php" id="news-history-link">News History</a>
-    <a href="categories.php" id="categories-link">Categories</a>
-    <a href="newsletter_admin.php" id="newsletter-link">Newsletter</a>
+    <a href="news_history.php">News History</a>
+    <a href="categories.php">Categories</a>
+    <a href="newsletter_admin.php">Newsletter</a>
     <a href="reclamback.php">Support</a>
-    <a href="evaluations_publiques.php">Évaluations Publiques</a>
+    <a href="evaluations_publiques.php">Public Evaluations</a>
     <a href="../front/index.php">← Return Homepage</a>
   </div>
 
@@ -877,29 +876,34 @@ if ($currentUser->getImage()) {
   <div class="main">
     <div class="topbar">
       <h1>User Management</h1>
-      <div class="admin-dropdown" id="adminDropdown">
-        <div class="user admin-user">
-          <?php if ($userImage): ?>
-            <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
-          <?php else: ?>
-            <i class="fas fa-user-circle" style="font-size: 35px; color: #ff7a00;"></i>
-          <?php endif; ?>
-          <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
-          <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
-        </div>
+      <div class="topbar-right" style="display: flex; align-items: center; gap: 20px;">
+        <!-- Système de Notifications Tout-en-un -->
+        <?php include __DIR__ . '/includes/notifications.php'; ?>
 
-        <div class="admin-dropdown-menu">
-          <a href="admin-profile.php" class="dropdown-item">
-            <i class="fas fa-user"></i>
-            <span>My Profile</span>
-          </a>
+        <div class="admin-dropdown" id="adminDropdown">
+          <div class="user admin-user">
+            <?php if ($userImage): ?>
+              <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
+            <?php else: ?>
+              <i class="fas fa-user-circle" style="font-size: 35px; color: #ff7a00;"></i>
+            <?php endif; ?>
+            <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
+            <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+          </div>
 
-          <div class="dropdown-divider"></div>
+          <div class="admin-dropdown-menu">
+            <a href="admin-profile.php" class="dropdown-item">
+              <i class="fas fa-user"></i>
+              <span>My Profile</span>
+            </a>
 
-          <a href="../front/logout.php" class="dropdown-item logout">
-            <i class="fas fa-sign-out-alt"></i>
-            <span>Logout</span>
-          </a>
+            <div class="dropdown-divider"></div>
+
+            <a href="../front/logout.php" class="dropdown-item logout">
+              <i class="fas fa-sign-out-alt"></i>
+              <span>Logout</span>
+            </a>
+          </div>
         </div>
       </div>
     </div>

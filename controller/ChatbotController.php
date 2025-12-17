@@ -4,7 +4,7 @@ require_once __DIR__ . '/../model/config.php';
 
 class ChatbotController {
     // ⚠️ IMPORTANT: Replace 'YOUR_OPENROUTER_API_KEY' with your actual API key from https://openrouter.ai/keys
-    private static $apiKey = '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';
+    private static $apiKey = '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';
     
     // Meta's Llama 3.3 70B Instruct - Excellent choice! Powerful and affordable
     private static $model = 'meta-llama/llama-3.3-70b-instruct';

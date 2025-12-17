@@ -269,10 +269,8 @@ $action     = $__newsAdminController->getAction();
 $id         = $__newsAdminController->getId();
 
 unset($__newsAdminController);
-
 ?>
 
-?>
 
 
 

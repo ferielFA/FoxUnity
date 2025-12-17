@@ -242,7 +242,6 @@ if ($currentUser && $currentUser->getImage()) {
             -webkit-text-fill-color: #ff7a00;
         }
 
-        /* IMPROVED FILTERS */
         .shop-filters {
             display: flex;
             justify-content: center;
@@ -322,7 +321,6 @@ if ($currentUser && $currentUser->getImage()) {
             color: #ff7a00;
         }
 
-        /* Active Filters Badge */
         .active-filters {
             text-align: center;
             margin: 20px 0;
@@ -439,108 +437,370 @@ if ($currentUser && $currentUser->getImage()) {
             margin-top: auto;
             padding-top: 20px;
             border-top: 1px solid rgba(255, 255, 255, 0.05);
+            gap: 15px;
         }
 
         .product-price {
-            color: #ff7a00;
+            color: #2ed573;
             font-family: 'Orbitron', sans-serif;
             font-size: 1.6rem;
             font-weight: 700;
+            flex-shrink: 0;
         }
 
-        .product-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: auto;
-    padding-top: 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    gap: 15px;
-}
+        .product-stock {
+            color: #aaa;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
 
-.product-price {
-    color: #ff7a00;
-    font-family: 'Orbitron', sans-serif;
-    font-size: 1.6rem;
-    font-weight: 700;
-    flex-shrink: 0;
-}
+        .product-stock i {
+            color: #ff7a00;
+            font-size: 0.9rem;
+        }
 
-.add-to-cart-btn {
-    background: linear-gradient(135deg, #ff7a00, #ff4f00);
-    border: none;
-    color: #fff;
-    padding: 12px 20px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 0.95rem;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    box-shadow: 0 4px 15px rgba(255, 122, 0, 0.3);
-    flex-shrink: 0;
-    white-space: nowrap;
-    position: relative;
-    overflow: hidden;
-}
+        .product-stock.low-stock {
+            color: #ff4444;
+        }
 
-.add-to-cart-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s;
-}
+        .product-stock.low-stock i {
+            color: #ff4444;
+        }
 
-.add-to-cart-btn:hover::before {
-    left: 100%;
-}
+        .add-to-cart-btn {
+            background: transparent;
+            color: #ff7a00;
+            border: 2px solid #ff7a00;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+            text-transform: none;
+            letter-spacing: 0.3px;
+        }
 
-.add-to-cart-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 25px rgba(255, 122, 0, 0.5);
-    background: linear-gradient(135deg, #ff8c1a, #ff6600);
-}
+        .add-to-cart-btn:hover {
+            background: rgba(255, 122, 0, 0.1);
+            border-color: #ff9933;
+            color: #ff9933;
+            transform: translateY(-2px);
+        }
 
-.add-to-cart-btn:active {
-    transform: translateY(-1px);
-    box-shadow: 0 3px 15px rgba(255, 122, 0, 0.4);
-}
+        .add-to-cart-btn:active {
+            transform: translateY(0);
+        }
 
-.add-to-cart-btn i {
-    font-size: 1.1rem;
-    transition: transform 0.3s ease;
-}
+        .add-to-cart-btn i {
+            font-size: 14px;
+        }
 
-.add-to-cart-btn:hover i {
-    transform: scale(1.15);
-}
+        .add-to-cart-btn:disabled {
+            background: transparent;
+            border-color: #555;
+            color: #555;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .product-footer {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 12px;
-    }
-    
-    .add-to-cart-btn {
-        width: 100%;
-        justify-content: center;
-        padding: 14px 20px;
-    }
-    
-    .product-price {
-        text-align: center;
-        font-size: 1.8rem;
-    }
-}
+        .add-to-cart-btn:disabled:hover {
+            transform: none;
+        }
+
+        /* Quantity Modal Styles */
+        .quantity-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .quantity-modal.show {
+            display: flex;
+        }
+
+        .quantity-modal-content {
+            background: linear-gradient(145deg, #1a1a1a 0%, #111 100%);
+            padding: 40px;
+            border-radius: 20px;
+            border: 2px solid #ff7a00;
+            max-width: 500px;
+            width: 90%;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .quantity-modal-content.error {
+            border-color: #ff4444;
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% {
+                transform: translateX(0);
+            }
+            25% {
+                transform: translateX(-10px);
+            }
+            75% {
+                transform: translateX(10px);
+            }
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            color: #ff7a00;
+            font-size: 28px;
+            cursor: pointer;
+            transition: all 0.3s;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            transform: scale(1.2) rotate(90deg);
+            color: #ff4444;
+        }
+
+        .modal-product-info {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .modal-product-name {
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        .modal-product-price {
+            color: #2ed573;
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        .modal-stock-info {
+            text-align: center;
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(255, 122, 0, 0.1);
+            border-radius: 10px;
+            color: #aaa;
+            font-size: 0.95rem;
+        }
+
+        .modal-stock-info.error {
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff4444;
+            border: 1px solid rgba(255, 68, 68, 0.5);
+        }
+
+        .quantity-selector {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .quantity-btn {
+            background: rgba(255, 122, 0, 0.1);
+            border: 2px solid #ff7a00;
+            color: #ff7a00;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .quantity-btn:hover:not(:disabled) {
+            background: #ff7a00;
+            color: #fff;
+            transform: scale(1.1);
+        }
+
+        .quantity-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .quantity-display {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 122, 0, 0.3);
+            color: #fff;
+            font-size: 24px;
+            font-weight: 700;
+            min-width: 80px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .modal-total {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 122, 0, 0.2);
+        }
+
+        .modal-total-label {
+            color: #aaa;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .modal-total-price {
+            color: #2ed573;
+            font-size: 2rem;
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 15px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .modal-btn-confirm {
+            background: linear-gradient(135deg, #ff7a00, #ff4f00);
+            color: #fff;
+        }
+
+        .modal-btn-confirm:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 122, 0, 0.4);
+        }
+
+        .modal-btn-confirm:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .modal-btn-cancel {
+            background: transparent;
+            border: 2px solid #555;
+            color: #aaa;
+        }
+
+        .modal-btn-cancel:hover {
+            border-color: #ff7a00;
+            color: #ff7a00;
+        }
+
+        .error-message {
+            color: #ff4444;
+            text-align: center;
+            margin-top: 15px;
+            font-weight: 600;
+            animation: pulse 1s infinite;
+        }
+
+        .success-message {
+            color: #2ed573;
+            text-align: center;
+            margin-top: 15px;
+            font-weight: 600;
+            padding: 15px;
+            background: rgba(46, 213, 115, 0.1);
+            border-radius: 10px;
+            border: 2px solid #2ed573;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            animation: successPulse 2s ease;
+        }
+
+        .success-message i {
+            font-size: 1.5rem;
+        }
+
+        @keyframes successPulse {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(46, 213, 115, 0.7);
+            }
+            50% {
+                transform: scale(1);
+                box-shadow: 0 0 20px 10px rgba(46, 213, 115, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(46, 213, 115, 0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.6;
+            }
+        }
 
         .no-products {
             grid-column: 1 / -1;
@@ -556,7 +816,6 @@ if ($currentUser && $currentUser->getImage()) {
             display: block;
         }
 
-        /* IMPROVED PAGINATION */
         .pagination {
             display: flex;
             justify-content: center;
@@ -594,6 +853,29 @@ if ($currentUser && $currentUser->getImage()) {
             padding: 12px 20px;
             background: rgba(255, 122, 0, 0.1);
             border-color: #ff7a00;
+        }
+
+        @media (max-width: 768px) {
+            .product-footer {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+            
+            .add-to-cart-btn {
+                width: 100%;
+                justify-content: center;
+                padding: 10px 20px;
+            }
+            
+            .product-price {
+                text-align: center;
+                font-size: 1.8rem;
+            }
+
+            .quantity-modal-content {
+                padding: 30px 20px;
+            }
         }
     </style>
 </head>
@@ -690,7 +972,6 @@ if ($currentUser && $currentUser->getImage()) {
                     <?php endif; ?>
                 </p>
 
-                <!-- IMPROVED FILTER FORM -->
                 <form method="GET" class="shop-filters">
                     <input type="text" name="search" placeholder="🔍 Search products..."
                         value="<?php echo htmlspecialchars($search); ?>" class="filter-input">
@@ -730,7 +1011,6 @@ if ($currentUser && $currentUser->getImage()) {
                     <?php endif; ?>
                 </form>
 
-                <!-- Active Filters Display -->
                 <?php if ($search || $categoryFilter != 'all'): ?>
                     <div class="active-filters">
                         <small style="color: #aaa;">Active filters:</small>
@@ -784,12 +1064,33 @@ if ($currentUser && $currentUser->getImage()) {
                                 <?php endif; ?>
 
                                 <div class="product-footer">
-                                    <div class="product-price">$<?php echo number_format($product->getPrice(), 2); ?>
+                                    <div>
+                                        <div class="product-price">$<?php echo number_format($product->getPrice(), 2); ?></div>
+                                        <div class="product-stock <?php echo $product->getStock() < 5 ? 'low-stock' : ''; ?>">
+                                            <i class="fas fa-box"></i>
+                                            <?php 
+                                            if ($product->getStock() == 0) {
+                                                echo 'Out of stock';
+                                            } elseif ($product->getStock() < 5) {
+                                                echo 'Only ' . $product->getStock() . ' left!';
+                                            } else {
+                                                echo $product->getStock() . ' in stock';
+                                            }
+                                            ?>
+                                        </div>
                                     </div>
-                                    <button class="add-to-cart-btn"
-                                        onclick="addToCart(<?php echo $product->getId(); ?>)">
-                                        <i class="fas fa-cart-plus"></i> Add to Cart
-                                    </button>
+                                    <?php if ($product->getStock() > 0): ?>
+                                        <button class="add-to-cart-btn" 
+                                            onclick="openQuantityModal(<?php echo $product->getId(); ?>, '<?php echo htmlspecialchars(addslashes($product->getName())); ?>', <?php echo $product->getPrice(); ?>, <?php echo $product->getStock(); ?>)">
+                                            <i class="fas fa-cart-plus"></i>
+                                            Add
+                                        </button>
+                                    <?php else: ?>
+                                        <button class="add-to-cart-btn" disabled>
+                                            <i class="fas fa-ban"></i>
+                                            Out of Stock
+                                        </button>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
@@ -797,7 +1098,6 @@ if ($currentUser && $currentUser->getImage()) {
                 <?php endif; ?>
             </div>
 
-            <!-- IMPROVED PAGINATION -->
             <?php if ($totalPages > 1): ?>
                 <div class="pagination">
                     <?php if ($page > 1): ?>
@@ -858,6 +1158,52 @@ if ($currentUser && $currentUser->getImage()) {
                     <p id="modalDescription" style="color:#ccc; line-height:1.8; font-size:1.05rem;"></p>
                 </div>
             </div>
+
+            <!-- Quantity Modal -->
+            <div id="quantityModal" class="quantity-modal">
+                <div class="quantity-modal-content" id="quantityModalContent">
+                    <span class="modal-close" onclick="closeQuantityModal()">&times;</span>
+                    
+                    <div class="modal-product-info">
+                        <h3 class="modal-product-name" id="modalProductName"></h3>
+                        <div class="modal-product-price" id="modalProductPrice"></div>
+                    </div>
+
+                    <div class="modal-stock-info" id="modalStockInfo">
+                        Available stock: <span id="modalAvailableStock"></span>
+                    </div>
+
+                    <div class="quantity-selector">
+                        <button class="quantity-btn" id="decreaseBtn" onclick="decreaseQuantity()">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <div class="quantity-display" id="quantityDisplay">1</div>
+                        <button class="quantity-btn" id="increaseBtn" onclick="increaseQuantity()">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+
+                    <div class="modal-total">
+                        <div class="modal-total-label">Total Price</div>
+                        <div class="modal-total-price" id="modalTotalPrice">$0.00</div>
+                    </div>
+
+                    <div class="error-message" id="errorMessage" style="display: none;"></div>
+                    <div class="success-message" id="successMessage" style="display: none;">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Item added to cart successfully!</span>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button class="modal-btn modal-btn-cancel" onclick="closeQuantityModal()">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button class="modal-btn modal-btn-confirm" id="confirmAddBtn" onclick="confirmAddToCart()">
+                            <i class="fas fa-check"></i> Add to Cart
+                        </button>
+                    </div>
+                </div>
+            </div>
         </section>
     </main>
 
@@ -908,6 +1254,9 @@ if ($currentUser && $currentUser->getImage()) {
                     userDropdown.classList.remove('active');
                 });
             }
+
+            // Update cart count on load
+            updateCartCount();
         });
 
         // Description Modal
@@ -921,29 +1270,190 @@ if ($currentUser && $currentUser->getImage()) {
             document.getElementById('descriptionModal').style.display = 'none';
         }
 
-        window.onclick = function (event) {
-            const modal = document.getElementById('descriptionModal');
-            if (event.target === modal) {
-                modal.style.display = 'none';
+        // Quantity Modal Variables
+        let currentProduct = {
+            id: null,
+            name: '',
+            price: 0,
+            stock: 0
+        };
+        let selectedQuantity = 1;
+
+        function openQuantityModal(productId, productName, productPrice, productStock) {
+            currentProduct = {
+                id: productId,
+                name: productName,
+                price: parseFloat(productPrice),
+                stock: parseInt(productStock)
+            };
+            selectedQuantity = 1;
+
+            document.getElementById('modalProductName').textContent = productName;
+            document.getElementById('modalProductPrice').textContent = '$' + productPrice;
+            document.getElementById('modalAvailableStock').textContent = productStock;
+            document.getElementById('quantityDisplay').textContent = selectedQuantity;
+            updateModalTotal();
+            resetModalError();
+
+            const modal = document.getElementById('quantityModal');
+            modal.classList.add('show');
+        }
+
+        function closeQuantityModal() {
+            const modal = document.getElementById('quantityModal');
+            modal.classList.remove('show');
+            resetModalError();
+        }
+
+        function decreaseQuantity() {
+            if (selectedQuantity > 1) {
+                selectedQuantity--;
+                document.getElementById('quantityDisplay').textContent = selectedQuantity;
+                updateModalTotal();
+                resetModalError();
             }
         }
 
-        // Add to Cart Logic
-        function addToCart(productId) {
-            let cart = JSON.parse(localStorage.getItem('cart')) || [];
-            const exists = cart.some(item => item.id === productId && item.type === 'product');
-
-            if (!exists) {
-                cart.push({ id: productId, type: 'product' });
-                localStorage.setItem('cart', JSON.stringify(cart));
-
-                const cartCount = document.querySelector('.cart-count');
-                if (cartCount) cartCount.textContent = cart.length;
-
-                window.location.href = 'panier.php';
+        function increaseQuantity() {
+            if (selectedQuantity < currentProduct.stock) {
+                selectedQuantity++;
+                document.getElementById('quantityDisplay').textContent = selectedQuantity;
+                updateModalTotal();
+                resetModalError();
             } else {
-                alert('This item is already in your cart!');
-                window.location.href = 'panier.php';
+                showModalError('Maximum stock reached!');
+            }
+        }
+
+        function updateModalTotal() {
+            const total = selectedQuantity * currentProduct.price;
+            document.getElementById('modalTotalPrice').textContent = '$' + total.toFixed(2);
+            
+            // Update button states
+            document.getElementById('decreaseBtn').disabled = selectedQuantity <= 1;
+            document.getElementById('increaseBtn').disabled = selectedQuantity >= currentProduct.stock;
+        }
+
+        function showModalError(message) {
+            const modalContent = document.getElementById('quantityModalContent');
+            const stockInfo = document.getElementById('modalStockInfo');
+            const errorMsg = document.getElementById('errorMessage');
+            
+            modalContent.classList.add('error');
+            stockInfo.classList.add('error');
+            errorMsg.textContent = message;
+            errorMsg.style.display = 'block';
+            
+            // Vibrate if supported
+            if (navigator.vibrate) {
+                navigator.vibrate(200);
+            }
+        }
+
+        function resetModalError() {
+            const modalContent = document.getElementById('quantityModalContent');
+            const stockInfo = document.getElementById('modalStockInfo');
+            const errorMsg = document.getElementById('errorMessage');
+            const successMsg = document.getElementById('successMessage');
+            const confirmBtn = document.getElementById('confirmAddBtn');
+            
+            modalContent.classList.remove('error');
+            stockInfo.classList.remove('error');
+            errorMsg.style.display = 'none';
+            successMsg.style.display = 'none';
+            confirmBtn.disabled = false;
+            
+            // Reset modal colors
+            modalContent.style.borderColor = '#ff7a00';
+            modalContent.style.boxShadow = '0 20px 60px rgba(0, 0, 0, 0.8)';
+        }
+
+        function confirmAddToCart() {
+            if (selectedQuantity > currentProduct.stock) {
+                showModalError('Quantity exceeds available stock!');
+                return;
+            }
+
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            
+            // Check if product already exists in cart
+            const existingIndex = cart.findIndex(item => 
+                item.id === currentProduct.id && item.type === 'product'
+            );
+
+            if (existingIndex !== -1) {
+                // Update quantity
+                cart[existingIndex].quantity = (cart[existingIndex].quantity || 1) + selectedQuantity;
+            } else {
+                // Add new item
+                cart.push({
+                    id: currentProduct.id,
+                    type: 'product',
+                    quantity: selectedQuantity
+                });
+            }
+
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateCartCount();
+            
+            // Show success message in modal
+            showModalSuccess();
+            
+            // Close modal after 2 seconds (removed redirect)
+            setTimeout(() => {
+                closeQuantityModal();
+            }, 2000);
+        }
+
+        function showModalSuccess() {
+            const successMsg = document.getElementById('successMessage');
+            const errorMsg = document.getElementById('errorMessage');
+            const confirmBtn = document.getElementById('confirmAddBtn');
+            const modalContent = document.getElementById('quantityModalContent');
+            
+            // Hide error and show success
+            errorMsg.style.display = 'none';
+            successMsg.style.display = 'flex';
+            confirmBtn.disabled = true;
+            modalContent.classList.remove('error');
+            
+            // Add success border to modal
+            modalContent.style.borderColor = '#2ed573';
+            modalContent.style.boxShadow = '0 20px 60px rgba(46, 213, 115, 0.3)';
+        }
+
+        function updateCartCount() {
+            const cart = JSON.parse(localStorage.getItem('cart')) || [];
+            let totalQuantity = 0;
+            
+            cart.forEach(item => {
+                totalQuantity += item.quantity || 1;
+            });
+            
+            const cartCount = document.querySelector('.cart-count');
+            if (cartCount) {
+                cartCount.textContent = totalQuantity;
+            }
+        }
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeQuantityModal();
+                closeDescriptionModal();
+            }
+        });
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const descModal = document.getElementById('descriptionModal');
+            const qtyModal = document.getElementById('quantityModal');
+            
+            if (event.target === descModal) {
+                closeDescriptionModal();
+            }
+            if (event.target === qtyModal) {
+                closeQuantityModal();
             }
         }
     </script>

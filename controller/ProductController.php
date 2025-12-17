@@ -17,17 +17,43 @@ class ProductController
             $sql = "SELECT * FROM produit WHERE 1=1";
             $params = [];
 
-            // Search Filter - FIXED: Convert search term to lowercase before binding
-if (!empty($filters['search']) && trim($filters['search']) !== '') {
-    $searchTerm = strtolower(trim($filters['search']));
-    $sql .= " AND (LOWER(name) LIKE :search OR LOWER(COALESCE(description, '')) LIKE :search)";
-    $params[':search'] = '%' . $searchTerm . '%';
+            // ========== DEBUG LOGS ==========
+            error_log("=== CONTROLLER DEBUG START ===");
+            error_log("Raw filters: " . json_encode($filters));
+            
+            // Search Filter - VERSION ULTRA FLEXIBLE
+$searchValue = isset($filters['search']) ? trim($filters['search']) : '';
+error_log("Search value extracted: '$searchValue'");
+
+if (!empty($searchValue)) {
+    $searchTerm = strtolower($searchValue);
+    error_log("Search term lowercase: '$searchTerm'");
+    
+    // Diviser la recherche en mots individuels
+    $searchWords = explode(' ', $searchTerm);
+    $searchWords = array_filter($searchWords); // Enlever les espaces vides
+    
+    if (!empty($searchWords)) {
+        $searchConditions = [];
+        
+        foreach ($searchWords as $index => $word) {
+            $paramName = ":search_word_$index";
+            $searchConditions[] = "(LOWER(name) LIKE $paramName OR LOWER(COALESCE(description, '')) LIKE $paramName)";
+            $params[$paramName] = '%' . $word . '%';
+        }
+        
+        $sql .= " AND (" . implode(' OR ', $searchConditions) . ")";
+        
+        error_log("Search words: " . implode(', ', $searchWords));
+        error_log("SQL after search: $sql");
+    }
 }
 
             // Category Filter - Exact match
             if (!empty($filters['category']) && $filters['category'] !== 'all') {
                 $sql .= " AND category = :category";
                 $params[':category'] = $filters['category'];
+                error_log("Category filter: " . $filters['category']);
             }
 
             // Price Range (optional, for future)
@@ -61,11 +87,17 @@ if (!empty($filters['search']) && trim($filters['search']) !== '') {
                 $sql .= " LIMIT :limit OFFSET :offset";
             }
 
+            error_log("FINAL SQL: $sql");
+            error_log("FINAL PARAMS: " . json_encode($params));
+
             $stmt = $pdo->prepare($sql);
 
+            // Bind parameters
             foreach ($params as $key => $val) {
-                $stmt->bindValue($key, $val);
+                error_log("Binding $key = $val");
+                $stmt->bindValue($key, $val, PDO::PARAM_STR);
             }
+            
             if ($limit !== null) {
                 $stmt->bindValue(':limit', (int) $limit, PDO::PARAM_INT);
                 $stmt->bindValue(':offset', (int) $offset, PDO::PARAM_INT);
@@ -89,41 +121,67 @@ if (!empty($filters['search']) && trim($filters['search']) !== '') {
                     $row['updated_at']
                 );
             }
+            
+            error_log("Products found: " . count($products));
+            error_log("=== CONTROLLER DEBUG END ===");
+            
             return $products;
+            
         } catch (PDOException $e) {
-            error_log("Error fetching filtered products: " . $e->getMessage());
+            error_log("❌ PDO ERROR in getFilteredProducts: " . $e->getMessage());
+            error_log("SQL was: " . ($sql ?? 'NOT SET'));
             return [];
         }
     }
 
     public function countProducts($filters = [])
-    {
-        try {
-            $pdo = getDB();
-            $sql = "SELECT COUNT(*) FROM produit WHERE 1=1";
-            $params = [];
+{
+    try {
+        $pdo = getDB();
+        $sql = "SELECT COUNT(*) FROM produit WHERE 1=1";
+        $params = [];
 
-            // Search Filter - FIXED: Convert search term to lowercase before binding
-if (!empty($filters['search']) && trim($filters['search']) !== '') {
-    $searchTerm = strtolower(trim($filters['search']));
-    $sql .= " AND (LOWER(name) LIKE :search OR LOWER(COALESCE(description, '')) LIKE :search)";
-    $params[':search'] = '%' . $searchTerm . '%';
-}
+        // Search Filter - VERSION ULTRA FLEXIBLE
+        $searchValue = isset($filters['search']) ? trim($filters['search']) : '';
+        
+        if (!empty($searchValue)) {
+            $searchTerm = strtolower($searchValue);
+            $searchWords = explode(' ', $searchTerm);
+            $searchWords = array_filter($searchWords);
             
-            if (!empty($filters['category']) && $filters['category'] !== 'all') {
-                $sql .= " AND category = :category";
-                $params[':category'] = $filters['category'];
+            if (!empty($searchWords)) {
+                $searchConditions = [];
+                
+                foreach ($searchWords as $index => $word) {
+                    $paramName = ":search_word_$index";
+                    $searchConditions[] = "(LOWER(name) LIKE $paramName OR LOWER(COALESCE(description, '')) LIKE $paramName)";
+                    $params[$paramName] = '%' . $word . '%';
+                }
+                
+                $sql .= " AND (" . implode(' OR ', $searchConditions) . ")";
             }
-
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($params);
-            return $stmt->fetchColumn();
-        } catch (PDOException $e) {
-            error_log("Error counting products: " . $e->getMessage());
-            return 0;
         }
-    }
+        
+        if (!empty($filters['category']) && $filters['category'] !== 'all') {
+            $sql .= " AND category = :category";
+            $params[':category'] = $filters['category'];
+        }
 
+        error_log("COUNT SQL: $sql");
+        error_log("COUNT PARAMS: " . json_encode($params));
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $count = $stmt->fetchColumn();
+        
+        error_log("COUNT RESULT: $count");
+        
+        return $count;
+    } catch (PDOException $e) {
+        error_log("❌ COUNT ERROR: " . $e->getMessage());
+        return 0;
+    }
+}
     public function getProductById($id)
     {
         try {

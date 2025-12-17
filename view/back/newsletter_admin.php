@@ -42,6 +42,8 @@ foreach ($categories as $c) {
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap"
     rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
   <style>
     .admin-panel {
       color: #fff;
@@ -163,7 +165,7 @@ foreach ($categories as $c) {
 
     .admin-user i.fa-user-circle {
       font-size: 35px;
-      color: #ff7a00;
+      color: #fff;
     }
 
     .admin-user span {
@@ -174,7 +176,7 @@ foreach ($categories as $c) {
 
     .admin-user i.fa-chevron-down {
       font-size: 12px;
-      color: #ff7a00;
+      color: #fff;
       transition: transform 0.3s ease;
     }
 
@@ -187,8 +189,9 @@ foreach ($categories as $c) {
       top: 100%;
       right: 0;
       margin-top: 10px;
-      background: rgba(20, 20, 20, 0.98);
-      border: 2px solid rgba(255, 122, 0, 0.3);
+      background: rgba(15, 15, 35, 0.98);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 122, 0, 0.4);
       border-radius: 12px;
       min-width: 200px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
@@ -263,7 +266,7 @@ foreach ($categories as $c) {
     <a href="categories.php" id="categories-link">Categories</a>
     <a href="newsletter_admin.php" class="active">Newsletter</a>
     <a href="reclamback.php">Support</a>
-    <a href="evaluations_publiques.php">Évaluations Publiques</a>
+    <a href="evaluations_publiques.php">Public Evaluations</a>
     <a href="../front/index.php">← Return Homepage</a>
   </div>
 
@@ -271,29 +274,34 @@ foreach ($categories as $c) {
     style="padding:12px 1vw 10px 2vw;max-width:1800px;margin:0 auto;display:flex;flex-direction:column;gap:10px;background:radial-gradient(1200px at 20% 10%, rgba(255,122,0,0.05), transparent 55%), radial-gradient(900px at 80% 5%, rgba(255,122,0,0.06), transparent 50%);">
     <div class="topbar" style="margin-bottom:4px;">
       <h1>Newsletter Management</h1>
-      <div class="admin-dropdown" id="adminDropdown">
-        <div class="user admin-user">
-          <?php if ($userImage): ?>
-            <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
-          <?php else: ?>
-            <i class="fas fa-user-circle"></i>
-          <?php endif; ?>
-          <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
-          <i class="fas fa-chevron-down"></i>
-        </div>
+      <div class="topbar-right" style="display: flex; align-items: center; gap: 20px;">
+        <!-- Système de Notifications Tout-en-un -->
+        <?php include __DIR__ . '/includes/notifications.php'; ?>
 
-        <div class="admin-dropdown-menu">
-          <a href="admin-profile.php" class="dropdown-item">
-            <i class="fas fa-user"></i>
-            <span>My Profile</span>
-          </a>
+        <div class="admin-dropdown" id="adminDropdown">
+          <div class="user admin-user">
+            <?php if ($userImage): ?>
+              <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
+            <?php else: ?>
+              <i class="fas fa-user-circle"></i>
+            <?php endif; ?>
+            <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
+            <i class="fas fa-chevron-down"></i>
+          </div>
 
-          <div class="dropdown-divider"></div>
+          <div class="admin-dropdown-menu">
+            <a href="admin-profile.php" class="dropdown-item">
+              <i class="fas fa-user"></i>
+              <span>My Profile</span>
+            </a>
 
-          <a href="../front/logout.php" class="dropdown-item logout">
-            <i class="fas fa-sign-out-alt"></i>
-            <span>Logout</span>
-          </a>
+            <div class="dropdown-divider"></div>
+
+            <a href="../front/logout.php" class="dropdown-item logout">
+              <i class="fas fa-sign-out-alt"></i>
+              <span>Logout</span>
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -517,118 +525,123 @@ foreach ($categories as $c) {
       }
     </style>
 
-    <script>
-      function openEditModal(subscriber) {
-        document.getElementById('editModal').style.display = 'block';
-        document.getElementById('edit_email').value = subscriber.email;
-        document.getElementById('edit_original_email').value = subscriber.email;
+    <footer class="site-footer">
+      © 2025 <span>Nine Tailed Fox</span>. All Rights Reserved.
+    </footer>
+  </div>
 
-        // Clear checkboxes
-        document.querySelectorAll('.cat-checkbox').forEach(cb => cb.checked = false);
+  <script>
+    function openEditModal(subscriber) {
+      document.getElementById('editModal').style.display = 'block';
+      document.getElementById('edit_email').value = subscriber.email;
+      document.getElementById('edit_original_email').value = subscriber.email;
 
-        // Check subscribed categories
-        if (subscriber.categories) {
-          const ids = subscriber.categories.split(',');
-          ids.forEach(id => {
-            const cb = document.querySelector(`.cat-checkbox[value="${id}"]`);
-            if (cb) cb.checked = true;
-          });
-        }
+      // Clear checkboxes
+      document.querySelectorAll('.cat-checkbox').forEach(cb => cb.checked = false);
+
+      // Check subscribed categories
+      if (subscriber.categories) {
+        const ids = subscriber.categories.split(',');
+        ids.forEach(id => {
+          const cb = document.querySelector(`.cat-checkbox[value="${id}"]`);
+          if (cb) cb.checked = true;
+        });
       }
+    }
 
-      function deleteSubscriber(email) {
-        window.__deleteEmail = email;
-        const lbl = document.getElementById('deleteEmailLabel');
-        if (lbl) lbl.textContent = email;
-        const modal = document.getElementById('deleteModal');
-        if (modal) modal.style.display = 'block';
+    function deleteSubscriber(email) {
+      window.__deleteEmail = email;
+      const lbl = document.getElementById('deleteEmailLabel');
+      if (lbl) lbl.textContent = email;
+      const modal = document.getElementById('deleteModal');
+      if (modal) modal.style.display = 'block';
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').style.display = 'none';
+    }
+
+    // Close when clicking outside
+    window.onclick = function (event) {
+      if (event.target == document.getElementById('editModal')) {
+        closeEditModal();
       }
-
-      function closeEditModal() {
-        document.getElementById('editModal').style.display = 'none';
+      if (event.target == document.getElementById('deleteModal')) {
+        closeDeleteModal();
       }
+    }
 
-      // Close when clicking outside
-      window.onclick = function (event) {
-        if (event.target == document.getElementById('editModal')) {
-          closeEditModal();
-        }
-        if (event.target == document.getElementById('deleteModal')) {
-          closeDeleteModal();
-        }
-      }
+    function closeDeleteModal() {
+      const modal = document.getElementById('deleteModal');
+      if (modal) modal.style.display = 'none';
+      window.__deleteEmail = null;
+    }
 
-      function closeDeleteModal() {
-        const modal = document.getElementById('deleteModal');
-        if (modal) modal.style.display = 'none';
-        window.__deleteEmail = null;
-      }
+    function confirmDeleteSubscriber() {
+      const email = window.__deleteEmail;
+      if (!email) { closeDeleteModal(); return; }
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '../../controller/NewsletterController.php';
 
-      function confirmDeleteSubscriber() {
-        const email = window.__deleteEmail;
-        if (!email) { closeDeleteModal(); return; }
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '../../controller/NewsletterController.php';
+      const actionInput = document.createElement('input');
+      actionInput.type = 'hidden';
+      actionInput.name = 'action';
+      actionInput.value = 'delete_subscriber';
+      form.appendChild(actionInput);
 
-        const actionInput = document.createElement('input');
-        actionInput.type = 'hidden';
-        actionInput.name = 'action';
-        actionInput.value = 'delete_subscriber';
-        form.appendChild(actionInput);
+      const emailInput = document.createElement('input');
+      emailInput.type = 'hidden';
+      emailInput.name = 'email';
+      emailInput.value = email;
+      form.appendChild(emailInput);
 
-        const emailInput = document.createElement('input');
-        emailInput.type = 'hidden';
-        emailInput.name = 'email';
-        emailInput.value = email;
-        form.appendChild(emailInput);
+      document.body.appendChild(form);
+      form.submit();
+    }
 
-        document.body.appendChild(form);
-        form.submit();
-      }
-
-      // bind delete buttons
-      document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.btn-delete[data-email]').forEach(function (btn) {
-          btn.addEventListener('click', function (e) {
-            e.preventDefault();
-            const email = this.getAttribute('data-email');
-            deleteSubscriber(email);
-          });
+    // bind delete buttons
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.btn-delete[data-email]').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          const email = this.getAttribute('data-email');
+          deleteSubscriber(email);
         });
       });
+    });
 
-      // Dropdown Menu Toggle
-      document.addEventListener('DOMContentLoaded', function () {
-        const adminDropdown = document.getElementById('adminDropdown');
+    // Dropdown Menu Toggle
+    document.addEventListener('DOMContentLoaded', function () {
+      const adminDropdown = document.getElementById('adminDropdown');
 
-        if (adminDropdown) {
-          const adminUser = adminDropdown.querySelector('.admin-user');
+      if (adminDropdown) {
+        const adminUser = adminDropdown.querySelector('.admin-user');
 
-          // Toggle dropdown on click
-          if (adminUser) {
-            adminUser.addEventListener('click', function (e) {
-              e.stopPropagation();
-              adminDropdown.classList.toggle('active');
-            });
-          }
-
-          // Close dropdown when clicking outside
-          document.addEventListener('click', function (e) {
-            if (!adminDropdown.contains(e.target)) {
-              adminDropdown.classList.remove('active');
-            }
-          });
-
-          // Close dropdown when pressing Escape
-          document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') {
-              adminDropdown.classList.remove('active');
-            }
+        // Toggle dropdown on click
+        if (adminUser) {
+          adminUser.addEventListener('click', function (e) {
+            e.stopPropagation();
+            adminDropdown.classList.toggle('active');
           });
         }
-      });
-    </script>
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function (e) {
+          if (!adminDropdown.contains(e.target)) {
+            adminDropdown.classList.remove('active');
+          }
+        });
+
+        // Close dropdown when pressing Escape
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') {
+            adminDropdown.classList.remove('active');
+          }
+        });
+      }
+    });
+  </script>
 </body>
 
 </html>

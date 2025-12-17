@@ -66,7 +66,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                 <?php foreach ($tradeHistory as $history):
                     $actionClass = '';
                     $displayText = ucfirst($history['action']);
-                    
+
                     switch (strtolower($history['action'])) {
                         case 'created':
                             $actionClass = 'action-created';
@@ -87,7 +87,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                         case 'finished':
                             $actionClass = 'action-finished'; // reusing finished class (blue) for sold
                             $displayText = 'Sold';
-                            break; 
+                            break;
                         case 'negotiation_refused':
                             $actionClass = 'action-deleted'; // reusing deleted class (red) for refused
                             $displayText = 'Refused';
@@ -165,7 +165,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
+    <link rel="stylesheet" href="includes/notifications-styles.css">
     <style>
         /* Admin Dropdown Styles - COHERENT */
         .admin-dropdown {
@@ -197,7 +197,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
 
         .admin-user i.fa-user-circle {
             font-size: 35px;
-            color: #ff7a00;
+            color: #fff;
         }
 
         .admin-user span {
@@ -208,7 +208,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
 
         .admin-user i.fa-chevron-down {
             font-size: 12px;
-            color: #ff7a00;
+            color: #fff;
             transition: transform 0.3s ease;
         }
 
@@ -740,11 +740,11 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         <a href="tradingb.php" class="active">Trade History</a>
         <a href="eventsb.php">Events</a>
         <a href="news_admin.php">News</a>
-        <a href="news_history.php" id="news-history-link">News History</a>
-        <a href="categories.php" id="categories-link">Categories</a>
-        <a href="newsletter_admin.php" id="newsletter-link">Newsletter</a>
+        <a href="news_history.php">News History</a>
+        <a href="categories.php">Categories</a>
+        <a href="newsletter_admin.php">Newsletter</a>
         <a href="reclamback.php">Support</a>
-        <a href="evaluations_publiques.php">Évaluations Publiques</a>
+        <a href="evaluations_publiques.php">Public Evaluations</a>
         <a href="../front/index.php">← Return Homepage</a>
     </div>
 
@@ -752,29 +752,34 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     <div class="main">
         <div class="topbar">
             <h1>Trade History Dashboard</h1>
-            <div class="admin-dropdown" id="adminDropdown">
-                <div class="user admin-user">
-                    <?php if ($userImage): ?>
-                        <img src="<?php echo htmlspecialchars($userImage); ?>" alt="User Avatar">
-                    <?php else: ?>
-                        <i class="fas fa-user-circle"></i>
-                    <?php endif; ?>
-                    <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
-                    <i class="fas fa-chevron-down"></i>
-                </div>
+            <div class="topbar-right" style="display: flex; align-items: center; gap: 20px;">
+                <!-- Système de Notifications Tout-en-un -->
+                <?php include __DIR__ . '/includes/notifications.php'; ?>
 
-                <div class="admin-dropdown-menu">
-                    <a href="admin-profile.php" class="dropdown-item">
-                        <i class="fas fa-user"></i>
-                        <span>My Profile</span>
-                    </a>
+                <div class="admin-dropdown" id="adminDropdown">
+                    <div class="user admin-user">
+                        <?php if ($userImage): ?>
+                            <img src="<?php echo htmlspecialchars($userImage); ?>" alt="User Avatar">
+                        <?php else: ?>
+                            <i class="fas fa-user-circle"></i>
+                        <?php endif; ?>
+                        <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
 
-                    <div class="dropdown-divider"></div>
+                    <div class="admin-dropdown-menu">
+                        <a href="admin-profile.php" class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            <span>My Profile</span>
+                        </a>
 
-                    <a href="../front/logout.php" class="dropdown-item logout">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>Logout</span>
-                    </a>
+                        <div class="dropdown-divider"></div>
+
+                        <a href="../front/logout.php" class="dropdown-item logout">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -874,7 +879,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                                 <?php foreach ($tradeHistory as $history):
                                     $actionClass = '';
                                     $displayText = ucfirst($history['action']);
-                                    
+
                                     switch (strtolower($history['action'])) {
                                         case 'created':
                                             $actionClass = 'action-created';
