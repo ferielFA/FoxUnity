@@ -192,13 +192,36 @@ class AdminConversationController {
 
                 if (!empty($negotiationId)) {
                     try {
-                        $check = $this->db->prepare("SELECT COUNT(*) FROM trade_history WHERE negotiation_id = :neg AND action = 'trade'");
+                        // Check for ANY positive trade outcome
+                        $check = $this->db->prepare("SELECT user_id, action FROM trade_history WHERE negotiation_id = :neg AND action IN ('trade', 'bought', 'sold', 'finished') LIMIT 1");
                         $check->execute([':neg' => $negotiationId]);
-                        if ((int)$check->fetchColumn() > 0) {
-                            $status = 'Accepted';
+                        $result = $check->fetch(PDO::FETCH_ASSOC);
+                        
+                        if ($result) {
+                            $status = 'Accepted'; // Default
+                            if ($result['action'] === 'bought') {
+                                $status = 'Bought';
+                                // Correct Buyer/Seller based on who performed 'bought'
+                                $buyerId = $result['user_id'];
+                                // The other participant is the seller
+                                $sellerId = ($buyerId == $row['p1_id']) ? $row['p2_id'] : $row['p1_id'];
+                                
+                                // Reset names based on new IDs
+                                $buyerName = ($buyerId == $row['p1_id']) ? $row['p1_username'] : $row['p2_username'];
+                                $sellerName = ($sellerId == $row['p1_id']) ? $row['p1_username'] : $row['p2_username'];
+                            } elseif ($result['action'] === 'sold' || $result['action'] === 'finished') {
+                                $status = 'Sold';
+                                // Correct Buyer/Seller based on who performed 'sold'
+                                $sellerId = $result['user_id'];
+                                // The other participant is the buyer
+                                $buyerId = ($sellerId == $row['p1_id']) ? $row['p2_id'] : $row['p1_id'];
+                                
+                                $buyerName = ($buyerId == $row['p1_id']) ? $row['p1_username'] : $row['p2_username'];
+                                $sellerName = ($sellerId == $row['p1_id']) ? $row['p1_username'] : $row['p2_username'];
+                            }
                         }
                     } catch (PDOException $e) {
-                        // ignore, keep default status
+                         // ignore
                     }
                 }
                 

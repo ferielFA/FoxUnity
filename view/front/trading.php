@@ -1166,27 +1166,27 @@ $currentUser = $viewData['currentUser'];
         </button>
         <div class="carousel-slides">
           <div class="slide active">
-            <img src="../images/realtuto1.PNG" alt="Step 1" onerror="this.onerror=null; this.parentElement.innerHTML='<p style=\'color:red\'>Image not found: ../images/realtuto1.PNG</p>'">
-            <p class="slide-caption">Click Add Trade to open the form. Fill in the details and submit; the trade will be posted.</p>
+            <img src="../images/realtuto1.PNG?v=<?= time() ?>" alt="Step 1" onerror="this.onerror=null; this.parentElement.innerHTML='<p style=\'color:red\'>Image not found: ../images/realtuto1.PNG</p>'">
+            <p class="slide-caption">Click Add Trade to open the form. Fill in the details and submit the trade will be posted.</p>
           </div>
           <div class="slide">
-            <img src="../images/realtuto2.PNG" alt="Step 2" onerror="this.onerror=null; this.parentElement.innerHTML='<p style=\'color:red\'>Image not found: ../images/realtuto2.PNG</p>'">
+            <img src="../images/realtuto2.PNG?v=<?= time() ?>" alt="Step 2" onerror="this.onerror=null; this.parentElement.innerHTML='<p style=\'color:red\'>Image not found: ../images/realtuto2.PNG</p>'">
             <p class="slide-caption">Open your profile dropdown, then select Trade History to view your past trades and conversations</p>
           </div>
           <div class="slide">
-            <img src="../images/tuto3.PNG" alt="Step 3" onerror="this.onerror=null; this.parentElement.innerHTML='<p style=\'color:red\'>Image not found: ../images/tuto3.PNG</p>'">
+            <img src="../images/tuto3.PNG?v=<?= time() ?>" alt="Step 3" onerror="this.onerror=null; this.parentElement.innerHTML='<p style=\'color:red\'>Image not found: ../images/tuto3.PNG</p>'">
             <p class="slide-caption">Here, you can update or delete your trade post, and view a history of all actions you’ve taken in the trade place</p>
           </div>
           <div class="slide">
-            <img src="../images/realtuto4.PNG" alt="Step 4" onerror="this.onerror=null; this.parentElement.innerHTML='<p style=\'color:red\'>Image not found: ../images/realtuto4.PNG</p>'">
-            <p class="slide-caption">You can buy the item or make a trade offer to the seller, and negotiate the price directly with them.</p>
+            <img src="../images/realtuto4.PNG?v=<?= time() ?>" alt="Step 4" onerror="this.onerror=null; this.parentElement.innerHTML='<p style=\'color:red\'>Image not found: ../images/realtuto4.PNG</p>'">
+            <p class="slide-caption">You can buy the item or make a trade offer to the seller and if you dont know which skin to buy use the trade master to chose for you or analyse your trades, and negotiate the price directly with them.</p>
           </div>
           <div class="slide">
-            <img src="../images/tuto5.PNG" alt="Step 5" onerror="this.onerror=null; this.parentElement.innerHTML='<p style=\'color:red\'>Image not found: ../images/tuto5.PNG</p>'">
+            <img src="../images/tuto5.PNG?v=<?= time() ?>" alt="Step 5" onerror="this.onerror=null; this.parentElement.innerHTML='<p style=\'color:red\'>Image not found: ../images/tuto5.PNG</p>'">
             <p class="slide-caption">As the seller, you can accept or decline the buyer’s offer.</p>
           </div>
           <div class="slide">
-            <img src="../images/tuto6.PNG" alt="Step 6" onerror="this.onerror=null; this.parentElement.innerHTML='<p style=\'color:red\'>Image not found: ../images/tuto6.PNG</p>'">
+            <img src="../images/tuto6.PNG?v=<?= time() ?>" alt="Step 6" onerror="this.onerror=null; this.parentElement.innerHTML='<p style=\'color:red\'>Image not found: ../images/tuto6.PNG</p>'">
             <p class="slide-caption">Finally, here you can view the conversation history for accepted and declined trade offers now you’re a ready trader!</p>
           </div>
         </div>
@@ -1217,6 +1217,9 @@ $currentUser = $viewData['currentUser'];
       <button class="success-btn" id="successOkBtn">
         <i class="fas fa-check"></i> OK
       </button>
+      <a id="successReceiptBtn" href="#" target="_blank" class="success-btn" style="display:none; background:#ff7a00; border-color:#ff7a00; margin-top:10px; text-decoration:none;">
+        <i class="fas fa-file-invoice"></i> Download Receipt
+      </a>
     </div>
   </div>
 
@@ -1602,6 +1605,16 @@ $currentUser = $viewData['currentUser'];
             if (data.success) {
                 document.getElementById('discussionModal').classList.remove('active');
                 document.getElementById('successMessage').textContent = 'Offer accepted. Trade completed.';
+                
+                // Show Receipt Button if ID exists
+                const receiptBtn = document.getElementById('successReceiptBtn');
+                if (data.negotiation_id) {
+                    receiptBtn.href = 'receipt.php?id=' + data.negotiation_id;
+                    receiptBtn.style.display = 'block';
+                } else {
+                    receiptBtn.style.display = 'none';
+                }
+                
                 document.getElementById('successModal').classList.add('active');
             } else {
                 alert('Error: ' + (data.error || 'Failed to accept offer'));

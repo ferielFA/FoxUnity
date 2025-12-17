@@ -71,43 +71,21 @@ $refusedHistory = [];
 $acceptedHistory = [];
 
 foreach ($tradeHistoryFull as $item) {
-    if ($item['action'] === 'negotiation_refused') {
-        $refusedHistory[] = $item;
-    } elseif ($item['action'] === 'trade') {
-        $acceptedHistory[] = $item;
-        $standardHistory[] = $item;
-    } else {
-        $standardHistory[] = $item;
-    }
-}
-?>
-<!DOCTYPE html>
-<!-- ... existing head ... -->
-<!-- I'll skip re-outputting head to match replace_file_content constraints, I just need to replace the logic part -->
-<!-- Wait, replace_file_content replaces specific lines. I should do the split in PHP block at top, then modify the view -->
+$action = strtolower(trim($item['action']));
 
-<!-- Splitting the tool call into 2 chunks because lines are far apart -->
-<?php
-// ... existing PHP code ...
-$tradeHistory = $viewData['tradeHistory'];
-// REPLACING WITH SPLIT LOGIC
-$tradeHistoryFull = $viewData['tradeHistory'];
-$standardHistory = [];
-$refusedHistory = [];
-$acceptedHistory = [];
-foreach ($tradeHistoryFull as $item) {
-    if ($item['action'] === 'negotiation_refused') {
-        $refusedHistory[] = $item;
-    } elseif ($item['action'] === 'trade') {
-        $acceptedHistory[] = $item;
-        $standardHistory[] = $item;
-    } else {
-        $standardHistory[] = $item;
-    }
+// Debug removed
+
+if ($action === 'negotiation_refused') {
+    $refusedHistory[] = $item;
+} elseif ($action === 'trade' || $action === 'bought' || $action === 'sold') {
+    $acceptedHistory[] = $item;
+    $standardHistory[] = $item;
+} else {
+    $standardHistory[] = $item;
 }
-$mySkins = $viewData['mySkins'];
-$currentUser = $viewData['currentUser'];
+}
 ?>
+
 <!-- ... -->
 
 <!-- Finding the loop for standard history -->
@@ -200,6 +178,11 @@ $currentUser = $viewData['currentUser'];
         background: rgba(155, 89, 182, 0.1);
         color: #9b59b6;
         border: 1px solid rgba(155, 89, 182, 0.2);
+    }
+    .action-sold {
+        background: rgba(52, 152, 219, 0.1);
+        color: #3498db;
+        border: 1px solid rgba(52, 152, 219, 0.2);
     }
     .no-history {
         text-align: center;
@@ -727,6 +710,7 @@ $currentUser = $viewData['currentUser'];
         <button class="filter-btn" data-filter="updated">Updated</button>
         <button class="filter-btn" data-filter="deleted">Deleted</button>
         <button class="filter-btn" data-filter="bought">Bought</button>
+        <button class="filter-btn" data-filter="sold">Sold</button>
         <button class="clear-history-btn" onclick="confirmClearHistory('standard')">
           <i class="fas fa-trash"></i> Clear Activities
         </button>
@@ -757,6 +741,8 @@ $currentUser = $viewData['currentUser'];
                   case 'updated': $actionClass = 'action-updated'; break;
                   case 'deleted': $actionClass = 'action-deleted'; break;
                   case 'bought':  $actionClass = 'action-bought'; break;
+                  case 'sold':    $actionClass = 'action-sold'; break;
+                  case 'trade':   $actionClass = 'action-bought'; break;
                 }
               ?>
               <tr class="history-row" data-action="<?= $history['action'] ?>">
@@ -781,6 +767,9 @@ $currentUser = $viewData['currentUser'];
            <h2 class="section-title" style="margin-bottom:5px;"><span style="color:#2ed573;">Accepted Negotiations</span></h2>
            <p style="color:#ccc; margin:0;">Chats for offers that were accepted</p>
         </div>
+        <button onclick="confirmClearHistory('accepted')" class="clear-history-btn" style="background: rgba(46, 213, 115, 0.1); color: #2ed573; border: 1px solid #2ed573;">
+            <i class="fas fa-trash-alt"></i> Clear Accepted
+        </button>
       </div>
 
       <?php if (count($acceptedHistory) === 0): ?>
@@ -803,13 +792,30 @@ $currentUser = $viewData['currentUser'];
               <?php foreach ($acceptedHistory as $history): ?>
               <tr class="history-row">
                 <td><?= date('M j, Y g:i A', strtotime($history['created_at'])) ?></td>
-                <td><span class="action-badge action-bought">Accepted</span></td>
+                <td><span class="action-badge <?= $history['action'] == 'sold' ? 'action-sold' : 'action-bought' ?>"><?= $history['action'] == 'trade' ? 'Accepted' : ucfirst($history['action']) ?></span></td>
                 <td><?= htmlspecialchars($history['skin_name']) ?></td>
                 <td>$<?= number_format((float)$history['skin_price'], 2) ?></td>
                 <td>
-                    <button class="desc-btn" onclick="viewArchivedChat(<?= $history['skin_id'] ?>, '<?= isset($history['negotiation_id']) ? htmlspecialchars($history['negotiation_id']) : '' ?>')" style="padding:6px 12px; font-size:12px; background: #2ed573; color: #000; border: 1px solid #2ed573;">
-                        <i class="fas fa-comments"></i> View Chat
-                    </button>
+                    <?php if ($history['action'] == 'bought' || $history['action'] == 'sold'): ?>
+                        <div style="display:flex; gap:5px;">
+                            <button class="desc-btn view-chat-btn" 
+                                data-skin-id="<?= $history['skin_id'] ?>" 
+                                data-negotiation-id="<?= isset($history['negotiation_id']) ? htmlspecialchars($history['negotiation_id']) : '' ?>" 
+                                style="padding:6px 12px; font-size:12px; background: #2ed573; color: #000; border: 1px solid #2ed573;">
+                                <i class="fas fa-comments"></i> Chat
+                            </button>
+                            <?php if (!empty($history['negotiation_id'])): ?>
+                            <a href="receipt.php?id=<?= htmlspecialchars($history['negotiation_id']) ?>" target="_blank" 
+                               style="display:inline-block; padding:6px 12px; font-size:12px; background:#ff7a00; color:white; text-decoration:none; border-radius:4px; font-family:'Roboto', sans-serif; border: 1px solid #ff7a00;">
+                                <i class="fas fa-file-invoice"></i> Receipt
+                            </a>
+                            <?php endif; ?>
+                        </div>
+                    <?php else: ?>
+                        <button class="desc-btn view-chat-btn" data-skin-id="<?= $history['skin_id'] ?>" data-negotiation-id="<?= isset($history['negotiation_id']) ? htmlspecialchars($history['negotiation_id']) : '' ?>" style="padding:6px 12px; font-size:12px; background: #2ed573; color: #000; border: 1px solid #2ed573;">
+                            <i class="fas fa-comments"></i> View Chat
+                        </button>
+                    <?php endif; ?>
                 </td>
               </tr>
               <?php endforeach; ?>
@@ -855,7 +861,7 @@ $currentUser = $viewData['currentUser'];
                 <td><?= htmlspecialchars($history['skin_name']) ?></td>
                 <td>$<?= number_format((float)$history['skin_price'], 2) ?></td>
                 <td>
-                    <button class="desc-btn" onclick="viewArchivedChat(<?= $history['skin_id'] ?>, '<?= isset($history['negotiation_id']) ? htmlspecialchars($history['negotiation_id']) : '' ?>')" style="padding:6px 12px; font-size:12px; background: #333; color: white; border: 1px solid #555;">
+                    <button class="desc-btn view-chat-btn" data-skin-id="<?= $history['skin_id'] ?>" data-negotiation-id="<?= isset($history['negotiation_id']) ? htmlspecialchars($history['negotiation_id']) : '' ?>" style="padding:6px 12px; font-size:12px; background: #333; color: white; border: 1px solid #555;">
                         <i class="fas fa-comments"></i> View Chat
                     </button>
                 </td>
@@ -904,7 +910,18 @@ $currentUser = $viewData['currentUser'];
         }
     });
 
-    function viewArchivedChat(skinId, negotiationId = null) {
+    // Event delegation for View Chat buttons
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.view-chat-btn');
+        if (btn) {
+            const skinId = btn.getAttribute('data-skin-id');
+            const negotiationId = btn.getAttribute('data-negotiation-id');
+            viewArchivedChat(skinId, negotiationId);
+        }
+    });
+
+    function viewArchivedChat(skinId, negotiationId) {
+        console.log('Viewing chat for skin:', skinId, 'Neg:', negotiationId);
         historyModal.classList.add('active');
         const container = document.getElementById('historyChatContainer');
         container.innerHTML = '<p style="text-align:center; color:#ccc;">Loading messages...</p>';
@@ -913,7 +930,7 @@ $currentUser = $viewData['currentUser'];
         formData.append('get_archived_messages', '1');
         formData.append('skin_id', skinId);
         formData.append('active_user_check', currentLoggedInUser);
-        if (negotiationId) {
+        if (negotiationId && negotiationId.trim() !== '') {
             formData.append('negotiation_id', negotiationId);
         }
         
@@ -921,7 +938,12 @@ $currentUser = $viewData['currentUser'];
             method: 'POST',
             body: formData
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 container.innerHTML = ''; // Clear loading message
@@ -972,6 +994,8 @@ $currentUser = $viewData['currentUser'];
                     
                 } else {
                     container.innerHTML = '<p style="text-align:center; color:#ccc;">No archived messages found.</p>';
+                    // Debug output for user
+                    console.log('Empty messages returned for skin:', skinId, 'Neg:', negotiationId);
                 }
             } else {
                  container.innerHTML = '<p style="text-align:center; color:red;">Error: ' + (data.error || 'Failed to load') + '</p>';
@@ -1066,7 +1090,17 @@ $currentUser = $viewData['currentUser'];
 
     // Clear history functionality
     function confirmClearHistory(type) {
-        const typeName = type === 'standard' ? 'trade activities' : (type === 'negotiations' ? 'archived negotiations' : 'history');
+        let typeName;
+        if (type === 'standard') {
+            typeName = 'trade activities';
+        } else if (type === 'negotiations') {
+            typeName = 'archived negotiations';
+        } else if (type === 'accepted') {
+            typeName = 'accepted negotiations';
+        } else {
+            typeName = 'history';
+        }
+        
         if (confirm(`Are you sure you want to clear your ${typeName}? This action cannot be undone.`)) {
           const formData = new FormData();
           formData.append('clear_history', '1');

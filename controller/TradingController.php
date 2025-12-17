@@ -218,6 +218,9 @@ class TradingController
 
             // Transfer ownership
             if ($this->skinModel->transferOwnership($skinId, $buyerId)) {
+                // Create unique transaction ID for receipt
+                $transactionId = uniqid('trans_');
+
                 // Log history
                 $this->tradeHistoryModel->logTradeHistory(
                     $buyerId,
@@ -225,7 +228,29 @@ class TradingController
                     'bought',
                     $skin['name'],
                     $skin['price'],
-                    $skin['category']
+                    $skin['category'],
+                    $transactionId
+                );
+                
+                // Log for seller too? Usually standard buy just logs for buyer in history?
+                // Depending on requirements. But for receipt we need at least one record with this ID.
+                // The receipt.php looks for 'bought' or 'sold'.
+                
+                // Let's also log 'sold' for the seller so they see it too?
+                // The original code didn't log for seller in handleBuy?
+                // Wait, handleBuy only logged for buyer: "logTradeHistory($buyerId...)"
+                // If I want the Seller to see it, I should log for them too.
+                // But typically "Buy" takes from the market.
+                
+                // Adding log for seller (optional but good for consistency)
+                $this->tradeHistoryModel->logTradeHistory(
+                    $skin['seller_id'],
+                    $skinId,
+                    'sold',
+                    $skin['name'],
+                    $skin['price'],
+                    $skin['category'],
+                    $transactionId
                 );
 
                 // Insert into trade table
@@ -575,7 +600,7 @@ class TradingController
             );
 
             $this->db->commit();
-            return ['success' => true, 'message' => 'Offer accepted. Trade completed.'];
+            return ['success' => true, 'message' => 'Offer accepted. Trade completed.', 'negotiation_id' => $negotiationId];
         } catch (Exception $e) {
             if ($this->db->inTransaction()) {
                 $this->db->rollBack();
@@ -592,7 +617,7 @@ class TradingController
         }
 
         $type = isset($_POST['clear_type']) ? trim($_POST['clear_type']) : 'all';
-        $allowedTypes = ['all', 'standard', 'negotiations'];
+        $allowedTypes = ['all', 'standard', 'negotiations', 'accepted'];
 
         if (!in_array($type, $allowedTypes)) {
             $type = 'all';

@@ -65,7 +65,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             <?php else: ?>
                 <?php foreach ($tradeHistory as $history):
                     $actionClass = '';
-                    switch ($history['action']) {
+                    $displayText = ucfirst($history['action']);
+                    
+                    switch (strtolower($history['action'])) {
                         case 'created':
                             $actionClass = 'action-created';
                             break;
@@ -76,17 +78,29 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                             $actionClass = 'action-deleted';
                             break;
                         case 'bought':
+                        case 'buy':
                             $actionClass = 'action-bought';
+                            $displayText = 'Bought';
                             break;
+                        case 'sold':
+                        case 'trade':
                         case 'finished':
-                            $actionClass = 'action-finished';
+                            $actionClass = 'action-finished'; // reusing finished class (blue) for sold
+                            $displayText = 'Sold';
+                            break; 
+                        case 'negotiation_refused':
+                            $actionClass = 'action-deleted'; // reusing deleted class (red) for refused
+                            $displayText = 'Refused';
+                            break;
+                        default:
+                            $actionClass = 'action-updated'; // default to orange
                             break;
                     }
                     ?>
                     <tr class="history-row">
                         <td><?= date('M j, Y g:i A', strtotime($history['created_at'])) ?></td>
                         <td class="username">@<?= htmlspecialchars($history['username']) ?></td>
-                        <td><span class="action-badge <?= $actionClass ?>"><?= ucfirst($history['action']) ?></span></td>
+                        <td><span class="action-badge <?= $actionClass ?>"><?= htmlspecialchars($displayText) ?></span></td>
                         <td><?= htmlspecialchars($history['skin_name']) ?></td>
                         <td class="price">$<?= number_format((float) $history['skin_price'], 2) ?></td>
                         <td class="skin-game <?= $history['skin_category'] ?>">
@@ -859,7 +873,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                             <?php else: ?>
                                 <?php foreach ($tradeHistory as $history):
                                     $actionClass = '';
-                                    switch ($history['action']) {
+                                    $displayText = ucfirst($history['action']);
+                                    
+                                    switch (strtolower($history['action'])) {
                                         case 'created':
                                             $actionClass = 'action-created';
                                             break;
@@ -870,10 +886,22 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                                             $actionClass = 'action-deleted';
                                             break;
                                         case 'bought':
+                                        case 'buy':
                                             $actionClass = 'action-bought';
+                                            $displayText = 'Bought';
                                             break;
+                                        case 'sold':
+                                        case 'trade':
                                         case 'finished':
                                             $actionClass = 'action-finished';
+                                            $displayText = 'Sold';
+                                            break;
+                                        case 'negotiation_refused':
+                                            $actionClass = 'action-deleted';
+                                            $displayText = 'Refused';
+                                            break;
+                                        default:
+                                            $actionClass = 'action-updated';
                                             break;
                                     }
                                     ?>
@@ -881,7 +909,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                                         <td><?= date('M j, Y g:i A', strtotime($history['created_at'])) ?></td>
                                         <td class="username">@<?= htmlspecialchars($history['username']) ?></td>
                                         <td><span
-                                                class="action-badge <?= $actionClass ?>"><?= ucfirst($history['action']) ?></span>
+                                                class="action-badge <?= $actionClass ?>"><?= htmlspecialchars($displayText) ?></span>
                                         </td>
                                         <td><?= htmlspecialchars($history['skin_name']) ?></td>
                                         <td class="price">$<?= number_format((float) $history['skin_price'], 2) ?></td>
@@ -1002,6 +1030,10 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                                                 <span class="action-badge action-created">Active</span>
                                             <?php elseif ($conv['status'] === 'Accepted'): ?>
                                                 <span class="action-badge action-bought">Accepted</span>
+                                            <?php elseif ($conv['status'] === 'Bought'): ?>
+                                                <span class="action-badge action-bought">Bought</span>
+                                            <?php elseif ($conv['status'] === 'Sold'): ?>
+                                                <span class="action-badge action-finished">Sold</span>
                                             <?php else: ?>
                                                 <span class="action-badge action-deleted">Refused</span>
                                             <?php endif; ?>
@@ -1017,7 +1049,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                                             <?php else: ?>
                                                 <button class="view-conversation-btn"
                                                     onclick="viewConversation(<?= $conv['skin_id'] ?>, <?= $conv['sender_id'] ?>, <?= $conv['receiver_id'] ?>, '<?= htmlspecialchars($conv['skin_name'] ?: 'Unknown') ?>', '<?= htmlspecialchars($conv['sender_username'] ?? 'Unknown') ?>', '<?= htmlspecialchars($conv['receiver_username'] ?? 'Unknown') ?>', '<?= htmlspecialchars($conv['negotiation_id'] ?? '') ?>')"
-                                                    style="background: <?= ($conv['status'] === 'Accepted') ? '#2ed573' : '#ff4757' ?>; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; margin-right: 8px;">
+                                                    style="background: <?= in_array($conv['status'], ['Accepted', 'Bought', 'Sold']) ? '#2ed573' : '#ff4757' ?>; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; margin-right: 8px;">
                                                     <i class="fas fa-history"></i> History
                                                 </button>
                                                 <?php if (!empty($conv['negotiation_id'])): ?>
