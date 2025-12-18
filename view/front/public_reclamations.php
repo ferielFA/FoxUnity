@@ -3,7 +3,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 session_start();
-// Inclure UserController pour l'authentification
+// Include UserController for authentication
 require_once __DIR__ . '/../../controller/UserController.php';
 
 $isLoggedIn = UserController::isLoggedIn();
@@ -17,7 +17,7 @@ $userImage = null;
 if ($currentUser && $currentUser->getImage()) {
     $userImage = '../../view/' . $currentUser->getImage();
 }
-// Inclure les contrôleurs
+// Include controllers
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../controller/reclamationcontroller.php';
 require_once __DIR__ . '/../../controller/ResponseController.php';
@@ -28,7 +28,7 @@ $reclamationController = new ReclamationController();
 $responseController = new ResponseController();
 $satisfactionController = new SatisfactionController();
 
-// Traitement pour ajouter une évaluation
+// Process adding a rating
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'rate_reclamation') {
     header('Content-Type: application/json');
     
@@ -39,101 +39,101 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $commentaire = trim($_POST['commentaire'] ?? '');
     
     // Validation
-    // Email et nom sont maintenant optionnels - si les deux sont vides, utiliser un identifiant anonyme
+    // Email and name are now optional - if both are empty, use an anonymous identifier
     if (empty($email) && empty($name)) {
-        // Générer un identifiant anonyme basé sur l'IP et le timestamp
+        // Generate an anonymous identifier based on IP and timestamp
         $anonymousId = 'anonymous_' . md5($_SERVER['REMOTE_ADDR'] . date('Y-m-d') . $id_reclamation);
         $email = $anonymousId;
     } elseif (empty($email) && !empty($name)) {
-        // Si seulement le nom est fourni, utiliser le nom comme identifiant
+        // If only name is provided, use name as identifier
         $email = 'user_' . md5($name . $id_reclamation);
     } elseif (empty($email)) {
-        // Si email vide mais on a besoin d'un identifiant
+        // If email empty but we need an identifier
         $email = 'anonymous_' . md5($_SERVER['REMOTE_ADDR'] . date('Y-m-d') . $id_reclamation);
     }
     
     if ($rating < 1 || $rating > 5) {
-        echo json_encode(['success' => false, 'message' => 'Note invalide (doit être entre 1 et 5)']);
+        echo json_encode(['success' => false, 'message' => 'Invalid rating (must be between 1 and 5)']);
         exit;
     }
     
     if (empty($id_reclamation) || $id_reclamation <= 0) {
-        echo json_encode(['success' => false, 'message' => 'ID de réclamation invalide']);
+        echo json_encode(['success' => false, 'message' => 'Invalid complaint ID']);
         exit;
     }
     
-    // Stocker le nom dans le commentaire si fourni
+    // Store name in comment if provided
     $finalCommentaire = null;
     if (!empty($name) && empty($commentaire)) {
-        $finalCommentaire = 'Évalué par: ' . $name;
+        $finalCommentaire = 'Rated by: ' . $name;
     } elseif (!empty($name) && !empty($commentaire)) {
-        $finalCommentaire = 'Évalué par: ' . $name . ' | ' . $commentaire;
+        $finalCommentaire = 'Rated by: ' . $name . ' | ' . $commentaire;
     } elseif (!empty($commentaire)) {
         $finalCommentaire = $commentaire;
     }
     
-    // Si le commentaire est vide, utiliser null
+    // If comment is empty, use null
     if (empty($finalCommentaire)) {
         $finalCommentaire = null;
     }
     
     try {
-        // Vérifier que la réclamation existe
+        // Check that complaint exists
         $reclamationCheck = $reclamationController->getReclamationById($id_reclamation);
         if (!$reclamationCheck) {
-            echo json_encode(['success' => false, 'message' => 'Réclamation introuvable.']);
+            echo json_encode(['success' => false, 'message' => 'Complaint not found.']);
             exit;
         }
         
-        // Vérifier que la table satisfactions existe
+        // Check that satisfactions table exists
         $db = Config::getConnexion();
         $tableCheck = $db->query("SHOW TABLES LIKE 'satisfactions'");
         if ($tableCheck->rowCount() == 0) {
             echo json_encode([
                 'success' => false, 
-                'message' => 'La table satisfactions n\'existe pas. Veuillez exécuter: http://localhost/foxunity/create_satisfactions_table.php'
+                'message' => 'The satisfactions table does not exist. Please run: http://localhost/foxunity/create_satisfactions_table.php'
             ]);
             exit;
         }
         
-        // Ajouter l'évaluation avec débogage détaillé
-        error_log("🔵 ========== DÉBUT AJOUT ÉVALUATION ==========");
-        error_log("🔵 ID Réclamation: $id_reclamation");
+        // Add rating with detailed debugging
+        error_log("🔵 ========== START ADDING RATING ==========");
+        error_log("🔵 Complaint ID: $id_reclamation");
         error_log("🔵 Email: " . substr($email, 0, 50));
         error_log("🔵 Rating: $rating");
-        error_log("🔵 Commentaire: " . (empty($finalCommentaire) ? 'vide' : substr($finalCommentaire, 0, 50)));
+        error_log("🔵 Comment: " . (empty($finalCommentaire) ? 'empty' : substr($finalCommentaire, 0, 50)));
         
         try {
             $result = $satisfactionController->addSatisfaction($id_reclamation, $email, $rating, $finalCommentaire);
             
-            error_log("🔵 Résultat de addSatisfaction: " . var_export($result, true));
-            error_log("🔵 Type du résultat: " . gettype($result));
-            error_log("🔵 Est vide: " . (empty($result) ? 'OUI' : 'NON'));
-            error_log("🔵 Est false: " . ($result === false ? 'OUI' : 'NON'));
-            error_log("🔵 Est > 0: " . (is_numeric($result) && $result > 0 ? 'OUI' : 'NON'));
+            error_log("🔵 Result of addSatisfaction: " . var_export($result, true));
+            error_log("🔵 Result type: " . gettype($result));
+            error_log("🔵 Is empty: " . (empty($result) ? 'YES' : 'NO'));
+            error_log("🔵 Is false: " . ($result === false ? 'YES' : 'NO'));
+            error_log("🔵 Is > 0: " . (is_numeric($result) && $result > 0 ? 'YES' : 'NO'));
             
             if ($result && $result !== false && (is_numeric($result) ? $result > 0 : true)) {
-                error_log("✅ Évaluation ajoutée avec succès - ID réclamation: $id_reclamation, Rating: $rating, Email: " . substr($email, 0, 30));
-                error_log("🔵 ========== FIN AJOUT ÉVALUATION (SUCCÈS) ==========");
-                echo json_encode(['success' => true, 'message' => 'Merci pour votre évaluation !']);
+                error_log("✅ Rating added successfully - Complaint ID: $id_reclamation, Rating: $rating, Email: " . substr($email, 0, 30));
+                error_log("🔵 ========== END ADDING RATING (SUCCESS) ==========");
+                echo json_encode(['success' => true, 'message' => 'Thank you for your rating!']);
             } else {
-                error_log('❌ addSatisfaction a retourné un résultat invalide');
-                error_log('❌ Valeur retournée: ' . var_export($result, true));
+                error_log('❌ addSatisfaction returned an invalid result');
+                error_log('❌ Returned value: ' . var_export($result, true));
                 error_log('❌ Type: ' . gettype($result));
                 
-                // Vérifier la structure de la table
+                // Check table structure
                 try {
                     $columns = $db->query("SHOW COLUMNS FROM satisfactions");
                     $columnNames = [];
                     while ($col = $columns->fetch(PDO::FETCH_ASSOC)) {
                         $columnNames[] = $col['Field'];
                     }
-                    error_log('📋 Colonnes de la table satisfactions: ' . implode(', ', $columnNames));
+                    error_log('📋 Columns in satisfactions table: ' . implode(', ', $columnNames));
                 } catch (Exception $e) {
-                    error_log('❌ Erreur lors de la vérification des colonnes: ' . $e->getMessage());
+                    error_log('❌ Error checking columns: ' . $e->getMessage());
                 }
                 
-                // Tester une insertion directe pour voir l'erreur exacte
+                // Test a direct insert to see exact error
                 try {
                     $testEmail = 'test_debug_' . time() . '@test.com';
                     $testQuery = $db->prepare("INSERT INTO satisfactions (id_reclamation, email, rating, commentaire, date_evaluation) VALUES (?, ?, ?, ?, NOW())");
@@ -141,47 +141,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     
                     if ($testResult) {
                         $testId = $db->lastInsertId();
-                        error_log("✅ Test d'insertion directe réussi - ID: $testId");
-                        // Supprimer le test
+                        error_log("✅ Direct insert test succeeded - ID: $testId");
+                        // Delete test
                         $db->prepare("DELETE FROM satisfactions WHERE id_satisfaction = ?")->execute([$testId]);
-                        error_log("❌ PROBLÈME: L'insertion directe fonctionne mais le contrôleur échoue!");
+                        error_log("❌ PROBLEM: Direct insert works but controller fails!");
                     } else {
                         $errorInfo = $testQuery->errorInfo();
-                        error_log("❌ Erreur lors du test d'insertion directe: " . print_r($errorInfo, true));
+                        error_log("❌ Error in direct insert test: " . print_r($errorInfo, true));
                     }
                 } catch (PDOException $testE) {
-                    error_log("❌ Exception lors du test d'insertion directe: " . $testE->getMessage());
+                    error_log("❌ Exception in direct insert test: " . $testE->getMessage());
                     error_log("❌ Code: " . $testE->getCode());
                     error_log("❌ ErrorInfo: " . print_r($testE->errorInfo(), true));
                 }
                 
-                error_log("🔵 ========== FIN AJOUT ÉVALUATION (ÉCHEC) ==========");
+                error_log("🔵 ========== END ADDING RATING (FAILURE) ==========");
                 echo json_encode([
                     'success' => false, 
-                    'message' => 'Erreur lors de l\'enregistrement. Vérifiez les logs du serveur (error.log) ou exécutez: http://localhost/foxunity/test_satisfaction_insert.php'
+                    'message' => 'Error during save. Check server logs (error.log) or run: http://localhost/foxunity/test_satisfaction_insert.php'
                 ]);
             }
         } catch (Exception $controllerException) {
-            error_log('❌ Exception dans addSatisfaction: ' . $controllerException->getMessage());
+            error_log('❌ Exception in addSatisfaction: ' . $controllerException->getMessage());
             error_log('❌ Stack trace: ' . $controllerException->getTraceAsString());
             
             $errorMsg = $controllerException->getMessage();
-            $userMessage = 'Erreur lors de l\'enregistrement de l\'évaluation.';
+            $userMessage = 'Error saving rating.';
             
-            // Détecter le problème de Foreign Key sur email
+            // Detect Foreign Key problem on email
             if (strpos($errorMsg, "foreign key constraint fails") !== false || 
                 strpos($errorMsg, "1452") !== false ||
                 strpos($errorMsg, "fk_satisfactions_user") !== false ||
                 (strpos($errorMsg, "FOREIGN KEY") !== false && strpos($errorMsg, "email") !== false)) {
-                $userMessage = '⚠️ Erreur de contrainte Foreign Key détectée. Cliquez ici pour corriger: <a href="http://localhost/foxunity/scripts/fix_satisfaction_foreign_key.php" target="_blank" style="color: #ff7a00; text-decoration: underline;">fix_satisfaction_foreign_key.php</a>';
+                $userMessage = '⚠️ Foreign Key constraint error detected. Click here to fix: <a href="http://localhost/foxunity/scripts/fix_satisfaction_foreign_key.php" target="_blank" style="color: #ff7a00; text-decoration: underline;">fix_satisfaction_foreign_key.php</a>';
             } elseif (strpos($errorMsg, "CONSTRAINT_ERROR") !== false) {
-                $userMessage = 'Problème de contrainte UNIQUE. Exécutez: http://localhost/foxunity/fix_satisfactions_table.php';
+                $userMessage = 'UNIQUE constraint problem. Run: http://localhost/foxunity/fix_satisfactions_table.php';
             } elseif (strpos($errorMsg, "doesn't exist") !== false || strpos($errorMsg, "n'existe pas") !== false || strpos($errorMsg, "TABLE_NOT_FOUND") !== false) {
-                $userMessage = 'La table satisfactions n\'existe pas. Exécutez: http://localhost/foxunity/create_satisfactions_table.php';
+                $userMessage = 'The satisfactions table does not exist. Run: http://localhost/foxunity/create_satisfactions_table.php';
             } elseif (strpos($errorMsg, "Duplicate entry") !== false || strpos($errorMsg, "UNIQUE") !== false) {
-                $userMessage = 'Vous avez déjà évalué cette réclamation avec cet email.';
+                $userMessage = 'You have already rated this complaint with this email.';
             } elseif (strpos($errorMsg, "Integrity constraint violation") !== false) {
-                $userMessage = 'Erreur de contrainte d\'intégrité. Exécutez: http://localhost/foxunity/fix_satisfaction_foreign_key.php pour corriger.';
+                $userMessage = 'Integrity constraint error. Run: http://localhost/foxunity/fix_satisfaction_foreign_key.php to fix.';
             }
             
             echo json_encode([
@@ -192,30 +192,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     } catch (PDOException $e) {
         $errorMsg = $e->getMessage();
         $errorCode = $e->getCode();
-        error_log('❌ Exception PDO dans addSatisfaction: ' . $errorMsg);
+        error_log('❌ PDO Exception in addSatisfaction: ' . $errorMsg);
         error_log('❌ Code: ' . $errorCode);
         error_log('❌ ErrorInfo: ' . print_r($e->errorInfo(), true));
         
-        $userMessage = 'Erreur lors de l\'enregistrement de l\'évaluation.';
+        $userMessage = 'Error saving rating.';
         
-        // Détecter le problème de Foreign Key (code 1452 ou 23000)
+        // Detect Foreign Key problem (code 1452 or 23000)
         if ($errorCode == 1452 || $errorCode == 23000 || 
             strpos($errorMsg, "foreign key constraint fails") !== false ||
             strpos($errorMsg, "fk_satisfactions_user") !== false ||
             (strpos($errorMsg, "FOREIGN KEY") !== false && strpos($errorMsg, "email") !== false) ||
             strpos($errorMsg, "Integrity constraint violation") !== false) {
-            $userMessage = '⚠️ Erreur de contrainte Foreign Key détectée. Exécutez ce script pour corriger: http://localhost/foxunity/scripts/fix_satisfaction_foreign_key.php';
+            $userMessage = '⚠️ Foreign Key constraint error detected. Run this script to fix: http://localhost/foxunity/scripts/fix_satisfaction_foreign_key.php';
         } elseif (strpos($errorMsg, "Duplicate entry") !== false || 
             strpos($errorMsg, "duplicata") !== false ||
             strpos($errorMsg, "UNIQUE") !== false ||
             strpos($errorMsg, "unique_reclamation") !== false) {
-            $userMessage = 'Erreur de contrainte UNIQUE. Veuillez exécuter: http://localhost/foxunity/fix_satisfactions_table.php pour corriger la base de données.';
+            $userMessage = 'UNIQUE constraint error. Please run: http://localhost/foxunity/fix_satisfactions_table.php to fix the database.';
         } elseif (strpos($errorMsg, "doesn't exist") !== false || 
                    strpos($errorMsg, "n'existe pas") !== false ||
                    strpos($errorMsg, "TABLE_NOT_FOUND") !== false) {
-            $userMessage = 'La table satisfactions n\'existe pas. Veuillez exécuter: http://localhost/foxunity/create_satisfactions_table.php';
+            $userMessage = 'The satisfactions table does not exist. Please run: http://localhost/foxunity/create_satisfactions_table.php';
         } elseif (strpos($errorMsg, "CONSTRAINT_ERROR") !== false) {
-            $userMessage = 'Problème de contrainte UNIQUE. Exécutez: http://localhost/foxunity/fix_satisfactions_table.php';
+            $userMessage = 'UNIQUE constraint problem. Run: http://localhost/foxunity/fix_satisfactions_table.php';
         }
         
         echo json_encode([
@@ -224,23 +224,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         ]);
     } catch (Exception $e) {
         $errorMsg = $e->getMessage();
-        error_log('❌ Exception dans addSatisfaction: ' . $errorMsg);
+        error_log('❌ Exception in addSatisfaction: ' . $errorMsg);
         error_log('❌ Stack trace: ' . $e->getTraceAsString());
         
-        $userMessage = 'Erreur lors de l\'enregistrement de l\'évaluation.';
+        $userMessage = 'Error saving rating.';
         
-        // Détecter le problème de Foreign Key
+        // Detect Foreign Key problem
         if (strpos($errorMsg, "foreign key constraint fails") !== false || 
             strpos($errorMsg, "1452") !== false ||
             strpos($errorMsg, "fk_satisfactions_user") !== false ||
             strpos($errorMsg, "Integrity constraint violation") !== false) {
-            $userMessage = '⚠️ Erreur de contrainte Foreign Key. Exécutez: http://localhost/foxunity/scripts/fix_satisfaction_foreign_key.php';
+            $userMessage = '⚠️ Foreign Key constraint error. Run: http://localhost/foxunity/scripts/fix_satisfaction_foreign_key.php';
         } elseif (strpos($errorMsg, "CONSTRAINT_ERROR") !== false) {
-            $userMessage = 'Problème de contrainte UNIQUE détecté. Veuillez exécuter: http://localhost/foxunity/fix_satisfactions_table.php';
+            $userMessage = 'UNIQUE constraint problem detected. Please run: http://localhost/foxunity/fix_satisfactions_table.php';
         } elseif (strpos($errorMsg, "TABLE_NOT_FOUND") !== false) {
-            $userMessage = 'La table satisfactions n\'existe pas. Veuillez exécuter: http://localhost/foxunity/create_satisfactions_table.php';
+            $userMessage = 'The satisfactions table does not exist. Please run: http://localhost/foxunity/create_satisfactions_table.php';
         } elseif (strpos($errorMsg, "Duplicate entry") !== false || strpos($errorMsg, "UNIQUE") !== false) {
-            $userMessage = 'Vous avez déjà évalué cette réclamation avec cet email.';
+            $userMessage = 'You have already rated this complaint with this email.';
         }
         
         echo json_encode([
@@ -251,11 +251,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit;
 }
 
-// Récupérer TOUTES les réclamations (pour affichage public - tous les utilisateurs peuvent voir et réagir)
+// Retrieve ALL complaints (for public display - all users can view and react)
 $allReclamations = $reclamationController->getAllReclamations(null, null, null);
 
-// Récupérer les réponses et toutes les évaluations pour chaque réclamation
-// et calculer les statistiques globales / par catégorie pour l'affichage avancé
+// Retrieve responses and all ratings for each complaint
+// and calculate global / by-category statistics for advanced display
 $globalStats = [
     'total_evaluations' => 0,
     'total_rating_sum' => 0,
@@ -263,7 +263,7 @@ $globalStats = [
     'satisfied_count' => 0, // rating >= 4
 ];
 
-$categoryStats = []; // [categorie => ['total_evaluations' => ..., 'rating_sum' => ..., 'satisfied_count' => ...]]
+$categoryStats = []; // [category => ['total_evaluations' => ..., 'rating_sum' => ..., 'satisfied_count' => ...]]
 
 foreach ($allReclamations as &$reclamation) {
     $reclamation['responses'] = $responseController->getResponsesByReclamationId($reclamation['id_reclamation']);
@@ -279,7 +279,7 @@ foreach ($allReclamations as &$reclamation) {
             $ratingSum += $rating;
             $ratingCount++;
 
-            // Stat globale
+            // Global stat
             $globalStats['total_evaluations']++;
             $globalStats['total_rating_sum'] += $rating;
             if (isset($globalStats['ratings_count'][$rating])) {
@@ -289,11 +289,11 @@ foreach ($allReclamations as &$reclamation) {
                 $globalStats['satisfied_count']++;
             }
 
-            // Stat catégorie
-            $catKey = !empty($reclamation['categorie']) ? strtolower($reclamation['categorie']) : 'autre';
+            // Category stat
+            $catKey = !empty($reclamation['categorie']) ? strtolower($reclamation['categorie']) : 'other';
             if (!isset($categoryStats[$catKey])) {
                 $categoryStats[$catKey] = [
-                    'label' => $reclamation['categorie'] ?? 'Autre',
+                    'label' => $reclamation['categorie'] ?? 'Other',
                     'total_evaluations' => 0,
                     'rating_sum' => 0,
                     'satisfied_count' => 0,
@@ -305,11 +305,11 @@ foreach ($allReclamations as &$reclamation) {
                 $categoryStats[$catKey]['satisfied_count']++;
             }
 
-            // Détecter s'il existe au moins un commentaire "réel"
+            // Detect if there is at least one "real" comment
             $comment = trim((string) $sat->getCommentaire());
             if ($comment !== '') {
-                // Si le commentaire commence par "Évalué par: ", vérifier s'il y a une vraie partie commentaire après " | "
-                if (strpos($comment, 'Évalué par:') === 0) {
+                // If comment starts with "Rated by:", check if there is a real comment part after " | "
+                if (strpos($comment, 'Rated by:') === 0) {
                     $parts = explode(' | ', $comment);
                     if (isset($parts[1]) && trim($parts[1]) !== '') {
                         $hasComment = true;
@@ -333,7 +333,7 @@ foreach ($allReclamations as &$reclamation) {
 }
 unset($reclamation);
 
-// Calculs finaux pour les stats globales
+// Final calculations for global stats
 $globalStats['average_rating'] = $globalStats['total_evaluations'] > 0
     ? round($globalStats['total_rating_sum'] / $globalStats['total_evaluations'], 1)
     : 0;
@@ -343,11 +343,11 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
     : 0;
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Réclamations Publiques - FoxUnity</title>
+    <title>Public Complaints - FoxUnity</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
@@ -406,7 +406,7 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
             font-size: 16px;
         }
 
-        /* Cart dans le header */
+        /* Cart in header */
         .cart-icon {
             color: #ff7a00 !important;
             position: relative;
@@ -439,7 +439,7 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
             box-shadow: 0 2px 8px rgba(255, 122, 0, 0.4);
         }
 
-        /* Bloc de statistiques globales */
+        /* Global statistics block */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -506,7 +506,7 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
             transition: width 0.5s ease;
         }
 
-        /* Filtres et tri */
+        /* Filters and sorting */
         .filters-bar {
             display: flex;
             flex-wrap: wrap;
@@ -956,7 +956,7 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
             <a href="news.php">News</a>
             <a href="reclamation.php">Support</a>
             <a href="contact_us.php">New Request</a>
-            <a href="public_reclamations.php" class="active"><i class="fas fa-star"></i> Public Evaluations</a>
+            <a href="public_reclamations.php" class="active"><i class="fas fa-star"></i> Public Reviews</a>
             <a href="about.php">About Us</a>
         </nav>
         
@@ -1028,32 +1028,32 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
 
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-comments"></i> Réclamations Publiques</h1>
-            <p>Consultez toutes les réclamations et partagez votre avis avec des étoiles</p>
+            <h1><i class="fas fa-comments"></i> Public Complaints</h1>
+            <p>View all complaints and share your feedback with star ratings</p>
         </div>
 
         <?php if ($globalStats['total_evaluations'] > 0): ?>
             <div class="stats-grid">
                 <div class="stats-card">
-                    <h4>Note moyenne globale</h4>
+                    <h4>Overall Average Rating</h4>
                     <div class="stats-main-value">
                         <?php echo $globalStats['average_rating']; ?>/5
                     </div>
                     <div class="stats-subtext">
-                        Basé sur <?php echo $globalStats['total_evaluations']; ?> évaluation<?php echo $globalStats['total_evaluations'] > 1 ? 's' : ''; ?>
+                        Based on <?php echo $globalStats['total_evaluations']; ?> review<?php echo $globalStats['total_evaluations'] > 1 ? 's' : ''; ?>
                     </div>
                 </div>
                 <div class="stats-card">
-                    <h4>Clients satisfaits</h4>
+                    <h4>Satisfied Customers</h4>
                     <div class="stats-main-value">
                         <?php echo $globalStats['satisfied_percentage']; ?>%
                     </div>
                     <div class="stats-subtext">
-                        Notes de 4★ et 5★
+                        Ratings of 4★ and 5★
                     </div>
                 </div>
                 <div class="stats-card">
-                    <h4>Répartition des notes</h4>
+                    <h4>Rating Distribution</h4>
                     <div class="rating-distribution">
                         <?php
                         $maxCount = max($globalStats['ratings_count']) ?: 1;
@@ -1076,7 +1076,7 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
                 </div>
                 <?php if (!empty($categoryStats)): ?>
                     <div class="stats-card">
-                        <h4>Par catégorie</h4>
+                        <h4>By Category</h4>
                         <div class="stats-subtext">
                             <?php foreach ($categoryStats as $catKey => $cat): 
                                 $avgCat = $cat['total_evaluations'] > 0
@@ -1087,8 +1087,8 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
                                     : 0;
                             ?>
                                 <div style="margin-bottom: 6px;">
-                                    <strong><?php echo htmlspecialchars($cat['label']); ?></strong> :
-                                    <?php echo $avgCat; ?>/5 • <?php echo $pctCat; ?>% satisfaits
+                                    <strong><?php echo htmlspecialchars($cat['label']); ?></strong>:
+                                    <?php echo $avgCat; ?>/5 • <?php echo $pctCat; ?>% satisfied
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -1100,38 +1100,38 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
         <?php if (isset($_GET['rated']) && $_GET['rated'] == '1'): ?>
             <div class="alert alert-success">
                 <i class="fas fa-check-circle"></i>
-                <span>Merci pour votre évaluation !</span>
+                <span>Thank you for your rating!</span>
             </div>
         <?php endif; ?>
         
         <?php if (empty($allReclamations)): ?>
             <div class="no-reclamations">
                 <i class="fas fa-inbox"></i>
-                <h2>Aucune réclamation pour le moment</h2>
-                <p>Les réclamations apparaîtront ici une fois qu'elles auront été créées.</p>
+                <h2>No complaints at the moment</h2>
+                <p>Complaints will appear here once they have been created.</p>
             </div>
         <?php else: ?>
             <div class="filters-bar">
                 <div class="filters-group">
-                    <label for="sort-by">Trier par :</label>
+                    <label for="sort-by">Sort by:</label>
                     <select id="sort-by" class="filters-select">
-                        <option value="recent">Plus récentes</option>
-                        <option value="best">Meilleure note</option>
-                        <option value="worst">Pire note</option>
+                        <option value="recent">Most Recent</option>
+                        <option value="best">Best Rating</option>
+                        <option value="worst">Worst Rating</option>
                     </select>
                 </div>
                 <div class="filters-group">
                     <label class="filters-checkbox">
                         <input type="checkbox" id="filter-4plus">
-                        4★ et plus
+                        4★ and above
                     </label>
                     <label class="filters-checkbox">
                         <input type="checkbox" id="filter-comment-only">
-                        Avec commentaire
+                        With comment
                     </label>
-                    <label for="filter-category">Catégorie :</label>
+                    <label for="filter-category">Category:</label>
                     <select id="filter-category" class="filters-select">
-                        <option value="all">Toutes</option>
+                        <option value="all">All</option>
                         <?php foreach ($categoryStats as $catKey => $cat): ?>
                             <option value="<?php echo htmlspecialchars($catKey); ?>">
                                 <?php echo htmlspecialchars($cat['label']); ?>
@@ -1144,7 +1144,7 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
             <div class="reclamations-list">
                 <?php foreach ($allReclamations as $reclamation): ?>
                     <?php
-                        $catKey = !empty($reclamation['categorie']) ? strtolower($reclamation['categorie']) : 'autre';
+                        $catKey = !empty($reclamation['categorie']) ? strtolower($reclamation['categorie']) : 'other';
                     ?>
                     <div 
                         class="reclamation-card" 
@@ -1159,7 +1159,7 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
                             <div>
                                 <h3 class="reclamation-title"><?php echo htmlspecialchars($reclamation['sujet'] ?? ''); ?></h3>
                                 <div class="reclamation-meta">
-                                    <span><i class="far fa-calendar"></i> <?php echo date('d/m/Y H:i', strtotime($reclamation['date_creation'])); ?></span>
+                                    <span><i class="far fa-calendar"></i> <?php echo date('m/d/Y h:i A', strtotime($reclamation['date_creation'])); ?></span>
                                     <?php if (!empty($reclamation['categorie']) && strtolower($reclamation['categorie']) !== 'other'): ?>
                                         <span class="category-badge">
                                             <i class="fas fa-tag"></i> <?php echo htmlspecialchars($reclamation['categorie']); ?>
@@ -1168,9 +1168,9 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
                                     <?php 
                                     $statut = $reclamation['statut'] ?? 'nouveau';
                                     $statutColors = [
-                                        'nouveau' => ['bg' => 'rgba(255, 122, 0, 0.2)', 'color' => '#ff7a00', 'text' => 'Nouveau'],
-                                        'en_cours' => ['bg' => 'rgba(255, 193, 7, 0.2)', 'color' => '#ffc107', 'text' => 'En cours'],
-                                        'resolu' => ['bg' => 'rgba(76, 175, 80, 0.2)', 'color' => '#4caf50', 'text' => 'Résolu']
+                                        'nouveau' => ['bg' => 'rgba(255, 122, 0, 0.2)', 'color' => '#ff7a00', 'text' => 'New'],
+                                        'en_cours' => ['bg' => 'rgba(255, 193, 7, 0.2)', 'color' => '#ffc107', 'text' => 'In Progress'],
+                                        'resolu' => ['bg' => 'rgba(76, 175, 80, 0.2)', 'color' => '#4caf50', 'text' => 'Resolved']
                                     ];
                                     $statutInfo = $statutColors[$statut] ?? $statutColors['nouveau'];
                                     ?>
@@ -1188,7 +1188,7 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
                         <?php if (!empty($reclamation['responses'])): ?>
                             <div class="responses-section">
                                 <h4 style="color: var(--primary-color); margin-bottom: 15px;">
-                                    <i class="fas fa-reply"></i> Réponse de l'équipe (<?php echo count($reclamation['responses']); ?>)
+                                    <i class="fas fa-reply"></i> Team Response (<?php echo count($reclamation['responses']); ?>)
                                 </h4>
                                 <?php foreach ($reclamation['responses'] as $response): ?>
                                     <div class="response-item">
@@ -1197,7 +1197,7 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
                                                 <i class="fas fa-user-shield"></i> Admin
                                             </span>
                                             <span class="response-date">
-                                                <?php echo date('d/m/Y H:i', strtotime($response['date_reponse'] ?? $response['date_creation'] ?? 'now')); ?>
+                                                <?php echo date('m/d/Y h:i A', strtotime($response['date_reponse'] ?? $response['date_creation'] ?? 'now')); ?>
                                             </span>
                                         </div>
                                         <div class="response-text">
@@ -1209,11 +1209,11 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
                         <?php endif; ?>
                         
                         <div class="rating-section">
-                            <!-- Afficher la moyenne et le nombre d'évaluations -->
+                            <!-- Display average and number of ratings -->
                             <?php if ($reclamation['rating_count'] > 0): ?>
                                 <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 193, 7, 0.1); border-radius: 8px; border-left: 4px solid #ffc107;">
                                     <h5 style="color: #ffc107; margin-bottom: 10px;">
-                                        <i class="fas fa-star"></i> Évaluations (<?php echo $reclamation['rating_count']; ?>)
+                                        <i class="fas fa-star"></i> Reviews (<?php echo $reclamation['rating_count']; ?>)
                                     </h5>
                                     <div class="rating-stars-display" style="font-size: 24px;">
                                         <?php 
@@ -1223,38 +1223,38 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
                                             <i class="fas fa-star" style="color: <?php echo $i <= round($avgRating) ? '#ffc107' : '#444'; ?>;"></i>
                                         <?php endfor; ?>
                                         <span style="margin-left: 10px; color: var(--text-light); font-size: 18px; font-weight: 700;">
-                                            <?php echo $avgRating; ?>/5 (<?php echo $reclamation['rating_count']; ?> évaluation<?php echo $reclamation['rating_count'] > 1 ? 's' : ''; ?>)
+                                            <?php echo $avgRating; ?>/5 (<?php echo $reclamation['rating_count']; ?> review<?php echo $reclamation['rating_count'] > 1 ? 's' : ''; ?>)
                                         </span>
                                     </div>
                                 </div>
                                 
-                                <!-- Afficher toutes les évaluations -->
+                                <!-- Display all reviews -->
                                 <div style="margin-bottom: 20px;">
                                     <h5 style="color: var(--primary-color); margin-bottom: 15px;">
-                                        <i class="fas fa-users"></i> Toutes les évaluations
+                                        <i class="fas fa-users"></i> All Reviews
                                     </h5>
                                     <?php foreach ($reclamation['satisfactions'] as $satisfaction): 
-                                        // Déterminer le nom à afficher
-                                        $displayName = 'Utilisateur anonyme';
+                                        // Determine display name
+                                        $displayName = 'Anonymous User';
                                         $email = $satisfaction->getEmail();
                                         $commentaire = $satisfaction->getCommentaire();
                                         
-                                        // Si l'email commence par "anonymous_" ou "user_", c'est anonyme
+                                        // If email starts with "anonymous_" or "user_", it's anonymous
                                         if (strpos($email, 'anonymous_') === 0 || strpos($email, 'user_') === 0) {
-                                            // Essayer d'extraire le nom du commentaire
-                                            if ($commentaire && strpos($commentaire, 'Évalué par:') === 0) {
+                                            // Try to extract name from comment
+                                            if ($commentaire && strpos($commentaire, 'Rated by:') === 0) {
                                                 $parts = explode(' | ', $commentaire);
-                                                $displayName = str_replace('Évalué par: ', '', $parts[0]);
+                                                $displayName = str_replace('Rated by: ', '', $parts[0]);
                                             } else {
-                                                $displayName = 'Utilisateur anonyme';
+                                                $displayName = 'Anonymous User';
                                             }
                                         } else {
-                                            // Email réel - extraire le nom du commentaire ou utiliser l'email
-                                            if ($commentaire && strpos($commentaire, 'Évalué par:') === 0) {
+                                            // Real email - extract name from comment or use email
+                                            if ($commentaire && strpos($commentaire, 'Rated by:') === 0) {
                                                 $parts = explode(' | ', $commentaire);
-                                                $displayName = str_replace('Évalué par: ', '', $parts[0]);
+                                                $displayName = str_replace('Rated by: ', '', $parts[0]);
                                             } else {
-                                                // Utiliser l'email mais masquer une partie
+                                                // Use email but mask part of it
                                                 $emailParts = explode('@', $email);
                                                 $displayName = substr($emailParts[0], 0, 3) . '***@' . (isset($emailParts[1]) ? $emailParts[1] : '');
                                             }
@@ -1265,7 +1265,7 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
                                                 <div>
                                                     <strong style="color: var(--text-light);"><?php echo htmlspecialchars($displayName); ?></strong>
                                                     <span style="color: var(--text-gray); font-size: 12px; margin-left: 10px;">
-                                                        <?php echo date('d/m/Y H:i', strtotime($satisfaction->getDateEvaluation())); ?>
+                                                        <?php echo date('m/d/Y h:i A', strtotime($satisfaction->getDateEvaluation())); ?>
                                                     </span>
                                                 </div>
                                                 <div class="rating-stars-display" style="font-size: 16px;">
@@ -1279,15 +1279,15 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
                                                 </div>
                                             </div>
                                             <?php 
-                                            // Afficher le commentaire seulement s'il n'est pas juste le nom
+                                            // Display comment only if it's not just the name
                                             $commentaireToShow = $satisfaction->getCommentaire();
-                                            if ($commentaireToShow && strpos($commentaireToShow, 'Évalué par:') === 0) {
-                                                // Si le commentaire contient "Évalué par:", extraire la partie après " | "
+                                            if ($commentaireToShow && strpos($commentaireToShow, 'Rated by:') === 0) {
+                                                // If comment contains "Rated by:", extract the part after " | "
                                                 $parts = explode(' | ', $commentaireToShow);
                                                 if (isset($parts[1]) && !empty(trim($parts[1]))) {
                                                     $commentaireToShow = trim($parts[1]);
                                                 } else {
-                                                    $commentaireToShow = null; // Pas de commentaire réel, juste le nom
+                                                    $commentaireToShow = null; // No real comment, just the name
                                                 }
                                             }
                                             if ($commentaireToShow): 
@@ -1301,9 +1301,9 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
                                 </div>
                             <?php endif; ?>
                             
-                            <!-- Formulaire d'évaluation (toujours visible pour permettre à tous d'évaluer) -->
+                            <!-- Rating form (always visible to allow everyone to rate) -->
                             <div class="rating-form" id="rating-form-<?php echo $reclamation['id_reclamation']; ?>">
-                                <h4><i class="fas fa-star"></i> <?php echo $reclamation['rating_count'] > 0 ? 'Ajoutez votre évaluation' : 'Évaluez cette réclamation'; ?></h4>
+                                <h4><i class="fas fa-star"></i> <?php echo $reclamation['rating_count'] > 0 ? 'Add Your Review' : 'Rate This Complaint'; ?></h4>
                                 <form class="rating-form-inner" data-reclamation-id="<?php echo $reclamation['id_reclamation']; ?>">
                                     <div class="star-rating">
                                         <input type="radio" id="star5-<?php echo $reclamation['id_reclamation']; ?>" name="rating-<?php echo $reclamation['id_reclamation']; ?>" value="5">
@@ -1323,16 +1323,16 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
                                     </div>
                                     
                                     <input type="text" name="name-<?php echo $reclamation['id_reclamation']; ?>" 
-                                           placeholder="Votre nom (optionnel)">
+                                           placeholder="Your name (optional)">
                                     
                                     <input type="email" name="email-<?php echo $reclamation['id_reclamation']; ?>" 
-                                           placeholder="Votre email (optionnel)">
+                                           placeholder="Your email (optional)">
                                     
                                     <textarea name="commentaire-<?php echo $reclamation['id_reclamation']; ?>" 
-                                              placeholder="Votre commentaire (optionnel)"></textarea>
+                                              placeholder="Your comment (optional)"></textarea>
                                     
                                     <button type="submit" class="btn">
-                                        <i class="fas fa-paper-plane"></i> Envoyer l'évaluation
+                                        <i class="fas fa-paper-plane"></i> Submit Review
                                     </button>
                                 </form>
                             </div>
@@ -1344,7 +1344,7 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
     </div>
     
     <script>
-        // Gestion des formulaires d'évaluation
+        // Handle rating forms
         document.querySelectorAll('.rating-form-inner').forEach(form => {
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
@@ -1356,11 +1356,11 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
                 const commentaireInput = this.querySelector('textarea');
                 
                 if (!ratingInput) {
-                    alert('Veuillez sélectionner une note');
+                    alert('Please select a rating');
                     return;
                 }
                 
-                // Email et nom sont maintenant optionnels
+                // Email and name are now optional
                 const formData = new FormData();
                 formData.append('action', 'rate_reclamation');
                 formData.append('id_reclamation', reclamationId);
@@ -1369,11 +1369,11 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
                 formData.append('rating', ratingInput.value);
                 formData.append('commentaire', commentaireInput ? commentaireInput.value.trim() : '');
                 
-                // Désactiver le bouton pendant l'envoi
+                // Disable button during submission
                 const submitBtn = this.querySelector('button[type="submit"]');
                 const originalText = submitBtn.innerHTML;
                 submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi...';
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
                 
                 fetch('public_reclamations.php', {
                     method: 'POST',
@@ -1381,21 +1381,21 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
                 })
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Erreur HTTP: ' + response.status);
+                        throw new Error('HTTP Error: ' + response.status);
                     }
                     return response.json();
                 })
                 .then(data => {
                     if (data.success) {
-                        // Afficher un message de succès
+                        // Display success message
                         const formContainer = form.closest('.rating-form');
                         const successMsg = document.createElement('div');
                         successMsg.className = 'alert alert-success';
                         successMsg.style.marginTop = '15px';
-                        successMsg.innerHTML = '<i class="fas fa-check-circle"></i> ' + (data.message || 'Merci pour votre évaluation !');
+                        successMsg.innerHTML = '<i class="fas fa-check-circle"></i> ' + (data.message || 'Thank you for your review!');
                         formContainer.insertBefore(successMsg, form);
                         
-                        // Réinitialiser le formulaire
+                        // Reset form
                         form.reset();
                         form.querySelectorAll('input[type="radio"]').forEach(radio => {
                             radio.checked = false;
@@ -1404,14 +1404,14 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
                             label.style.color = '#444';
                         });
                         
-                        // Recharger la page après 2 secondes pour afficher la nouvelle évaluation
+                        // Reload page after 2 seconds to display new review
                         setTimeout(() => {
                             window.location.href = 'public_reclamations.php?rated=1#reclamation-' + reclamationId;
                         }, 2000);
                     } else {
-                        console.error('Erreur serveur:', data);
+                        console.error('Server error:', data);
                         
-                        // Afficher l'erreur dans le formulaire au lieu d'une alerte
+                        // Display error in form instead of alert
                         const formContainer = form.closest('.rating-form');
                         let errorMsg = formContainer.querySelector('.alert-error');
                         if (!errorMsg) {
@@ -1419,10 +1419,10 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
                             errorMsg.className = 'alert alert-error';
                             formContainer.insertBefore(errorMsg, form);
                         }
-                        errorMsg.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + (data.message || 'Erreur lors de l\'envoi de l\'évaluation.');
+                        errorMsg.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + (data.message || 'Error submitting review.');
                         errorMsg.style.display = 'block';
                         
-                        // Faire défiler jusqu'à l'erreur
+                        // Scroll to error
                         errorMsg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                         
                         submitBtn.disabled = false;
@@ -1430,15 +1430,15 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
                     }
                 })
                 .catch(error => {
-                    console.error('Erreur:', error);
-                    alert('Une erreur est survenue lors de l\'envoi. Veuillez vérifier votre connexion et réessayer.');
+                    console.error('Error:', error);
+                    alert('An error occurred while submitting. Please check your connection and try again.');
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = originalText;
                 });
             });
         });
 
-        // Tri et filtres sur les réclamations
+        // Sorting and filtering complaints
         (function() {
             const list = document.querySelector('.reclamations-list');
             if (!list) return;
@@ -1455,12 +1455,12 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
                 const needComment = filterCommentOnly && filterCommentOnly.checked;
                 const category = filterCategory ? filterCategory.value : 'all';
 
-                // Filtrer
+                // Filter
                 cards.forEach(card => {
                     const avg = parseFloat(card.getAttribute('data-average-rating')) || 0;
                     const count = parseInt(card.getAttribute('data-rating-count') || '0', 10);
                     const hasComment = card.getAttribute('data-has-comment') === '1';
-                    const catKey = card.getAttribute('data-category') || 'autre';
+                    const catKey = card.getAttribute('data-category') || 'other';
 
                     let visible = true;
 
@@ -1477,7 +1477,7 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
                     card.style.display = visible ? '' : 'none';
                 });
 
-                // Trier uniquement les cartes visibles
+                // Sort only visible cards
                 const visibleCards = cards.filter(c => c.style.display !== 'none');
 
                 visibleCards.sort((a, b) => {
@@ -1487,20 +1487,20 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
                     const avgB = parseFloat(b.getAttribute('data-average-rating')) || 0;
 
                     if (sortBy === 'best') {
-                        // Meilleure note d'abord, puis plus récentes
+                        // Best rating first, then most recent
                         if (avgB !== avgA) return avgB - avgA;
                         return dateB - dateA;
                     } else if (sortBy === 'worst') {
-                        // Pire note d'abord, puis plus récentes
+                        // Worst rating first, then most recent
                         if (avgA !== avgB) return avgA - avgB;
                         return dateB - dateA;
                     } else {
-                        // Par défaut : plus récentes
+                        // Default: most recent
                         return dateB - dateA;
                     }
                 });
 
-                // Réordonner dans le DOM
+                // Reorder in DOM
                 visibleCards.forEach(card => list.appendChild(card));
             }
 
@@ -1509,9 +1509,10 @@ $globalStats['satisfied_percentage'] = $globalStats['total_evaluations'] > 0
             if (filterCommentOnly) filterCommentOnly.addEventListener('change', applyFiltersAndSort);
             if (filterCategory) filterCategory.addEventListener('change', applyFiltersAndSort);
 
-            // Application initiale
+            // Initial application
             applyFiltersAndSort();
         })();
+        
         // Dropdown Menu Toggle
 document.addEventListener('DOMContentLoaded', function() {
     const userDropdown = document.getElementById('userDropdown');
@@ -1537,7 +1538,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Code existant pour le cart...
+    // Existing cart code...
     const cart = JSON.parse(localStorage.getItem('cart')) || [];
     const cartCount = document.querySelector('.cart-count');
     if (cartCount) {
@@ -1578,7 +1579,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="fas fa-tachometer-alt"></i> My Dashboard
                 </a>
                 <a href="../back/reclamback.php" class="dashboard-link" style="margin-top: 10px; display: block;">
-                    <i class="fas fa-headset"></i> Dashboard Support
+                    <i class="fas fa-headset"></i> Support Dashboard
                 </a>
             </div>
         </div>
@@ -1588,4 +1589,3 @@ document.addEventListener('DOMContentLoaded', function() {
     </footer>
 </body>
 </html>
-

@@ -540,17 +540,25 @@ $commentsDir = __DIR__ . '/uploads/comments';
                         echo '<input name="name" value="' . $name . '" style="width:100%;padding:8px;margin-bottom:8px;background:#0b0b0b;border:1px solid #333;color:#fff;border-radius:6px">';
                         echo '<label style="color:#ccc;display:block;margin-bottom:6px">Comment</label>';
                         echo '<textarea name="text" rows="4" style="width:100%;padding:8px;background:#0b0b0b;border:1px solid #333;color:#fff;border-radius:6px">' . $text . '</textarea>';
-                        echo '<div style="margin-top:8px">';
+                        echo '<div style="margin-top:8px;display:flex;gap:10px">';
                         echo '<button class="btn" type="submit">Save</button> ';
                         echo '</div>';
                         echo '</div>';
+                        echo '</form>';
+
+                        // Delete form
+                        echo '<form method="post" action="news_admin.php" onsubmit="return confirm(\'Delete this comment?\\nThis action cannot be undone.\');" style="display:inline;">';
+                        echo '<input type="hidden" name="action" value="delete_comment">';
+                        echo '<input type="hidden" name="slug" value="' . htmlspecialchars($slug) . '">';
+                        echo '<input type="hidden" name="id_comment" value="' . intval($comment->getIdComment()) . '">';
                         echo '<div style="width:140px;text-align:right;">';
                         echo '<div style="color:#999;font-size:0.85rem;margin-bottom:12px">' . $date . '</div>';
-                        echo '</div>';
+                        echo '<button class="btn" style="background:#c33;border-color:#c33;padding:6px 12px;font-size:0.85em" type="submit"><i class="fas fa-trash"></i> Delete</button>';
                         echo '</div>';
                         echo '</form>';
+
+                        echo '</div>';
                       }
-                      // Comment deletion functionality removed - only editing allowed
                     }
                     ?>
 
@@ -639,15 +647,6 @@ $commentsDir = __DIR__ . '/uploads/comments';
                         <a href="news_admin.php?action=edit&id=<?php echo urlencode($row['id']); ?>">Edit</a> |
                         <a href="news_admin.php?action=delete&id=<?php echo urlencode($row['id']); ?>"
                           onclick="return confirm('Delete this article?');">Delete</a>
-                        <?php if ($row['hot']): ?>
-                          | <a href="news_admin.php"
-                            onclick="toggleHot('<?php echo urlencode($row['id']); ?>'); return false;"
-                            style="color:#ff7a00">🔥 Hot</a>
-                        <?php else: ?>
-                          | <a href="news_admin.php"
-                            onclick="toggleHot('<?php echo urlencode($row['id']); ?>'); return false;" style="color:#888">🔥
-                            Make Hot</a>
-                        <?php endif; ?>
                       </td>
                     </tr>
                   <?php endforeach; ?>
@@ -1017,25 +1016,7 @@ $commentsDir = __DIR__ . '/uploads/comments';
           console.error('Form not found!');
         }
 
-        // Toggle hot status
-        window.toggleHot = function (articleId) {
-          var formData = new FormData();
-          formData.append('action', 'toggle_hot');
-          formData.append('id', articleId);
 
-          fetch('news_admin.php', {
-            method: 'POST',
-            body: formData
-          })
-            .then(response => response.text())
-            .then(html => {
-              // Reload page to show updated status
-              window.location.reload();
-            })
-            .catch(error => {
-              toast('Failed to update hot status', 'error');
-            });
-        };
 
       };
 

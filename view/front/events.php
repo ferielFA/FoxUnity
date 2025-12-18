@@ -1157,7 +1157,8 @@ unset($eventItem); // Break reference
 
     <main class="main-section">
         <?php if ($message):
-            echo $message; endif; ?>
+            echo $message;
+        endif; ?>
 
         <?php if ($showCreateEventForm): ?>
             <div class="modal-overlay" id="createEventModal">
@@ -1267,7 +1268,8 @@ unset($eventItem); // Break reference
                 <div class="participation-modal">
                     <div class="modal-header">
                         <h2 data-lang-en="Join Event" data-lang-fr="Rejoindre l'Événement"><i class="fas fa-ticket-alt"></i>
-                            <span>Join Event</span></h2>
+                            <span>Join Event</span>
+                        </h2>
                         <div class="event-name"><?= htmlspecialchars($selectedEvent->getTitre()) ?></div>
                     </div>
 
