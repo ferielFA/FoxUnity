@@ -95,6 +95,19 @@ class CouponController
     {
         try {
             $pdo = getDB();
+
+            // Check if user already used this coupon (prevent duplicate records)
+            $usageCheck = $pdo->prepare("SELECT COUNT(*) FROM coupon_usage WHERE coupon_id = :cid AND user_id = :uid");
+            $usageCheck->execute([
+                ':cid' => $couponId,
+                ':uid' => $userId
+            ]);
+
+            if ($usageCheck->fetchColumn() > 0) {
+                error_log("Attempted duplicate coupon use: User $userId for Coupon $couponId");
+                return false;
+            }
+
             $pdo->beginTransaction();
 
             // Insert usage record
@@ -185,6 +198,37 @@ class CouponController
 
         } catch (PDOException $e) {
             error_log("Get active coupons error: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get active coupons that a specific user has NOT used yet
+     */
+    public function getUnusedActiveCoupons($userId)
+    {
+        try {
+            $pdo = getDB();
+            $sql = "SELECT c.* FROM coupons c
+                    LEFT JOIN coupon_usage cu ON c.coupon_id = cu.coupon_id AND cu.user_id = :uid
+                    WHERE c.is_active = 1 
+                    AND c.expires_at > NOW() 
+                    AND cu.usage_id IS NULL
+                    AND (c.usage_limit IS NULL OR c.used_count < c.usage_limit)
+                    ORDER BY c.created_at DESC";
+            
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([':uid' => $userId]);
+
+            $coupons = [];
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $coupons[] = $this->rowToCoupon($row);
+            }
+
+            return $coupons;
+
+        } catch (PDOException $e) {
+            error_log("Get unused active coupons error: " . $e->getMessage());
             return [];
         }
     }

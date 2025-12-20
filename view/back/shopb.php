@@ -812,29 +812,29 @@ $userImage = $currentUser->getImage() ? '../../view/' . $currentUser->getImage()
                                 <?php foreach ($coupons as $item): 
                                     $coupon = $item['coupon'];
                                 ?>
-                                    <tr>
-                                        <td style="font-weight:bold; color:#ff7a00; font-size: 15px;"><?php echo htmlspecialchars($coupon->getCode()); ?></td>
-                                        <td style="font-weight: 600;">
-                                            <?php echo $coupon->getDiscountType() == 'percentage' ? $coupon->getDiscountValue() . '%' : '$' . number_format($coupon->getDiscountValue(), 2); ?>
-                                        </td>
-                                        <td>$<?php echo number_format($coupon->getMinPurchase(), 2); ?></td>
-                                        <td>
-                                            <?php echo $coupon->getUsedCount(); ?> / <?php echo $coupon->getUsageLimit() ?: '∞'; ?>
-                                        </td>
-                                        <td><?php echo date('M j, Y', strtotime($coupon->getExpiresAt())); ?></td>
-                                        <td>
-                                            <?php if ($coupon->isValid()): ?>
-                                                <span style="color: #2ed573; font-weight: 600;">✓ Active</span>
-                                            <?php else: ?>
-                                                <span style="color: #ff4757; font-weight: 600;">✗ Expired</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <button class="action-btn btn-delete" onclick="if(confirm('Delete this coupon?')) window.location.href='delete_coupon.php?id=<?php echo $coupon->getCouponId(); ?>'">
-                                                <i class="fas fa-trash"></i> Delete
-                                            </button>
-                                        </td>
-                                    </tr>
+                                        <tr id="coupon-row-<?php echo $coupon->getCouponId(); ?>">
+                                            <td style="font-weight:bold; color:#ff7a00; font-size: 15px;"><?php echo htmlspecialchars($coupon->getCode()); ?></td>
+                                            <td style="font-weight: 600;">
+                                                <?php echo $coupon->getDiscountType() == 'percentage' ? $coupon->getDiscountValue() . '%' : '$' . number_format($coupon->getDiscountValue(), 2); ?>
+                                            </td>
+                                            <td>$<?php echo number_format($coupon->getMinPurchase(), 2); ?></td>
+                                            <td>
+                                                <?php echo $coupon->getUsedCount(); ?> / <?php echo $coupon->getUsageLimit() ?: '∞'; ?>
+                                            </td>
+                                            <td><?php echo date('M j, Y', strtotime($coupon->getExpiresAt())); ?></td>
+                                            <td>
+                                                <?php if ($coupon->isValid()): ?>
+                                                    <span style="color: #2ed573; font-weight: 600;">✓ Active</span>
+                                                <?php else: ?>
+                                                    <span style="color: #ff4757; font-weight: 600;">✗ Expired</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <button class="action-btn btn-delete" onclick="deleteCouponAjax(<?php echo $coupon->getCouponId(); ?>)">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                            </td>
+                                        </tr>
                                 <?php endforeach; ?>
                             <?php endif; ?>
                         </tbody>
@@ -1097,6 +1097,34 @@ $userImage = $currentUser->getImage() ? '../../view/' . $currentUser->getImage()
 
         function closeModal(modalId) {
             document.getElementById(modalId).classList.remove('show');
+        }
+
+        // ========== AJAX FUNCTIONS ==========
+        async function deleteCouponAjax(id) {
+            if (!confirm('Are you sure you want to delete this coupon?')) return;
+
+            try {
+                const response = await fetch(`api/delete_coupon.php?id=${id}`, {
+                    method: 'GET'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    const row = document.getElementById(`coupon-row-${id}`);
+                    if (row) {
+                        row.style.opacity = '0';
+                        setTimeout(() => {
+                            row.remove();
+                            showToast(data.message, 'success');
+                        }, 300);
+                    }
+                } else {
+                    showToast(data.error || 'Failed to delete coupon', 'error');
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                showToast('Error connecting to server', 'error');
+            }
         }
 
         // Close modal when clicking outside

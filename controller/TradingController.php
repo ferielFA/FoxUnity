@@ -7,6 +7,7 @@ require_once __DIR__ . '/../model/SkinModel.php';
 require_once __DIR__ . '/TradeHistoryController.php';
 require_once __DIR__ . '/../model/ConversationModel.php';
 require_once __DIR__ . '/ProductController.php';
+require_once __DIR__ . '/Couponcontroller.php';
 
 class TradingController
 {
@@ -14,6 +15,7 @@ class TradingController
     private $tradeHistoryModel;
     private $conversationModel;
     private $productController;
+    private $couponController;
     private $currentUser;
     private $db;
 
@@ -25,6 +27,7 @@ class TradingController
         $this->tradeHistoryModel = new TradeHistoryController();
         $this->conversationModel = new ConversationModel();
         $this->productController = new ProductController();
+        $this->couponController = new CouponController();
 
         // Get current user from session if not provided
         if ($currentUser === null) {
@@ -286,6 +289,23 @@ class TradingController
             } else {
                 $errors[] = $result['error'];
             }
+        }
+
+        // --- NEW: RECORD COUPON USAGE ---
+        if ($successCount > 0 && isset($_POST['coupon_id']) && !empty($_POST['coupon_id'])) {
+            $couponId = (int)$_POST['coupon_id'];
+            $discountAmount = isset($_POST['discount_amount']) ? (float)$_POST['discount_amount'] : 0;
+            $finalAmount = isset($_POST['final_amount']) ? (float)$_POST['final_amount'] : 0;
+            
+            // Record usage
+            $this->couponController->recordUsage(
+                $couponId,
+                $buyerId,
+                $finalAmount, // The total amount of the order after discount or the item amount
+                $discountAmount
+            );
+            
+            error_log("Coupon $couponId usage recorded for user $buyerId");
         }
 
         if ($successCount > 0) {

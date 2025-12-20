@@ -17,37 +17,22 @@ class ProductController
             $sql = "SELECT * FROM produit WHERE 1=1";
             $params = [];
 
-            // ========== DEBUG LOGS ==========
-            error_log("=== CONTROLLER DEBUG START ===");
-            error_log("Raw filters: " . json_encode($filters));
+        $searchValue = isset($filters['search']) ? trim($filters['search']) : '';
+        if (!empty($searchValue)) {
+            $searchTerm = $searchValue;
+            $searchWords = explode(' ', $searchTerm);
+            $searchWords = array_filter($searchWords);
             
-            // Search Filter - VERSION ULTRA FLEXIBLE
-$searchValue = isset($filters['search']) ? trim($filters['search']) : '';
-error_log("Search value extracted: '$searchValue'");
-
-if (!empty($searchValue)) {
-    $searchTerm = strtolower($searchValue);
-    error_log("Search term lowercase: '$searchTerm'");
-    
-    // Diviser la recherche en mots individuels
-    $searchWords = explode(' ', $searchTerm);
-    $searchWords = array_filter($searchWords); // Enlever les espaces vides
-    
-    if (!empty($searchWords)) {
-        $searchConditions = [];
-        
-        foreach ($searchWords as $index => $word) {
-            $paramName = ":search_word_$index";
-            $searchConditions[] = "(LOWER(name) LIKE $paramName OR LOWER(COALESCE(description, '')) LIKE $paramName)";
-            $params[$paramName] = '%' . $word . '%';
+            if (!empty($searchWords)) {
+                $searchConditions = [];
+                foreach ($searchWords as $index => $word) {
+                    $paramName = ":search_word_$index";
+                    $searchConditions[] = "name LIKE $paramName";
+                    $params[$paramName] = '%' . $word . '%';
+                }
+                $sql .= " AND (" . implode(' AND ', $searchConditions) . ")";
+            }
         }
-        
-        $sql .= " AND (" . implode(' OR ', $searchConditions) . ")";
-        
-        error_log("Search words: " . implode(', ', $searchWords));
-        error_log("SQL after search: $sql");
-    }
-}
 
             // Category Filter - Exact match
             if (!empty($filters['category']) && $filters['category'] !== 'all') {
@@ -87,14 +72,10 @@ if (!empty($searchValue)) {
                 $sql .= " LIMIT :limit OFFSET :offset";
             }
 
-            error_log("FINAL SQL: $sql");
-            error_log("FINAL PARAMS: " . json_encode($params));
-
             $stmt = $pdo->prepare($sql);
 
             // Bind parameters
             foreach ($params as $key => $val) {
-                error_log("Binding $key = $val");
                 $stmt->bindValue($key, $val, PDO::PARAM_STR);
             }
             
@@ -141,24 +122,20 @@ if (!empty($searchValue)) {
         $sql = "SELECT COUNT(*) FROM produit WHERE 1=1";
         $params = [];
 
-        // Search Filter - VERSION ULTRA FLEXIBLE
         $searchValue = isset($filters['search']) ? trim($filters['search']) : '';
-        
         if (!empty($searchValue)) {
-            $searchTerm = strtolower($searchValue);
+            $searchTerm = $searchValue;
             $searchWords = explode(' ', $searchTerm);
             $searchWords = array_filter($searchWords);
             
             if (!empty($searchWords)) {
                 $searchConditions = [];
-                
                 foreach ($searchWords as $index => $word) {
                     $paramName = ":search_word_$index";
-                    $searchConditions[] = "(LOWER(name) LIKE $paramName OR LOWER(COALESCE(description, '')) LIKE $paramName)";
+                    $searchConditions[] = "name LIKE $paramName";
                     $params[$paramName] = '%' . $word . '%';
                 }
-                
-                $sql .= " AND (" . implode(' OR ', $searchConditions) . ")";
+                $sql .= " AND (" . implode(' AND ', $searchConditions) . ")";
             }
         }
         
@@ -167,11 +144,11 @@ if (!empty($searchValue)) {
             $params[':category'] = $filters['category'];
         }
 
-        error_log("COUNT SQL: $sql");
-        error_log("COUNT PARAMS: " . json_encode($params));
-
         $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
+        foreach ($params as $key => $val) {
+            $stmt->bindValue($key, $val, PDO::PARAM_STR);
+        }
+        $stmt->execute();
         $count = $stmt->fetchColumn();
         
         error_log("COUNT RESULT: $count");

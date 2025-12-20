@@ -603,6 +603,144 @@ if ($currentUser && $currentUser->getImage()) {
             border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
+        /* Game Modal Styles */
+        .game-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .game-modal-content {
+            background: #1a1a1a;
+            padding: 30px;
+            border-radius: 20px;
+            border: 2px solid #ff7a00;
+            max-width: 900px;
+            width: 95%;
+            max-height: 95vh;
+            overflow-y: auto;
+            position: relative;
+            text-align: center;
+        }
+
+        .game-modal-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            color: #ff7a00;
+            font-size: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .game-modal-close:hover {
+            color: #ff4444;
+            transform: scale(1.2);
+        }
+
+        .game-header h2 {
+            color: #ff7a00;
+            font-family: 'Orbitron', sans-serif;
+            margin-bottom: 10px;
+        }
+
+        .game-container {
+            position: relative;
+            margin: 20px auto;
+            border: 2px solid #333;
+            background: #000;
+            width: fit-content;
+        }
+
+        #gameCanvas {
+            display: block;
+        }
+
+        .game-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            z-index: 5;
+        }
+
+        .game-message {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #ff7a00;
+            text-shadow: 0 0 10px rgba(255, 122, 0, 0.5);
+        }
+
+        .game-controls {
+            margin-top: 15px;
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+        
+        .get-coupon-promo {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(255, 122, 0, 0.05);
+            border: 1px dashed rgba(255, 122, 0, 0.3);
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .get-coupon-promo:hover {
+            background: rgba(255, 122, 0, 0.1);
+            border-color: rgba(255, 122, 0, 0.5);
+        }
+        
+        .promo-text {
+            color: #ccc;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+        
+        .play-game-btn {
+            background: linear-gradient(135deg, #ff7a00, #ff4f00);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 122, 0, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .play-game-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 122, 0, 0.4);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
         .summary-row.total .summary-value {
             color: #2ed573;
             font-family: 'Orbitron', sans-serif;
@@ -786,6 +924,13 @@ if ($currentUser && $currentUser->getImage()) {
         <section class="cart-section">
             <h1 class="cart-title">Your <span>Cart</span></h1>
 
+            <div class="get-coupon-promo" style="margin-bottom: 30px; max-width: 400px; margin-left: auto; margin-right: auto;">
+                <span class="promo-text">Don't have a code? Play to win one!</span>
+                <button class="play-game-btn" onclick="openGame()">
+                    <i class="fas fa-gift"></i> Get a Coupon Code !
+                </button>
+            </div>
+
             <div class="cart-container">
                 <div id="cartContent" class="cart-items">
                     <!-- Cart items will be injected here via JS -->
@@ -818,11 +963,11 @@ if ($currentUser && $currentUser->getImage()) {
                             <i class="fas fa-check-circle"></i>
                             <span>Coupon applied successfully!</span>
                         </div>
-
                         <div id="couponError" class="coupon-message coupon-error">
                             <i class="fas fa-exclamation-circle"></i>
                             <span>Invalid coupon code</span>
                         </div>
+
                     </div>
                 </div>
 
@@ -1335,6 +1480,29 @@ if ($currentUser && $currentUser->getImage()) {
             }, 3000);
         }
     </script>
+    <!-- Game Modal -->
+    <div id="gameModal" class="game-modal">
+        <div class="game-modal-content">
+            <span class="game-modal-close" onclick="closeGame()">&times;</span>
+            <div class="game-header">
+                <h2><i class="fas fa-user-ninja"></i> Stealth Mission: Get the Coupon!</h2>
+                <p>Use <b>WASD</b> or <b>Arrow Keys</b> to sneak past guards. Grab the <span style="color:#FFD700">Golden Key</span> and return to the <span style="color:#2ed573">Green Zone</span>!</p>
+            </div>
+            <div class="game-container">
+                <canvas id="gameCanvas" width="800" height="600"></canvas>
+                <div id="gameOverlay" class="game-overlay">
+                    <div id="gameMessage" class="game-message">Sneak past the guards!</div>
+                    <button id="startGameBtn" class="coupon-btn">Start Mission</button>
+                </div>
+            </div>
+            <div class="game-controls">
+                <span>Avoid the red vision cones! Walls block their sight.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="js/sneak_game.js"></script>
 </body>
 
 </html>
