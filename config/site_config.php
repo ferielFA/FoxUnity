@@ -10,7 +10,7 @@
 // define('SERVER_IP', $_SERVER['SERVER_ADDR'] ?? '10.139.97.30'); // Default to detected IP
 
 // Option 2: Or set it manually if auto-detection doesn't work
-define('SERVER_IP', '192.168.1.7'); // Your WiFi IP address
+define('SERVER_IP', '10.85.239.234'); // Your WiFi IP address
 
 // Base URL for the site
 define('BASE_URL', 'http://' . SERVER_IP . '/projet_web');
