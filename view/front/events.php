@@ -2,9 +2,11 @@
 require_once __DIR__ . '/../../controller/EvenementController.php';
 require_once __DIR__ . '/../../controller/ParticipationController.php';
 require_once __DIR__ . '/../../controller/UserController.php';
+require_once __DIR__ . '/../../controller/RecommendationController.php';
 
 $eventController = new EvenementController();
 $participationController = new ParticipationController();
+$recommendationController = new RecommendationController();
 
 // Get current logged-in user
 $isLoggedIn = UserController::isLoggedIn();
@@ -22,6 +24,30 @@ $selectedEvent = null;
 $showMyEvents = isset($_GET['view']) && $_GET['view'] === 'my';
 $showHistory = isset($_GET['view']) && $_GET['view'] === 'history';
 $currentUserEmail = ($isLoggedIn && $currentUser) ? $currentUser->getEmail() : (isset($_GET['email']) ? htmlspecialchars($_GET['email']) : '');
+
+// Check for success messages from redirects
+if (isset($_GET['created']) && $_GET['created'] === '1') {
+    $message = '<div class="alert success"><i class="fas fa-check-circle"></i> Event created successfully!</div>';
+}
+
+if (isset($_GET['success']) && $_GET['success'] === '1') {
+    $message = '<div class="alert success"><i class="fas fa-check-circle"></i> Registration confirmed! Welcome aboard!</div>';
+}
+
+// Check for error messages from redirects
+if (isset($_GET['error'])) {
+    switch ($_GET['error']) {
+        case 'duplicate':
+            $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> Event already exists or error creating event.</div>';
+            break;
+        case 'already_registered':
+            $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> You are already registered for this event!</div>';
+            break;
+        case 'registration_failed':
+            $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> Error occurred during registration.</div>';
+            break;
+    }
+}
 
 // Handle create event form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -45,13 +71,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             'upcoming'
         );
 
-        if ($eventController->creer($evenement)) {
-            $message = '<div class="alert success"><i class="fas fa-check-circle"></i> Event created successfully!</div>';
+        $result = $eventController->creer($evenement);
+        
+        if ($result) {
+            // Success - redirect immediately
             $redirectEmail = ($isLoggedIn && $currentUser) ? $currentUser->getEmail() : $_POST['createur_email'];
             header("Location: events.php?view=my&email=" . urlencode($redirectEmail) . "&created=1");
             exit;
         } else {
-            $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> Event already exists or error creating event.</div>';
+            // Error - redirect with error parameter to avoid POST resubmission
+            header("Location: events.php?error=duplicate");
+            exit;
         }
     } elseif ($_POST['action'] === 'participate') {
         // Debug logging
@@ -68,7 +98,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         error_log("Already registered? " . ($isAlreadyRegistered ? "YES" : "NO"));
 
         if ($isAlreadyRegistered) {
-            $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> You are already registered for this event!</div>';
+            // Redirect with error parameter
+            header("Location: events.php?error=already_registered");
+            exit;
         } else {
             $participantId = ($isLoggedIn && $currentUser) ? $currentUser->getId() : null;
             $participantName = ($isLoggedIn && $currentUser) ? $currentUser->getUsername() : htmlspecialchars($_POST['nom_participant']);
@@ -87,12 +119,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             error_log("Inscrire result: " . ($result ? "TRUE" : "FALSE"));
 
             if ($result) {
-                $message = '<div class="alert success"><i class="fas fa-check-circle"></i> Registration confirmed! Welcome aboard!</div>';
                 // Redirect to prevent form resubmission
                 header("Location: events.php?success=1");
                 exit;
             } else {
-                $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> Error occurred during registration.</div>';
+                // Redirect with error parameter
+                header("Location: events.php?error=registration_failed");
+                exit;
             }
         }
     }
@@ -151,8 +184,8 @@ if (isset($_GET['join']) && is_numeric($_GET['join'])) {
     }
 }
 
-// Handle "Create Event" button click
-if (isset($_GET['create'])) {
+// Handle "Create Event" button click - but not if we just submitted a form
+if (isset($_GET['create']) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     $showCreateEventForm = true;
 }
 
@@ -1004,7 +1037,174 @@ unset($eventItem); // Break reference
             border-color: #10b981 !important;
         }
 
+        /* AI Recommendations Section */
+        .recommendations-section {
+            background: linear-gradient(135deg, rgba(245, 194, 66, 0.05), rgba(255, 122, 0, 0.05));
+            border: 1px solid rgba(245, 194, 66, 0.2);
+            border-radius: 16px;
+            padding: 20px;
+            margin: 25px auto;
+            max-width: 1200px;
+            box-shadow: 0 4px 20px rgba(245, 194, 66, 0.1);
+        }
 
+        .recommendations-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .recommendations-header i {
+            color: #f5c242;
+            font-size: 1.4rem;
+            animation: sparkle 2s infinite;
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+
+        .recommendations-header h3 {
+            color: #f5c242;
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin: 0;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .ai-badge {
+            background: linear-gradient(135deg, #f5c242, #ff7a00);
+            color: #000;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .recommendations-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .recommendation-card {
+            background: linear-gradient(135deg, rgba(26, 26, 31, 0.6), rgba(37, 37, 43, 0.6));
+            border: 1px solid rgba(245, 194, 66, 0.15);
+            border-radius: 12px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .recommendation-card:hover {
+            transform: translateY(-3px);
+            border-color: #f5c242;
+            box-shadow: 0 6px 20px rgba(245, 194, 66, 0.25);
+        }
+
+        .recommendation-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #f5c242, #ff7a00);
+        }
+
+        .rec-content {
+            width: 100%;
+        }
+
+        .rec-title {
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 0 0 10px 0;
+            line-height: 1.3;
+        }
+
+        .rec-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .rec-info {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #cfd3d8;
+            font-size: 0.85rem;
+        }
+
+        .rec-info i {
+            color: #f5c242;
+            width: 14px;
+            font-size: 0.85rem;
+        }
+
+        .rec-reason {
+            background: rgba(245, 194, 66, 0.08);
+            border-left: 2px solid #f5c242;
+            padding: 8px 10px;
+            border-radius: 6px;
+            color: #f5c242;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .rec-reason i {
+            font-size: 0.9rem;
+        }
+
+        .btn-view-rec {
+            width: 100%;
+            background: linear-gradient(135deg, #f5c242, #ff7a00);
+            color: #000;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-view-rec:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(245, 194, 66, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .recommendations-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .recommendations-section {
+                padding: 15px;
+            }
+            
+            .rec-title {
+                font-size: 1rem;
+            }
+        }
 
         /* Pagination Styles */
         .pagination-container {
@@ -1157,7 +1357,8 @@ unset($eventItem); // Break reference
 
     <main class="main-section">
         <?php if ($message):
-            echo $message; endif; ?>
+            echo $message;
+        endif; ?>
 
         <?php if ($showCreateEventForm): ?>
             <div class="modal-overlay" id="createEventModal">
@@ -1267,7 +1468,8 @@ unset($eventItem); // Break reference
                 <div class="participation-modal">
                     <div class="modal-header">
                         <h2 data-lang-en="Join Event" data-lang-fr="Rejoindre l'Événement"><i class="fas fa-ticket-alt"></i>
-                            <span>Join Event</span></h2>
+                            <span>Join Event</span>
+                        </h2>
                         <div class="event-name"><?= htmlspecialchars($selectedEvent->getTitre()) ?></div>
                     </div>
 
@@ -1345,6 +1547,99 @@ unset($eventItem); // Break reference
                     data-lang-fr="<?= $showHistory ? 'Événements auxquels vous avez participé' : ($showMyEvents ? 'Événements créés par vous' : 'Rejoignez des événements gaming passionnants') ?>">
                     <?= $showHistory ? 'Events you have participated in' : ($showMyEvents ? 'Events created by you' : 'Join exciting gaming events and tournaments') ?>
                 </p>
+
+                <?php 
+                // Show AI recommendations only for logged-in users on main events page (not My Events or History)
+                if ($isLoggedIn && $currentUser && !$showMyEvents && !$showHistory): 
+                    $recommendations = $recommendationController->getRecommendedEvents($currentUser->getId(), 3);
+                    
+                    if (!empty($recommendations)):
+                ?>
+                    <div class="recommendations-section">
+                        <div class="recommendations-header">
+                            <i class="fas fa-magic"></i>
+                            <h3>Recommandé Pour Vous</h3>
+                            <span class="ai-badge">IA</span>
+                        </div>
+                        
+                        <div class="recommendations-grid">
+                            <?php foreach ($recommendations as $rec): ?>
+                                <div class="recommendation-card" onclick="window.location.href='event_details.php?id=<?= $rec['event']->getIdEvenement() ?>'">
+                                    
+                                    <div class="rec-content">
+                                        <h4 class="rec-title"><?= htmlspecialchars($rec['event']->getTitre()) ?></h4>
+                                        
+                                        <div class="rec-meta">
+                                            <div class="rec-info">
+                                                <i class="fas fa-calendar"></i>
+                                                <?= $rec['event']->getDateDebut()->format('d M Y') ?>
+                                            </div>
+                                            <div class="rec-info">
+                                                <i class="fas fa-map-marker-alt"></i>
+                                                <?= htmlspecialchars($rec['event']->getLieu()) ?>
+                                            </div>
+                                            <div class="rec-info">
+                                                <i class="fas fa-users"></i>
+                                                <?= $rec['nb_participants'] ?> participants
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="rec-reason">
+                                            <i class="fas fa-lightbulb"></i>
+                                            <?= htmlspecialchars($rec['reason']) ?>
+                                        </div>
+                                        
+                                        <button class="btn-view-rec" onclick="event.stopPropagation(); window.location.href='?join=<?= $rec['event']->getIdEvenement() ?>'">
+                                            <i class="fas fa-user-plus"></i>
+                                            Rejoindre
+                                        </button>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php 
+                    endif;
+                endif; 
+                ?>
+
+                <!-- Search Bar -->
+                <div style="max-width: 600px; margin: 20px auto;">
+                    <div style="position: relative;">
+                        <input type="text" 
+                               id="eventSearchBar" 
+                               placeholder="Search events by name..." 
+                               data-lang-en="Search events by name..." 
+                               data-lang-fr="Rechercher des événements par nom..."
+                               style="width: 100%; 
+                                      padding: 14px 50px 14px 20px; 
+                                      background: rgba(255, 255, 255, 0.05); 
+                                      border: 2px solid rgba(255, 255, 255, 0.1); 
+                                      border-radius: 12px; 
+                                      color: #fff; 
+                                      font-size: 1rem; 
+                                      font-family: 'Poppins', sans-serif; 
+                                      transition: all 0.3s ease;"
+                               onkeyup="searchEvents()"
+                               onfocus="this.style.borderColor='#f5c242'; this.style.background='rgba(245, 194, 66, 0.05)';"
+                               onblur="this.style.borderColor='rgba(255, 255, 255, 0.1)'; this.style.background='rgba(255, 255, 255, 0.05)';">
+                        <i class="fas fa-search" 
+                           style="position: absolute; 
+                                  right: 20px; 
+                                  top: 50%; 
+                                  transform: translateY(-50%); 
+                                  color: #f5c242; 
+                                  font-size: 1.1rem; 
+                                  pointer-events: none;"></i>
+                    </div>
+                    <div id="searchResultsInfo" 
+                         style="text-align: center; 
+                                margin-top: 10px; 
+                                color: #cfd3d8; 
+                                font-size: 0.9rem; 
+                                display: none;">
+                    </div>
+                </div>
 
                 <!-- View Toggle -->
                 <div class="view-toggle">
@@ -1603,6 +1898,78 @@ unset($eventItem); // Break reference
                     }
                 `;
                 document.head.appendChild(style);
+
+                // Search functionality
+                function searchEvents() {
+                    const searchInput = document.getElementById('eventSearchBar');
+                    const searchTerm = searchInput.value.toLowerCase().trim();
+                    const allEventCards = document.querySelectorAll('.event-item');
+                    const searchInfo = document.getElementById('searchResultsInfo');
+                    const paginationContainer = document.querySelector('.pagination-container');
+                    
+                    let visibleCount = 0;
+                    
+                    if (searchTerm === '') {
+                        // Reset to show all events with pagination
+                        allEventCards.forEach(card => {
+                            card.style.display = 'none';
+                        });
+                        
+                        // Show first page
+                        currentPage = 1;
+                        showPage(currentPage);
+                        
+                        // Show pagination
+                        if (paginationContainer) {
+                            paginationContainer.style.display = 'flex';
+                        }
+                        
+                        // Hide search info
+                        searchInfo.style.display = 'none';
+                    } else {
+                        // Hide pagination during search
+                        if (paginationContainer) {
+                            paginationContainer.style.display = 'none';
+                        }
+                        
+                        // Filter events by title
+                        allEventCards.forEach(card => {
+                            const eventTitle = card.querySelector('.event-title');
+                            if (eventTitle) {
+                                const title = eventTitle.textContent.toLowerCase();
+                                
+                                if (title.includes(searchTerm)) {
+                                    card.style.display = 'block';
+                                    card.style.animation = 'fadeIn 0.5s ease';
+                                    visibleCount++;
+                                } else {
+                                    card.style.display = 'none';
+                                }
+                            }
+                        });
+                        
+                        // Show search results info
+                        searchInfo.style.display = 'block';
+                        if (visibleCount === 0) {
+                            searchInfo.innerHTML = '<i class="fas fa-search"></i> No events found matching "' + searchTerm + '"';
+                            searchInfo.style.color = '#ff7a00';
+                        } else if (visibleCount === 1) {
+                            searchInfo.innerHTML = '<i class="fas fa-check-circle"></i> Found 1 event';
+                            searchInfo.style.color = '#10b981';
+                        } else {
+                            searchInfo.innerHTML = '<i class="fas fa-check-circle"></i> Found ' + visibleCount + ' events';
+                            searchInfo.style.color = '#10b981';
+                        }
+                    }
+                }
+
+                // Allow Enter key to trigger search
+                document.getElementById('eventSearchBar').addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        searchEvents();
+                    }
+                });
             </script>
         </section>
     </main>
@@ -1707,8 +2074,16 @@ unset($eventItem); // Break reference
         // Create Event Form Validation
         const createEventForm = document.getElementById('createEventForm');
         if (createEventForm) {
+            let isSubmitting = false;
+            
             createEventForm.addEventListener('submit', function (e) {
                 e.preventDefault();
+                
+                // Prevent double submission
+                if (isSubmitting) {
+                    return false;
+                }
+                
                 Validator.clearAllErrors('createEventForm');
 
                 let isValid = true;
@@ -1780,18 +2155,31 @@ unset($eventItem); // Break reference
                 }
 
                 if (isValid) {
-                    this.submit();
+                    // Mark as submitting to prevent double submission
+                    isSubmitting = true;
+                    
+                    // Disable submit button
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Creating...</span>';
+                    }
+                    
+                    // Use native submit to bypass event listener
+                    HTMLFormElement.prototype.submit.call(this);
                 }
             });
 
-            // Real-time validation
+            // Real-time validation on input (not on blur to avoid triggering submit)
             ['titre', 'description', 'date_debut', 'date_fin', 'lieu'].forEach(fieldId => {
                 const field = document.getElementById(fieldId);
                 if (field) {
-                    field.addEventListener('blur', function () {
-                        // Trigger validation on blur
-                        const submitEvent = new Event('submit', { cancelable: true });
-                        createEventForm.dispatchEvent(submitEvent);
+                    field.addEventListener('input', function () {
+                        // Clear error on input
+                        const errorDiv = document.getElementById('error-' + fieldId);
+                        if (errorDiv && errorDiv.classList.contains('show')) {
+                            Validator.clearError(fieldId);
+                        }
                     });
                 }
             });
@@ -2069,6 +2457,701 @@ unset($eventItem); // Break reference
         document.addEventListener('DOMContentLoaded', function () {
             renderCalendar();
         });
+    </script>
+
+    <!-- ========================================== -->
+    <!-- FOXY EVENTS CHATBOT -->
+    <!-- ========================================== -->
+    <div id="chatbotContainer" class="chatbot-container">
+        <div class="chatbot-header">
+            <div class="chatbot-header-content">
+                <div class="chatbot-avatar">
+                    <span class="fox-emoji">🦊</span>
+                </div>
+                <div class="chatbot-header-text">
+                    <h3>Foxy Events</h3>
+                    <span class="chatbot-status">
+                        <span class="status-dot"></span>
+                        En ligne 24/7
+                    </span>
+                </div>
+            </div>
+            <button id="chatbotClose" class="chatbot-close-btn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div id="chatbotMessages" class="chatbot-messages">
+            <div class="bot-message">
+                <div class="message-avatar">
+                    <span class="fox-emoji">🦊</span>
+                </div>
+                <div class="message-content">
+                    <div class="message-bubble bot-bubble">
+                        <p>👋 Salut ! Je suis <strong>Foxy Events</strong>, votre assistant virtuel !</p>
+                        <p>Je peux vous aider à trouver des événements gaming. Essayez :</p>
+                        <ul style="margin: 10px 0; padding-left: 20px;">
+                            <li>"Événements ce week-end"</li>
+                            <li>"Tournois Valorant en mars"</li>
+                            <li>"Événements populaires"</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chatbot-quick-actions">
+            <button class="quick-action-btn" data-message="Événements ce week-end">
+                <i class="fas fa-calendar-week"></i> Ce week-end
+            </button>
+            <button class="quick-action-btn" data-message="Événements populaires">
+                <i class="fas fa-fire"></i> Populaires
+            </button>
+            <button class="quick-action-btn" data-message="Aide">
+                <i class="fas fa-question-circle"></i> Aide
+            </button>
+        </div>
+
+        <div class="chatbot-input-container">
+            <input type="text" id="chatbotInput" class="chatbot-input" placeholder="Posez votre question...">
+            <button id="chatbotSend" class="chatbot-send-btn">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Chatbot Floating Button -->
+    <button id="chatbotToggle" class="chatbot-toggle-btn">
+        <span class="chatbot-fox-icon">🦊</span>
+        <span class="chatbot-badge">Foxy</span>
+    </button>
+
+    <style>
+        /* Chatbot Toggle Button */
+        .chatbot-toggle-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f5c242, #f39c12);
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(245, 194, 66, 0.4);
+            z-index: 999;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            padding: 0;
+        }
+
+        .chatbot-toggle-btn:hover {
+            transform: translateY(-5px) rotate(10deg);
+            box-shadow: 0 12px 35px rgba(245, 194, 66, 0.6);
+        }
+
+        .chatbot-fox-icon {
+            font-size: 2.5rem;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+            animation: wiggle 2s ease-in-out infinite;
+        }
+
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-5deg); }
+            75% { transform: rotate(5deg); }
+        }
+
+        .chatbot-badge {
+            position: absolute;
+            bottom: -5px;
+            background: #ef4444;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        /* Chatbot Container */
+        .chatbot-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 420px;
+            height: 650px;
+            background: linear-gradient(135deg, #16161a, #1b1b20);
+            border-radius: 25px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 2px solid #f5c242;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideUp 0.4s ease;
+        }
+
+        .chatbot-container.active {
+            display: flex;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Chatbot Header */
+        .chatbot-header {
+            background: linear-gradient(135deg, #f5c242, #f39c12);
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .chatbot-header-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .chatbot-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #111216, #16161a);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            border: 2px solid #f5c242;
+        }
+
+        .fox-emoji {
+            font-size: 2rem;
+            filter: drop-shadow(0 2px 4px rgba(245, 194, 66, 0.5));
+        }
+
+        .chatbot-header-text h3 {
+            margin: 0;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            color: #000;
+        }
+
+        .chatbot-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            color: #333;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .chatbot-close-btn {
+            background: rgba(0, 0, 0, 0.2);
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .chatbot-close-btn:hover {
+            background: rgba(0, 0, 0, 0.4);
+            transform: rotate(90deg);
+        }
+
+        .chatbot-close-btn i {
+            color: #000;
+            font-size: 1.2rem;
+        }
+
+        /* Messages Area */
+        .chatbot-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #0f0f11;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .bot-message,
+        .user-message {
+            display: flex;
+            gap: 12px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .user-message {
+            flex-direction: row-reverse;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f5c242, #f39c12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border: 2px solid #16161a;
+        }
+
+        .message-avatar .fox-emoji {
+            font-size: 1.5rem;
+        }
+
+        .message-avatar i {
+            font-size: 1.2rem;
+            color: #000;
+        }
+
+        .user-message .message-avatar {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+
+        .user-message .message-avatar i {
+            color: white;
+        }
+
+        .message-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .message-bubble {
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 85%;
+            word-wrap: break-word;
+        }
+
+        .bot-bubble {
+            background: linear-gradient(135deg, #1b1b20, #16161a);
+            color: #fff;
+            border: 1px solid rgba(245, 194, 66, 0.2);
+        }
+
+        .user-bubble {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            margin-left: auto;
+        }
+
+        .bot-bubble p {
+            margin: 0 0 8px 0;
+        }
+
+        .bot-bubble p:last-child {
+            margin-bottom: 0;
+        }
+
+        .bot-bubble strong {
+            color: #f5c242;
+        }
+
+        .event-result-card {
+            background: rgba(245, 194, 66, 0.1);
+            border: 1px solid #f5c242;
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .event-result-card:hover {
+            background: rgba(245, 194, 66, 0.2);
+            transform: translateX(5px);
+        }
+
+        .event-result-title {
+            color: #f5c242;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .event-result-info {
+            color: #d7d9dd;
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .event-result-info i {
+            margin-right: 5px;
+            color: #f5c242;
+        }
+
+        /* Quick Actions */
+        .chatbot-quick-actions {
+            padding: 15px 20px;
+            background: #111216;
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            border-top: 1px solid rgba(245, 194, 66, 0.1);
+        }
+
+        .quick-action-btn {
+            background: rgba(245, 194, 66, 0.1);
+            border: 1px solid #f5c242;
+            color: #f5c242;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            white-space: nowrap;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .quick-action-btn:hover {
+            background: rgba(245, 194, 66, 0.2);
+            transform: translateY(-2px);
+        }
+
+        /* Input Area */
+        .chatbot-input-container {
+            padding: 20px;
+            background: #111216;
+            display: flex;
+            gap: 12px;
+            border-top: 1px solid rgba(245, 194, 66, 0.1);
+        }
+
+        .chatbot-input {
+            flex: 1;
+            background: rgba(245, 194, 66, 0.05);
+            border: 2px solid rgba(245, 194, 66, 0.2);
+            border-radius: 25px;
+            padding: 12px 20px;
+            color: #fff;
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .chatbot-input:focus {
+            border-color: #f5c242;
+            background: rgba(245, 194, 66, 0.1);
+        }
+
+        .chatbot-send-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f5c242, #f39c12);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .chatbot-send-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 20px rgba(245, 194, 66, 0.4);
+        }
+
+        .chatbot-send-btn i {
+            color: #000;
+            font-size: 1.2rem;
+        }
+
+        .chatbot-send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: flex;
+            gap: 5px;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #1b1b20, #16161a);
+            border: 1px solid rgba(245, 194, 66, 0.2);
+            border-radius: 18px;
+            width: fit-content;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #f5c242;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.7;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+
+        /* Scrollbar */
+        .chatbot-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chatbot-messages::-webkit-scrollbar-track {
+            background: rgba(245, 194, 66, 0.05);
+        }
+
+        .chatbot-messages::-webkit-scrollbar-thumb {
+            background: #f5c242;
+            border-radius: 10px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .chatbot-container {
+                width: calc(100vw - 20px);
+                height: calc(100vh - 100px);
+                bottom: 10px;
+                right: 10px;
+            }
+
+            .chatbot-toggle-btn {
+                bottom: 20px;
+                right: 20px;
+                width: 60px;
+                height: 60px;
+            }
+        }
+    </style>
+
+    <script>
+        // Chatbot Functionality
+        const chatbotToggle = document.getElementById('chatbotToggle');
+        const chatbotContainer = document.getElementById('chatbotContainer');
+        const chatbotClose = document.getElementById('chatbotClose');
+        const chatbotInput = document.getElementById('chatbotInput');
+        const chatbotSend = document.getElementById('chatbotSend');
+        const chatbotMessages = document.getElementById('chatbotMessages');
+        const quickActionBtns = document.querySelectorAll('.quick-action-btn');
+
+        // Toggle chatbot
+        chatbotToggle.addEventListener('click', () => {
+            chatbotContainer.classList.add('active');
+            chatbotToggle.style.display = 'none';
+        });
+
+        chatbotClose.addEventListener('click', () => {
+            chatbotContainer.classList.remove('active');
+            chatbotToggle.style.display = 'flex';
+        });
+
+        // Send message
+        function sendMessage() {
+            const message = chatbotInput.value.trim();
+            if (!message) return;
+
+            // Add user message
+            addMessage(message, 'user');
+            chatbotInput.value = '';
+
+            // Show typing indicator
+            showTypingIndicator();
+
+            // Send to backend
+            fetch('chatevents_handler.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('HTTP error! status: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                removeTypingIndicator();
+                if (data.success) {
+                    addMessage(data.message, 'bot', data.events);
+                } else {
+                    addMessage(data.message || 'Désolé, une erreur est survenue. Réessayez !', 'bot');
+                }
+            })
+            .catch(error => {
+                removeTypingIndicator();
+                console.error('Chatbot Error:', error);
+                addMessage('❌ Erreur de connexion: ' + error.message + '\n\nVérifiez que XAMPP est démarré et que le fichier chatbot_handler.php est accessible.', 'bot');
+            });
+        }
+
+        chatbotSend.addEventListener('click', sendMessage);
+        chatbotInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Quick actions
+        quickActionBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const message = btn.getAttribute('data-message');
+                chatbotInput.value = message;
+                sendMessage();
+            });
+        });
+
+        // Add message to chat
+        function addMessage(text, sender, events = []) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = sender === 'bot' ? 'bot-message' : 'user-message';
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.innerHTML = sender === 'bot' ? '<span class="fox-emoji">🦊</span>' : '<i class="fas fa-user"></i>';
+
+            const content = document.createElement('div');
+            content.className = 'message-content';
+
+            const bubble = document.createElement('div');
+            bubble.className = sender === 'bot' ? 'message-bubble bot-bubble' : 'message-bubble user-bubble';
+            
+            // Format message with line breaks
+            const formattedText = text.replace(/\n/g, '<br>');
+            bubble.innerHTML = `<p>${formattedText}</p>`;
+
+            content.appendChild(bubble);
+
+            // Add event cards if any
+            if (events && events.length > 0) {
+                events.forEach(event => {
+                    const eventCard = document.createElement('div');
+                    eventCard.className = 'event-result-card';
+                    eventCard.onclick = () => {
+                        window.location.href = 'event_details.php?id=' + event.id;
+                    };
+
+                    const eventDate = new Date(event.date);
+                    const formattedDate = eventDate.toLocaleDateString('fr-FR', { 
+                        day: 'numeric', 
+                        month: 'long',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    eventCard.innerHTML = `
+                        <div class="event-result-title">${event.title}</div>
+                        <div class="event-result-info">
+                            <div><i class="fas fa-calendar"></i> ${formattedDate}</div>
+                            <div><i class="fas fa-map-marker-alt"></i> ${event.location}</div>
+                        </div>
+                    `;
+                    content.appendChild(eventCard);
+                });
+            }
+
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(content);
+
+            chatbotMessages.appendChild(messageDiv);
+            chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+        }
+
+        // Typing indicator
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'bot-message';
+            typingDiv.id = 'typingIndicator';
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.innerHTML = '<span class="fox-emoji">🦊</span>';
+
+            const content = document.createElement('div');
+            content.className = 'message-content';
+
+            const indicator = document.createElement('div');
+            indicator.className = 'typing-indicator';
+            indicator.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+
+            content.appendChild(indicator);
+            typingDiv.appendChild(avatar);
+            typingDiv.appendChild(content);
+
+            chatbotMessages.appendChild(typingDiv);
+            chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const typingIndicator = document.getElementById('typingIndicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
     </script>
 </body>
 

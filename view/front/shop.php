@@ -1,4 +1,5 @@
 <?php
+ob_start();
 require_once __DIR__ . '/../../controller/ProductController.php';
 require_once __DIR__ . '/../../controller/UserController.php';
 
@@ -55,6 +56,104 @@ $currentUser = UserController::getCurrentUser();
 $userImage = null;
 if ($currentUser && $currentUser->getImage()) {
     $userImage = '../../view/' . $currentUser->getImage();
+}
+
+// Handle AJAX Request
+if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
+    if (ob_get_length()) ob_clean(); // Clear any previous output safely
+    header('Content-Type: application/json');
+    
+    $productsHtml = '';
+    if (empty($products)) {
+        $productsHtml = '
+            <div class="no-products">
+                <i class="fas fa-box-open"></i>
+                <h3 style="color: #666; margin-bottom: 10px;">No products found</h3>
+                <p>Try adjusting your filters or search terms</p>
+                ' . ($search || $categoryFilter != 'all' ? '<a href="shop.php" class="filter-btn" style="display: inline-block; margin-top: 20px;"><i class="fas fa-refresh"></i> View All Products</a>' : '') . '
+            </div>';
+    } else {
+        foreach ($products as $product) {
+            $desc = $product->getDescription();
+            $shortDesc = htmlspecialchars(substr($desc, 0, 100)) . (strlen($desc) > 100 ? '...' : '');
+            $img = !empty($product->getImage()) ? '../' . htmlspecialchars($product->getImage()) : '../images/placeholder-product.png';
+            $name = htmlspecialchars($product->getName());
+            $safeName = htmlspecialchars(addslashes($product->getName()));
+            $safeDesc = htmlspecialchars(addslashes($desc));
+            $price = number_format($product->getPrice(), 2);
+            $stock = $product->getStock();
+            $stockClass = $stock < 5 ? 'low-stock' : '';
+            $stockText = $stock == 0 ? 'Out of stock' : ($stock < 5 ? "Only $stock left!" : "$stock in stock");
+            
+            $productsHtml .= '
+                <div class="product-card">
+                    <img src="' . $img . '" alt="' . $name . '" class="product-image" onerror="this.src=\'https://via.placeholder.com/300x300?text=No+Image\'">
+                    <div class="product-content">
+                        <span class="product-category">' . htmlspecialchars($product->getCategory()) . '</span>
+                        <h3 class="product-title">' . $name . '</h3>
+                        <p class="product-description">' . $shortDesc . '</p>
+                        ' . (!empty($desc) && strlen($desc) > 100 ? '<button class="btn-description" onclick="openDescriptionModal(\'' . $safeDesc . '\', \'' . $safeName . '\')"><i class="fas fa-info-circle"></i> View Full Description</button>' : '') . '
+                        <div class="product-footer">
+                            <div>
+                                <div class="product-price">$' . $price . '</div>
+                                <div class="product-stock ' . $stockClass . '">
+                                    <i class="fas fa-box"></i> ' . $stockText . '
+                                </div>
+                            </div>
+                            ' . ($stock > 0 ? '<button class="add-to-cart-btn" onclick="openQuantityModal(' . $product->getId() . ', \'' . $safeName . '\', ' . $product->getPrice() . ', ' . $stock . ')"><i class="fas fa-cart-plus"></i> Add</button>' : '<button class="add-to-cart-btn" disabled><i class="fas fa-ban"></i> Out of Stock</button>') . '
+                        </div>
+                    </div>
+                </div>';
+        }
+    }
+
+    $paginationHtml = '';
+    if ($totalPages > 1) {
+        if ($page > 1) {
+            $paginationHtml .= '<a href="#" data-page="' . ($page - 1) . '" class="page-link nav-btn"><i class="fas fa-chevron-left"></i> Previous</a>';
+        }
+
+        $startPage = max(1, $page - 2);
+        $endPage = min($totalPages, $page + 2);
+
+        if ($startPage > 1) {
+            $paginationHtml .= '<a href="#" data-page="1" class="page-link">1</a>';
+            if ($startPage > 2) $paginationHtml .= '<span style="color: #666;">...</span>';
+        }
+
+        for ($i = $startPage; $i <= $endPage; $i++) {
+            $activeClass = $i == $page ? 'active' : '';
+            $paginationHtml .= '<a href="#" data-page="' . $i . '" class="page-link ' . $activeClass . '">' . $i . '</a>';
+        }
+
+        if ($endPage < $totalPages) {
+            if ($endPage < $totalPages - 1) $paginationHtml .= '<span style="color: #666;">...</span>';
+            $paginationHtml .= '<a href="#" data-page="' . $totalPages . '" class="page-link">' . $totalPages . '</a>';
+        }
+
+        if ($page < $totalPages) {
+            $paginationHtml .= '<a href="#" data-page="' . ($page + 1) . '" class="page-link nav-btn">Next <i class="fas fa-chevron-right"></i></a>';
+        }
+    }
+
+    $activeFiltersHtml = '';
+    if ($search || $categoryFilter != 'all') {
+        $activeFiltersHtml = '
+            <small style="color: #aaa;">Active filters:</small>
+            ' . ($search ? '<span class="filter-badge">🔍 Search: "' . htmlspecialchars($search) . '"</span>' : '') . '
+            ' . ($categoryFilter != 'all' ? '<span class="filter-badge">📁 ' . htmlspecialchars($categoryFilter) . '</span>' : '') . '
+            <small style="color: #666; margin-left: 10px;">(' . $totalProducts . ' result' . ($totalProducts != 1 ? 's' : '') . ')</small>';
+    }
+
+    echo json_encode([
+        'products' => $productsHtml,
+        'pagination' => $paginationHtml,
+        'totalProducts' => $totalProducts,
+        'activeFilters' => $activeFiltersHtml,
+        'totalText' => $totalProducts > 0 ? '<span style="color: #ff7a00; font-weight: 600;"> • ' . $totalProducts . ' products available</span>' : '',
+        'showClear' => ($search || $categoryFilter != 'all' || $sortParam != 'created_at')
+    ]);
+    exit();
 }
 ?>
 <!DOCTYPE html>
@@ -964,7 +1063,7 @@ if ($currentUser && $currentUser->getImage()) {
         <section class="shop-section">
             <div class="section-header">
                 <h1 class="section-title">Gaming <span>Gear</span></h1>
-                <p style="color: #aaa; font-size: 1.1rem; margin-bottom: 30px;">
+                <p style="color: #aaa; font-size: 1.1rem; margin-bottom: 30px;" id="productStats">
                     Level up your setup with premium equipment
                     <?php if ($totalProducts > 0): ?>
                         <span style="color: #ff7a00; font-weight: 600;"> • <?php echo $totalProducts; ?> products
@@ -972,11 +1071,11 @@ if ($currentUser && $currentUser->getImage()) {
                     <?php endif; ?>
                 </p>
 
-                <form method="GET" class="shop-filters">
-                    <input type="text" name="search" placeholder="🔍 Search products..."
+                <form method="GET" class="shop-filters" id="searchForm">
+                    <input type="text" name="search" id="searchInput" placeholder="🔍 Search products..."
                         value="<?php echo htmlspecialchars($search); ?>" class="filter-input">
 
-                    <select name="category" class="filter-select">
+                    <select name="category" id="categorySelect" class="filter-select">
                         <option value="all" <?php echo $categoryFilter == 'all' ? 'selected' : ''; ?>>📁 All Categories
                         </option>
                         <option value="Hardware" <?php echo $categoryFilter == 'Hardware' ? 'selected' : ''; ?>>🖥️
@@ -989,7 +1088,7 @@ if ($currentUser && $currentUser->getImage()) {
                             Peripherals</option>
                     </select>
 
-                    <select name="sort" class="filter-select">
+                    <select name="sort" id="sortSelect" class="filter-select">
                         <option value="created_at" <?php echo $sortParam == 'created_at' ? 'selected' : ''; ?>>📅 Newest
                             First</option>
                         <option value="price_asc" <?php echo $sortParam == 'price_asc' ? 'selected' : ''; ?>>💰 Price:
@@ -1004,15 +1103,15 @@ if ($currentUser && $currentUser->getImage()) {
                         <i class="fas fa-search"></i> Search
                     </button>
 
-                    <?php if ($search || $categoryFilter != 'all' || $sortParam != 'created_at'): ?>
+                    <div id="clearBtnContainer" style="display: <?php echo ($search || $categoryFilter != 'all' || $sortParam != 'created_at') ? 'inline-block' : 'none'; ?>;">
                         <a href="shop.php" class="clear-btn">
                             <i class="fas fa-times"></i> Clear
                         </a>
-                    <?php endif; ?>
+                    </div>
                 </form>
 
                 <?php if ($search || $categoryFilter != 'all'): ?>
-                    <div class="active-filters">
+                    <div class="active-filters" id="activeFilters">
                         <small style="color: #aaa;">Active filters:</small>
                         <?php if ($search): ?>
                             <span class="filter-badge">🔍 Search: "<?php echo htmlspecialchars($search); ?>"</span>
@@ -1024,10 +1123,12 @@ if ($currentUser && $currentUser->getImage()) {
                             (<?php echo $totalProducts; ?> result<?php echo $totalProducts != 1 ? 's' : ''; ?>)
                         </small>
                     </div>
+                <?php else: ?>
+                    <div class="active-filters" id="activeFilters" style="display: none;"></div>
                 <?php endif; ?>
             </div>
 
-            <div class="products-grid">
+            <div class="products-grid" id="productsGrid">
                 <?php if (empty($products)): ?>
                     <div class="no-products">
                         <i class="fas fa-box-open"></i>
@@ -1098,10 +1199,11 @@ if ($currentUser && $currentUser->getImage()) {
                 <?php endif; ?>
             </div>
 
+            <div id="paginationContainer">
             <?php if ($totalPages > 1): ?>
                 <div class="pagination">
                     <?php if ($page > 1): ?>
-                        <a href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>&category=<?php echo urlencode($categoryFilter); ?>&sort=<?php echo urlencode($sortParam); ?>"
+                        <a href="#" data-page="<?php echo $page - 1; ?>"
                             class="page-link nav-btn">
                             <i class="fas fa-chevron-left"></i> Previous
                         </a>
@@ -1112,7 +1214,7 @@ if ($currentUser && $currentUser->getImage()) {
                     $endPage = min($totalPages, $page + 2);
 
                     if ($startPage > 1): ?>
-                        <a href="?page=1&search=<?php echo urlencode($search); ?>&category=<?php echo urlencode($categoryFilter); ?>&sort=<?php echo urlencode($sortParam); ?>"
+                        <a href="#" data-page="1"
                             class="page-link">1</a>
                         <?php if ($startPage > 2): ?>
                             <span style="color: #666;">...</span>
@@ -1120,7 +1222,7 @@ if ($currentUser && $currentUser->getImage()) {
                     <?php endif; ?>
 
                     <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
-                        <a href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>&category=<?php echo urlencode($categoryFilter); ?>&sort=<?php echo urlencode($sortParam); ?>"
+                        <a href="#" data-page="<?php echo $i; ?>"
                             class="page-link <?php echo $i == $page ? 'active' : ''; ?>">
                             <?php echo $i; ?>
                         </a>
@@ -1130,18 +1232,19 @@ if ($currentUser && $currentUser->getImage()) {
                         <?php if ($endPage < $totalPages - 1): ?>
                             <span style="color: #666;">...</span>
                         <?php endif; ?>
-                        <a href="?page=<?php echo $totalPages; ?>&search=<?php echo urlencode($search); ?>&category=<?php echo urlencode($categoryFilter); ?>&sort=<?php echo urlencode($sortParam); ?>"
+                        <a href="#" data-page="<?php echo $totalPages; ?>"
                             class="page-link"><?php echo $totalPages; ?></a>
                     <?php endif; ?>
 
                     <?php if ($page < $totalPages): ?>
-                        <a href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>&category=<?php echo urlencode($categoryFilter); ?>&sort=<?php echo urlencode($sortParam); ?>"
+                        <a href="#" data-page="<?php echo $page + 1; ?>"
                             class="page-link nav-btn">
                             Next <i class="fas fa-chevron-right"></i>
                         </a>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
+            </div>
 
             <!-- Description Modal -->
             <div id="descriptionModal" class="modal"
@@ -1257,6 +1360,105 @@ if ($currentUser && $currentUser->getImage()) {
 
             // Update cart count on load
             updateCartCount();
+
+            // AJAX Search and Filter Logic
+            const searchInput = document.getElementById('searchInput');
+            const categorySelect = document.getElementById('categorySelect');
+            const sortSelect = document.getElementById('sortSelect');
+            const productsGrid = document.getElementById('productsGrid');
+            const paginationContainer = document.getElementById('paginationContainer');
+            const activeFilters = document.getElementById('activeFilters');
+            const searchForm = document.getElementById('searchForm');
+            const productStats = document.getElementById('productStats');
+            const clearBtnContainer = document.getElementById('clearBtnContainer');
+
+            let searchTimeout;
+
+            function updateResults(page = 1) {
+                const search = searchInput.value;
+                const category = categorySelect.value;
+                const sort = sortSelect.value;
+
+                // Update URL without reload
+                const params = new URLSearchParams({
+                    search: search,
+                    category: category,
+                    sort: sort,
+                    page: page
+                });
+                const newUrl = `${window.location.pathname}?${params.toString()}`;
+                window.history.pushState({ path: newUrl }, '', newUrl);
+
+                // Add loading state
+                productsGrid.style.opacity = '0.5';
+                productsGrid.style.pointerEvents = 'none';
+
+                fetch(`${newUrl}&ajax=1`)
+                    .then(response => response.json())
+                    .then(data => {
+                        productsGrid.innerHTML = data.products;
+                        paginationContainer.innerHTML = data.pagination;
+                        activeFilters.innerHTML = data.activeFilters;
+                        activeFilters.style.display = data.activeFilters ? 'block' : 'none';
+                        
+                        // Update clear button visibility
+                        if (clearBtnContainer) {
+                            clearBtnContainer.style.display = data.showClear ? 'inline-block' : 'none';
+                        }
+                        
+                        // Update stats paragraph
+                        if (productStats) {
+                            const statsText = data.totalProducts > 0 
+                                ? `Level up your setup with premium equipment ${data.totalText}`
+                                : 'Level up your setup with premium equipment';
+                            productStats.innerHTML = statsText;
+                        }
+
+                        productsGrid.style.opacity = '1';
+                        productsGrid.style.pointerEvents = 'auto';
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    })
+                    .catch(error => {
+                        console.error('Error fetching search results:', error);
+                        productsGrid.style.opacity = '1';
+                        productsGrid.style.pointerEvents = 'auto';
+                    });
+            }
+
+            // Debounced Search Input
+            searchInput.addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => updateResults(1), 300);
+            });
+
+            // Select changes
+            categorySelect.addEventListener('change', () => updateResults(1));
+            sortSelect.addEventListener('change', () => updateResults(1));
+
+            // Prevent form submit
+            searchForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                updateResults(1);
+            });
+
+            // Pagination delegation
+            paginationContainer.addEventListener('click', (e) => {
+                const pageLink = e.target.closest('.page-link');
+                if (pageLink && pageLink.hasAttribute('data-page')) {
+                    e.preventDefault();
+                    const page = pageLink.getAttribute('data-page');
+                    updateResults(page);
+                }
+            });
+
+            // Handle browser back/forward buttons
+            window.addEventListener('popstate', () => {
+                const urlParams = new URLSearchParams(window.location.search);
+                searchInput.value = urlParams.get('search') || '';
+                categorySelect.value = urlParams.get('category') || 'all';
+                sortSelect.value = urlParams.get('sort') || 'created_at';
+                updateResults(urlParams.get('page') || 1);
+            });
         });
 
         // Description Modal

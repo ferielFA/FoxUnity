@@ -1,249 +1,300 @@
-# 🎮 Projet Web CRUD - FoxUnity Gaming Platform
+# 🎮 FoxUnity Gaming Platform
 
-## 📋 Description
-Système complet de gestion d'événements gaming avec architecture **MVC** et **Programmation Orientée Objet**.
+## 📌 Description
 
-## ✅ Conformité aux exigences
+**FoxUnity** is a complete **web gaming platform** developed as part of a **Web Development course**.
+It is built using **PHP (OOP)**, **MVC architecture**, and **PDO**, and provides multiple interconnected modules such as **event management, trading system, shop, articles, news, user management, and reclamations**.
 
-### 1. Architecture MVC
+The platform aims to bring gamers together by offering a unified ecosystem where users can **trade items, participate in events, read news and articles, manage profiles, and submit reclamations**—all in one place.
+
+---
+
+## 📑 Table of Contents
+
+* [Features](#-features)
+* [Architecture](#-architecture)
+* [Database Structure](#-database-structure)
+* [Prerequisites](#-prerequisites)
+* [Installation](#-installation)
+* [Usage](#-usage)
+* [Security](#-security)
+* [Technologies Used](#-technologies-used)
+* [Contribution](#-contribution)
+* [License](#-license)
+* [Author](#-author)
+
+---
+
+## 🚀 Features
+
+### 🎉 Event Management (CRUD)
+
+* Create, read, update, and delete gaming events
+* Interactive calendar view for upcoming events
+* Event status management (upcoming, ongoing, completed, cancelled)
+* Digital ticketing system:
+
+  * QR code generation for each ticket
+  * QR code scanning to validate access
+* User registration and unregistration
+
+### 🔄 Trading System
+
+* Create trade offers between users
+* View trade history
+* Accept or reject trades
+* Secure item exchange logic
+* AI-assisted trading:
+
+  * Suggest fair trades based on item value
+  * Analyze past trades
+  * Recommend skins based on user history
+  * Display personal trade statistics
+
+### 🛒 Shop Module
+
+* Display gaming items
+* Purchase items using platform currency
+* Coupon system:
+
+  * Percentage or fixed-amount discounts
+  * Expiration date and usage limit
+* Admin management of items and coupons
+
+### 📰 News Module
+
+* Publish official announcements and gaming news
+* Homepage display of latest news
+* Categorization (Updates, Events, Platform News)
+* Admin content moderation
+
+### 👤 User Management
+
+* User profiles
+* Activity history (events, trades, purchases)
+* FrontOffice / BackOffice access
+
+**Advanced User Features (Métier avancé)**:
+
+* Secure authentication system
+* Email verification after registration
+* Forgot password workflow (email reset link)
+* Google OAuth login
+* CAPTCHA protection on forms
+* Facial recognition authentication (experimental)
+
+*Integrated AI Chatbot*:
+
+* Navigation assistance
+* Answers about events, trades, and shop
+* Dedicated chatbot page:
+
+```
+http://localhost/projet_web/view/front/chatbot.php
+```
+
+---
+
+## 🏗️ Architecture
+
+The project follows a **Model-View-Controller (MVC)** architecture:
+
 ```
 projet_web/
-├── model/              # Modèles (Entités métier)
-│   ├── Evenement.php   
-│   └── Participation.php
-├── view/               # Vues (Interface utilisateur)
-│   ├── back/           # BackOffice (Administration)
-│   │   ├── evenements.php
-│   │   └── participations.php
-│   └── front/          # FrontOffice (Utilisateurs)
-│       └── events_list.php
-└── controller/         # Contrôleurs (Logique métier)
-    ├── EvenementController.php
-    └── ParticipationController.php
+├── model/              # Business entities
+├── view/               # User interfaces
+│   ├── back/           # Administration views
+│   └── front/          # User views
+├── controller/         # Business logic
+├── config/             # Database configuration
+└── database.sql        # Database schema and test data
 ```
 
-### 2. Programmation Orientée Objet (POO)
-- ✅ **Classes** : Evenement, Participation, EvenementController, ParticipationController, Database
-- ✅ **Encapsulation** : Propriétés privées avec getters/setters
-- ✅ **Méthodes métier** : creer(), modifier(), supprimer(), inscrire(), desinscrire()
-- ✅ **Héritage implicite** via PDO
-- ✅ **Abstraction** via classes séparées
+### ✔ MVC Benefits
 
-### 3. Utilisation de PDO
-```php
-// Exemple dans Database.php
-self::$connection = new PDO($dsn, self::$username, self::$password);
-self::$connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+* Clear separation of concerns
+* Maintainable and scalable code
+* Easy debugging and extension
 
-// Exemple dans EvenementController.php
-$stmt = $this->db->prepare($sql);
-$stmt->execute([':titre' => $evenement->getTitre()]);
-```
+---
 
-## 🗂️ Structure de la Base de Données
+## 🗂️ Database Structure
 
-### Table: evenement
-```sql
-- id_evenement (PK)
-- titre
-- description
-- date_debut (datetime)
-- date_fin (datetime)
-- lieu
-- createur_id (FK vers gamer)
-- statut (enum: upcoming, ongoing, completed, cancelled)
-```
+### Main Tables
 
-### Table: participation
-```sql
-- id_participation (PK)
-- id_evenement (FK vers evenement)
-- id_gamer (FK vers gamer)
-- date_participation (datetime)
-```
+* **users** – platform users
+* **evenement** – gaming events
+* **participation** – event registrations
+* **trade** – user trades
+* **skins** – user trades
+* **purchase** – user trades
+* **produit** – store items
+* **article** – gaming articles
+* **Categorie** – platform news
+* **reclamation** – user complaints
+  **reponse** – user complaints
 
-## 🚀 Installation
+Foreign keys ensure relational integrity.
 
-### 1. Prérequis
-- XAMPP (Apache + MySQL + PHP 8.0+)
-- Navigateur web moderne
+---
 
-### 2. Configuration
+## 🧰 Prerequisites
+
+Before installing the project, make sure you have:
+
+* **XAMPP** (Apache + MySQL)
+* **PHP 8.0 or higher**
+* **Composer** (PHP dependency manager)
+* **Git** installed on your machine
+* A modern web browser (Chrome, Firefox, Edge)
+
+---
+
+## ⚙️ Installation
+
+1. Clone the repository:
+
 ```bash
-# 1. Copier le projet dans htdocs
-C:\xampp\htdocs\pw\projet_web\
-
-# 2. Démarrer XAMPP
-- Apache
-- MySQL
-
-# 3. Créer la base de données
-- Ouvrir phpMyAdmin (http://localhost/phpmyadmin)
-- Importer le fichier: database.sql
+git clone https://github.com/ferielFA/FoxUnity.git
+cd FoxUnity
 ```
 
-### 3. Configuration de la connexion
-Fichier: `config/database.php`
+2. Move the project to XAMPP `htdocs`:
+
+```
+C:\xampp\htdocs\projet_web\
+```
+
+3. Start **Apache** and **MySQL** from XAMPP
+
+4. Create the database:
+
+* Open `http://localhost/phpmyadmin`
+* Create a database named:
+
+```
+foxunity0
+```
+
+5. Import the database:
+
+* Import the file `database.sql`
+
+6. Configure database connection in:
+
+```
+config/database.php
+```
+
 ```php
 private static $host = 'localhost';
-private static $dbname = 'foxunity_db';
+private static $dbname = 'foxunity0';
 private static $username = 'root';
 private static $password = '';
 ```
 
-## 📱 Interfaces
+---
 
-### BackOffice (Administration)
-**URL**: `http://localhost/pw/projet_web/view/back/evenements.php`
+## ▶️ Usage
 
-#### Fonctionnalités:
-- ✅ **CREATE** : Créer un nouvel événement
-- ✅ **READ** : Afficher tous les événements
-- ✅ **UPDATE** : Modifier un événement existant
-- ✅ **DELETE** : Supprimer un événement
-- ✅ Gérer les participants par événement
+### BackOffice (Admin)
 
-**URL Participations**: `http://localhost/pw/projet_web/view/back/participations.php`
+Manage:
 
-### FrontOffice (Utilisateurs)
-**URL**: `http://localhost/pw/projet_web/view/front/events_list.php`
+* Events
+* Users
+* Trades
+* Shop items
+* News & articles
+* Reclamations
 
-#### Fonctionnalités:
-- ✅ Consulter tous les événements
-- ✅ S'inscrire à un événement
-- ✅ Se désinscrire d'un événement
-- ✅ Voir mes participations
+URL example:
 
-## 🔧 Fonctionnalités CRUD
-
-### Événements (BackOffice)
-
-#### CREATE
-```php
-$evenement = new Evenement(null, $titre, $description, $date_debut, $date_fin, $lieu, $createur_id, $statut);
-$controller->creer($evenement);
+```
+http://localhost/projet_web/view/back/
 ```
 
-#### READ
-```php
-$evenements = $controller->lireTous();        // Tous
-$evenement = $controller->lireParId($id);     // Un seul
+### FrontOffice (Users)
+
+Users can:
+
+* Browse and join events
+* Trade items
+* Purchase from shop
+* Read news and articles
+* Submit reclamations
+
+URL example:
+
+```
+http://localhost/projet_web/view/front/
 ```
 
-#### UPDATE
-```php
-$evenement->setTitre('Nouveau titre');
-$controller->modifier($evenement);
+---
+
+## 🔐 Security
+
+* PDO prepared statements
+* Protection against SQL Injection
+* Input validation
+* Output sanitization with `htmlspecialchars()`
+* Exception-based error handling
+
+---
+
+## 🧰 Technologies Used
+
+* **Backend**: PHP 8 (OOP)
+* **Database**: MySQL
+* **Architecture**: MVC
+* **Database Access**: PDO
+* **Frontend**: HTML5, CSS3
+* **Icons**: Font Awesome
+* **Server**: Apache (XAMPP)
+
+---
+
+## 🤝 Contribution
+
+To contribute:
+
+1. Fork the repository
+2. Create a new branch:
+
+```bash
+git checkout -b feature-name
 ```
 
-#### DELETE
-```php
-$controller->supprimer($id);
+3. Commit your changes:
+
+```bash
+git add .
+git commit -m "Add new feature"
 ```
 
-### Participations
+4. Push to your branch:
 
-#### CREATE (Inscription)
-```php
-$participation = new Participation(null, $id_evenement, $id_gamer, new DateTime());
-$participationController->inscrire($participation);
+```bash
+git push origin feature-name
 ```
 
-#### READ
-```php
-$participations = $participationController->lireParEvenement($id_evenement);
-$mesParticipations = $participationController->lireParGamer($id_gamer);
-```
+5. Open a Pull Request
 
-#### DELETE (Désinscription)
-```php
-$participationController->desinscrire($id_gamer, $id_evenement);
-```
+---
 
-#### VERIFY
-```php
-$estInscrit = $participationController->verifierInscription($id_gamer, $id_evenement);
-```
+## 📄 License
 
-## 📊 Méthodes du Modèle Evenement
+This project is licensed under the **MIT License**.
 
-### Méthodes métier (selon le diagramme)
-- ✅ `creer()` - Créer un événement
-- ✅ `modifier()` - Modifier un événement
-- ✅ `supprimer()` - Supprimer un événement
-- ✅ `calculerTempsRestant()` - Calculer le temps avant l'événement
-- ✅ `changerStatut()` - Changer le statut de l'événement
-- ✅ `obtenirParticipants()` - Obtenir le nombre de participants
+---
 
-## 📊 Méthodes du Modèle Participation
+## ✨ Author
 
-### Méthodes métier (selon le diagramme)
-- ✅ `inscrire()` - Inscrire un participant
-- ✅ `desinscrire()` - Désinscrire un participant
-- ✅ `verifierInscription()` - Vérifier si déjà inscrit
-- ✅ `obtenirDetails()` - Obtenir les détails de la participation
+Developed as part of the **Web Development Course (PW)**
 
-## 🎯 Points de validation
+* Project: **FoxUnity Gaming Platform**
+* Academic Year: **2025–2026**
 
-### ✅ Architecture MVC respectée
-- **Model** : Classes Evenement.php et Participation.php
-- **View** : Fichiers PHP dans view/back/ et view/front/
-- **Controller** : EvenementController.php et ParticipationController.php
+---
 
-### ✅ POO appliquée
-- Classes avec propriétés privées
-- Constructeurs
-- Getters et Setters
-- Méthodes métier
-
-### ✅ PDO utilisé
-- Connexion via PDO dans Database.php
-- Requêtes préparées (prepare/execute)
-- Gestion des erreurs via PDOException
-- Fetch modes configurés
-
-### ✅ CRUD complet
-- **BackOffice** : CRUD complet sur événements
-- **FrontOffice** : Consultation + Inscription/Désinscription
-- Gestion des participations
-
-## 🔒 Sécurité
-
-- ✅ Requêtes préparées (protection SQL Injection)
-- ✅ htmlspecialchars() pour affichage (protection XSS)
-- ✅ Validation des données
-- ✅ Gestion des erreurs
-
-## 📝 Données de test
-
-Le fichier `database.sql` inclut:
-- 3 gamers de test
-- 3 événements pré-créés
-- Quelques participations
-
-### Comptes de test
-- **Admin** : ID 1
-- **JohnGamer** : ID 2 (utilisé par défaut dans le FrontOffice)
-- **AlicePlay** : ID 3
-
-## 🎨 Technologies utilisées
-
-- **Backend** : PHP 8.0+
-- **Base de données** : MySQL (via XAMPP)
-- **Connexion** : PDO
-- **Architecture** : MVC
-- **Paradigme** : POO
-- **Frontend** : HTML5, CSS3
-- **Icons** : Font Awesome 6.0
-
-## 📞 Support
-
-Pour toute question sur le projet, vérifiez:
-1. La base de données est bien importée
-2. XAMPP est démarré (Apache + MySQL)
-3. Les chemins dans config/database.php sont corrects
-4. PHP 8.0+ est installé
-
-## ✨ Auteur
-
-Projet développé dans le cadre du cours de Développement Web
+🎮 **FoxUnity – Made by gamers, for gamers**

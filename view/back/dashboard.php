@@ -28,26 +28,53 @@ if ($currentUser->getImage()) {
 }
 
 // --- RECUPERATION DES STATISTIQUES ---
+// 1. Users
 $allUsers = User::getAll();
 $totalUsers = count($allUsers);
 
+// 2. Trading Stats (Skins)
 require_once __DIR__ . '/../../controller/TradeHistoryController.php';
 $tradeHistoryController = new TradeHistoryController();
 $tradingStats = $tradeHistoryController->getStatistics();
 
+// 3. Shop Stats (Products)
+require_once __DIR__ . '/../../controller/ProductController.php';
+$productController = new ProductController();
+$totalProducts = $productController->countProducts();
+$shopPurchases = $productController->getPurchaseHistory();
+$totalShopRevenue = 0;
+foreach ($shopPurchases as $purchase) {
+    $totalShopRevenue += (float)$purchase['amount'];
+}
+
+// 4. Combined Volume
+$combinedVolume = $tradingStats['total_value'] + $totalShopRevenue;
+
+// 5. Support Stats
 $reclamationController = new ReclamationController();
-$pendingReclamations = count($reclamationController->getAllReclamations('nouveau'));
+$pendingTickets = $reclamationController->getAllReclamations('nouveau');
+$inProgressTickets = $reclamationController->getAllReclamations('en_cours');
+$pendingReclamations = count($pendingTickets) + count($inProgressTickets);
 $resolvedReclamations = count($reclamationController->getAllReclamations('resolu'));
 
+// 6. Events Stats
 $evenementController = new EvenementController();
 $allEvents = $evenementController->lireTous();
 $totalEvents = count($allEvents);
 $upcomingEvents = 0;
 $today = new DateTime();
 foreach ($allEvents as $evtData) {
-  if ($evtData['evenement']->getDateDebut() > $today) {
-    $upcomingEvents++;
-  }
+    // Check if it's an array or object based on lireTous return
+    $evtDateStr = is_array($evtData) && isset($evtData['evenement']) 
+        ? $evtData['evenement']->getDateDebut() 
+        : (isset($evtData['date_debut']) ? $evtData['date_debut'] : null);
+    
+    if ($evtDateStr) {
+        $evtDate = ($evtDateStr instanceof DateTimeInterface) ? $evtDateStr : new DateTime($evtDateStr);
+        if ($evtDate > $today) {
+            $upcomingEvents++;
+        }
+    }
 }
 
 ?>
@@ -68,213 +95,122 @@ foreach ($allEvents as $evtData) {
   <style>
     /* ========== LAYOUT VERTICAL AVEC SCROLL ========== */
 
-    .content {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-
-    /* Section Container */
-    .dashboard-section {
-      margin-bottom: 40px;
-      animation: fadeInUp 0.5s ease;
-    }
-
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .section-header {
+    /* ========== LAYOUT GRID MODERN ========== */
+    .dashboard-overview {
       display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 20px;
-      padding-bottom: 12px;
-      border-bottom: 2px solid rgba(255, 122, 0, 0.2);
-    }
-
-    .section-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, rgba(255, 122, 0, 0.2), rgba(255, 79, 0, 0.1));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      color: #ff7a00;
-    }
-
-    .section-title {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 20px;
-      font-weight: 700;
-      color: white;
-      flex: 1;
-    }
-
-    .section-subtitle {
-      color: #666;
-      font-size: 13px;
-      margin-left: 52px;
-      margin-top: -12px;
-      margin-bottom: 20px;
-    }
-
-    /* Stat Card - Une seule carte par section */
-    .stat-card-single {
-      background: linear-gradient(135deg, rgba(20, 20, 35, 0.95) 0%, rgba(10, 10, 20, 0.9) 100%);
-      border: 1px solid rgba(255, 122, 0, 0.3);
-      border-radius: 20px;
-      padding: 32px;
-      display: flex;
-      align-items: center;
+      flex-direction: column;
       gap: 30px;
-      transition: all 0.3s ease;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    /* Stat Card - Compact for Grid */
+    .stat-card-compact {
+      background: linear-gradient(135deg, rgba(20, 20, 35, 0.9) 0%, rgba(10, 10, 20, 0.8) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       cursor: pointer;
       position: relative;
       overflow: hidden;
     }
 
-    .stat-card-single::before {
+    .stat-card-compact::before {
       content: '';
       position: absolute;
       left: 0;
       top: 0;
       bottom: 0;
-      width: 5px;
-      background: linear-gradient(180deg, #ff7a00, #ff4f00);
+      width: 4px;
+      background: #ff7a00;
+      opacity: 0.5;
+      transition: opacity 0.3s ease;
     }
 
-    .stat-card-single:hover {
+    .stat-card-compact:hover {
       border-color: #ff7a00;
-      box-shadow: 0 10px 40px rgba(255, 122, 0, 0.3);
-      transform: translateX(8px);
+      background: linear-gradient(135deg, rgba(30, 30, 50, 0.95) 0%, rgba(15, 15, 30, 0.9) 100%);
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     }
 
-    .stat-icon-large {
-      width: 90px;
-      height: 90px;
-      min-width: 90px;
-      border-radius: 20px;
-      background: linear-gradient(135deg, rgba(255, 122, 0, 0.15), rgba(255, 79, 0, 0.05));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 42px;
-      color: #ff7a00;
-      border: 2px solid rgba(255, 122, 0, 0.2);
+    .stat-card-compact:hover::before {
+      opacity: 1;
     }
 
-    .stat-content-main {
-      flex: 1;
-    }
-
-    .stat-label-main {
-      color: #888;
-      font-size: 13px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      margin-bottom: 12px;
-    }
-
-    .stat-value-main {
-      font-size: 48px;
-      font-weight: 900;
-      color: white;
-      font-family: 'Orbitron', sans-serif;
-      line-height: 1;
-      margin-bottom: 12px;
-    }
-
-    .stat-details {
-      display: flex;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .stat-badge {
-      padding: 6px 14px;
-      border-radius: 10px;
-      font-size: 12px;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .badge-success {
-      background: rgba(76, 175, 80, 0.15);
-      color: #4caf50;
-      border: 1px solid rgba(76, 175, 80, 0.3);
-    }
-
-    .badge-info {
-      background: rgba(33, 150, 243, 0.15);
-      color: #2196f3;
-      border: 1px solid rgba(33, 150, 243, 0.3);
-    }
-
-    .badge-warning {
-      background: rgba(255, 152, 0, 0.15);
-      color: #ff9800;
-      border: 1px solid rgba(255, 152, 0, 0.3);
-    }
-
-    .badge-purple {
-      background: rgba(156, 39, 176, 0.15);
-      color: #9c27b0;
-      border: 1px solid rgba(156, 39, 176, 0.3);
-    }
-
-    /* Charts Section - Full Width */
-    .charts-section {
-      margin-top: 50px;
-      margin-bottom: 40px;
-    }
-
-    .chart-container {
-      background: linear-gradient(135deg, rgba(20, 20, 35, 0.95) 0%, rgba(10, 10, 20, 0.9) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 20px;
-      padding: 32px;
-      margin-bottom: 30px;
-    }
-
-    .chart-header {
+    .stat-header-compact {
       display: flex;
       justify-content: space-between;
       align-items: center;
+    }
+
+    .stat-icon-compact {
+      width: 45px;
+      height: 45px;
+      border-radius: 12px;
+      background: rgba(255, 122, 0, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: #ff7a00;
+    }
+
+    .stat-info-compact {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stat-label-compact {
+      color: #888;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stat-value-compact {
+      font-size: 32px;
+      font-weight: 800;
+      color: white;
+      font-family: 'Orbitron', sans-serif;
+      margin: 5px 0;
+    }
+
+    /* Charts Row */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
       margin-bottom: 30px;
     }
 
-    .chart-title {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 20px;
-      font-weight: 700;
-      color: white;
-      display: flex;
-      align-items: center;
-      gap: 12px;
+    .chart-box {
+      background: linear-gradient(135deg, rgba(20, 20, 35, 0.95) 0%, rgba(10, 10, 20, 0.9) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 24px;
     }
 
-    .chart-title i {
-      color: #ff7a00;
-      font-size: 24px;
+    @media (max-width: 1024px) {
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
-    .chart-subtitle {
-      color: #666;
-      font-size: 13px;
-      margin-top: 6px;
+    @media (max-width: 480px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     /* Quick Actions */
@@ -408,239 +344,126 @@ foreach ($allEvents as $evtData) {
     </div>
 
     <div class="content">
-
-      <!-- ========== SECTION 1: USERS ========== -->
-      <div class="dashboard-section">
-        <div class="section-header">
-          <div class="section-icon">
-            <i class="fas fa-users"></i>
-          </div>
-          <div class="section-title">Users Management</div>
-        </div>
-        <div class="section-subtitle">Total registered users and community statistics</div>
-
-        <div class="stat-card-single" onclick="window.location.href='users.php'">
-          <div class="stat-icon-large">
-            <i class="fas fa-users"></i>
-          </div>
-          <div class="stat-content-main">
-            <div class="stat-label-main">Total Users</div>
-            <div class="stat-value-main"><?= number_format($totalUsers) ?></div>
+      <div class="dashboard-overview">
+        <!-- ========== TOP METRICS GRID ========== -->
+        <div class="stats-grid">
+          <!-- Users -->
+          <div class="stat-card-compact" onclick="window.location.href='users.php'">
+            <div class="stat-header-compact">
+              <div class="stat-label-compact">Users</div>
+              <div class="stat-icon-compact"><i class="fas fa-users"></i></div>
+            </div>
+            <div class="stat-value-compact"><?= number_format($totalUsers) ?></div>
             <div class="stat-details">
-              <span class="stat-badge badge-success">
-                <i class="fas fa-arrow-up"></i> Active Community
-              </span>
-              <span class="stat-badge badge-info">
-                <i class="fas fa-user-check"></i> All Verified
+              <span class="stat-badge badge-success" style="font-size: 10px; padding: 2px 8px;">
+                <i class="fas fa-arrow-up"></i> Active
               </span>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- ========== SECTION 2: TRADING ========== -->
-      <div class="dashboard-section">
-        <div class="section-header">
-          <div class="section-icon">
-            <i class="fas fa-exchange-alt"></i>
-          </div>
-          <div class="section-title">Trading Activity</div>
-        </div>
-        <div class="section-subtitle">Total trading volume and transaction statistics</div>
-
-        <div class="stat-card-single" onclick="window.location.href='tradingb.php'">
-          <div class="stat-icon-large">
-            <i class="fas fa-exchange-alt"></i>
-          </div>
-          <div class="stat-content-main">
-            <div class="stat-label-main">Trading Volume</div>
-            <div class="stat-value-main">$<?= number_format($tradingStats['total_value'], 0) ?></div>
+          <!-- Trades -->
+          <div class="stat-card-compact" onclick="window.location.href='tradingb.php'">
+            <div class="stat-header-compact">
+              <div class="stat-label-compact">Volume</div>
+              <div class="stat-icon-compact"><i class="fas fa-money-bill-wave"></i></div>
+            </div>
+            <div class="stat-value-compact">$<?= number_format($combinedVolume, 0) ?></div>
             <div class="stat-details">
-              <span class="stat-badge badge-info">
-                <i class="fas fa-handshake"></i> <?= $tradingStats['total_trades'] ?> Transactions
-              </span>
-              <span class="stat-badge badge-purple">
-                <i class="fas fa-users"></i> <?= $tradingStats['total_users'] ?> Active Traders
-              </span>
-              <span class="stat-badge badge-success">
-                <i class="fas fa-box"></i> <?= $tradingStats['total_skins'] ?> Items Traded
+              <span class="stat-badge badge-info" style="font-size: 10px; padding: 2px 8px;">
+                Combined Sales
               </span>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- ========== SECTION 3: SHOP ========== -->
-      <div class="dashboard-section">
-        <div class="section-header">
-          <div class="section-icon">
-            <i class="fas fa-store"></i>
-          </div>
-          <div class="section-title">Shop & Marketplace</div>
-        </div>
-        <div class="section-subtitle">Active listings and marketplace statistics</div>
-
-        <div class="stat-card-single" onclick="window.location.href='shopb.php'">
-          <div class="stat-icon-large">
-            <i class="fas fa-store"></i>
-          </div>
-          <div class="stat-content-main">
-            <div class="stat-label-main">Active Listings</div>
-            <div class="stat-value-main"><?= number_format($tradingStats['total_skins']) ?></div>
+          <!-- Shop -->
+          <div class="stat-card-compact" onclick="window.location.href='shopb.php'">
+            <div class="stat-header-compact">
+              <div class="stat-label-compact">Shop Listings</div>
+              <div class="stat-icon-compact"><i class="fas fa-store"></i></div>
+            </div>
+            <div class="stat-value-compact"><?= number_format($totalProducts) ?></div>
             <div class="stat-details">
-              <span class="stat-badge badge-info">
-                <i class="fas fa-tags"></i> Marketplace Items
-              </span>
-              <span class="stat-badge badge-success">
-                <i class="fas fa-check-circle"></i> Available Now
+              <span class="stat-badge badge-success" style="font-size: 10px; padding: 2px 8px;">
+                Active Products
               </span>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- ========== SECTION 4: SUPPORT ========== -->
-      <div class="dashboard-section">
-        <div class="section-header">
-          <div class="section-icon">
-            <i class="fas fa-headset"></i>
-          </div>
-          <div class="section-title">Support & Tickets</div>
-        </div>
-        <div class="section-subtitle">Customer support tickets and resolution status</div>
-
-        <div class="stat-card-single" onclick="window.location.href='reclamback.php'">
-          <div class="stat-icon-large">
-            <i class="fas fa-headset"></i>
-          </div>
-          <div class="stat-content-main">
-            <div class="stat-label-main">Total Support Tickets</div>
-            <div class="stat-value-main"><?= $pendingReclamations + $resolvedReclamations ?></div>
+          <!-- Support -->
+          <div class="stat-card-compact" onclick="window.location.href='reclamback.php'">
+            <div class="stat-header-compact">
+              <div class="stat-label-compact">Support</div>
+              <div class="stat-icon-compact"><i class="fas fa-headset"></i></div>
+            </div>
+            <div class="stat-value-compact"><?= $pendingReclamations ?></div>
             <div class="stat-details">
-              <?php if ($pendingReclamations > 0): ?>
-                <span class="stat-badge badge-warning">
-                  <i class="fas fa-clock"></i> <?= $pendingReclamations ?> Pending
-                </span>
-              <?php endif; ?>
-              <span class="stat-badge badge-success">
-                <i class="fas fa-check-double"></i> <?= $resolvedReclamations ?> Resolved
+              <span class="stat-badge <?= $pendingReclamations > 0 ? 'badge-warning' : 'badge-success' ?>" style="font-size: 10px; padding: 2px 8px;">
+                <?= $pendingReclamations > 0 ? 'Pending Tickets' : 'All Resolved' ?>
               </span>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- ========== SECTION 5: EVENTS ========== -->
-      <div class="dashboard-section">
-        <div class="section-header">
-          <div class="section-icon">
-            <i class="fas fa-calendar-alt"></i>
-          </div>
-          <div class="section-title">Events & Tournaments</div>
-        </div>
-        <div class="section-subtitle">Total events created and upcoming schedules</div>
-
-        <div class="stat-card-single" onclick="window.location.href='eventsb.php'">
-          <div class="stat-icon-large">
-            <i class="fas fa-calendar-alt"></i>
-          </div>
-          <div class="stat-content-main">
-            <div class="stat-label-main">Total Events</div>
-            <div class="stat-value-main"><?= $totalEvents ?></div>
+          <!-- Events -->
+          <div class="stat-card-compact" onclick="window.location.href='eventsb.php'">
+            <div class="stat-header-compact">
+              <div class="stat-label-compact">Events</div>
+              <div class="stat-icon-compact"><i class="fas fa-calendar-alt"></i></div>
+            </div>
+            <div class="stat-value-compact"><?= $upcomingEvents ?></div>
             <div class="stat-details">
-              <span class="stat-badge badge-info">
-                <i class="fas fa-fire"></i> <?= $upcomingEvents ?> Upcoming
-              </span>
-              <span class="stat-badge badge-success">
-                <i class="fas fa-trophy"></i> Community Tournaments
+              <span class="stat-badge badge-purple" style="font-size: 10px; padding: 2px 8px;">
+                Upcoming
               </span>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- ========== CHARTS SECTION ========== -->
-      <div class="charts-section">
-        <div class="section-header">
-          <div class="section-icon">
-            <i class="fas fa-chart-line"></i>
-          </div>
-          <div class="section-title">Analytics & Statistics</div>
-        </div>
-        <div class="section-subtitle">Platform activity distribution and trading trends</div>
-
-        <!-- Activity Distribution Chart -->
-        <div class="chart-container">
-          <div class="chart-header">
-            <div>
-              <div class="chart-title">
-                <i class="fas fa-chart-pie"></i>
-                Activity Distribution
-              </div>
-              <div class="chart-subtitle">Platform usage breakdown by category</div>
+        <!-- ========== ANALYTICS GRID ========== -->
+        <div class="charts-grid">
+          <!-- Activity Distribution -->
+          <div class="chart-box">
+            <div class="chart-header">
+              <div class="chart-title"><i class="fas fa-chart-pie"></i> Distribution</div>
             </div>
+            <canvas id="distributionChart" style="max-height: 250px;"></canvas>
           </div>
-          <canvas id="distributionChart" style="max-height: 350px;"></canvas>
+
+          <!-- Trading Volume Trend -->
+          <div class="chart-box">
+            <div class="chart-header">
+              <div class="chart-title"><i class="fas fa-chart-line"></i> Performance</div>
+            </div>
+            <canvas id="volumeChart" style="max-height: 250px;"></canvas>
+          </div>
         </div>
 
-        <!-- Trading Volume Chart -->
-        <div class="chart-container">
-          <div class="chart-header">
-            <div>
-              <div class="chart-title">
-                <i class="fas fa-chart-area"></i>
-                Trading Volume Trend
-              </div>
-              <div class="chart-subtitle">Last 6 months trading performance</div>
-            </div>
+        <!-- ========== QUICK ACTIONS ========== -->
+        <div class="dashboard-section">
+          <div class="section-header">
+            <div class="section-icon"><i class="fas fa-bolt"></i></div>
+            <div class="section-title">Quick Actions</div>
           </div>
-          <canvas id="volumeChart" style="max-height: 350px;"></canvas>
-        </div>
-      </div>
-
-      <!-- ========== QUICK ACTIONS ========== -->
-      <div class="dashboard-section">
-        <div class="section-header">
-          <div class="section-icon">
-            <i class="fas fa-bolt"></i>
+          <div class="actions-grid">
+            <a href="users.php" class="action-card">
+              <div class="action-icon"><i class="fas fa-user-plus"></i></div>
+              <div class="action-label">Users</div>
+            </a>
+            <a href="shopb.php" class="action-card">
+              <div class="action-icon"><i class="fas fa-plus-circle"></i></div>
+              <div class="action-label">Product</div>
+            </a>
+            <a href="eventsb.php" class="action-card">
+              <div class="action-icon"><i class="fas fa-calendar-plus"></i></div>
+              <div class="action-label">Event</div>
+            </a>
+            <a href="reclamback.php" class="action-card">
+              <div class="action-icon"><i class="fas fa-comments"></i></div>
+              <div class="action-label">Support</div>
+            </a>
           </div>
-          <div class="section-title">Quick Actions</div>
-        </div>
-        <div class="section-subtitle">Common administrative tasks and shortcuts</div>
-
-        <div class="actions-grid">
-          <a href="users.php" class="action-card">
-            <div class="action-icon">
-              <i class="fas fa-user-plus"></i>
-            </div>
-            <div class="action-label">Manage Users</div>
-          </a>
-
-          <a href="shopb.php" class="action-card">
-            <div class="action-icon">
-              <i class="fas fa-plus-circle"></i>
-            </div>
-            <div class="action-label">Add Product</div>
-          </a>
-
-          <a href="eventsb.php" class="action-card">
-            <div class="action-icon">
-              <i class="fas fa-calendar-plus"></i>
-            </div>
-            <div class="action-label">Create Event</div>
-          </a>
-
-          <a href="reclamback.php" class="action-card">
-            <div class="action-icon">
-              <i class="fas fa-comments"></i>
-            </div>
-            <div class="action-label">View Support</div>
-          </a>
         </div>
       </div>
-
     </div>
-  </div>
 
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script>
@@ -707,8 +530,8 @@ foreach ($allEvents as $evtData) {
       data: {
         labels: ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
         datasets: [{
-          label: 'Trading Volume ($)',
-          data: [1200, 1900, 3000, 5000, 2300, <?= $tradingStats['total_value'] > 0 ? $tradingStats['total_value'] : 4500 ?>],
+          label: 'Platform Revenue ($)',
+          data: [1200, 1900, 3000, 5000, 2300, <?= $combinedVolume > 0 ? $combinedVolume : 4500 ?>],
           borderColor: '#ff7a00',
           backgroundColor: 'rgba(255, 122, 0, 0.15)',
           tension: 0.4,

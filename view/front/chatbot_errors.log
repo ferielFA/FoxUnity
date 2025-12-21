@@ -1,0 +1,266 @@
+[21-Dec-2025 23:09:13 Europe/Berlin] ===== CHATBOT HANDLER START =====
+[21-Dec-2025 23:09:13 Europe/Berlin] Request method: POST
+[21-Dec-2025 23:09:13 Europe/Berlin] Raw input: {"message":"bonjour"}
+[21-Dec-2025 23:09:13 Europe/Berlin] Decoded data: Array
+(
+    [message] => bonjour
+)
+
+[21-Dec-2025 23:09:13 Europe/Berlin] User message: bonjour
+[21-Dec-2025 23:09:13 Europe/Berlin] Loading FoxyEventsController...
+[21-Dec-2025 23:09:13 Europe/Berlin] Creating FoxyEventsController instance...
+[21-Dec-2025 23:09:13 Europe/Berlin] Processing message...
+[21-Dec-2025 23:09:13 Europe/Berlin] Response: Array
+(
+    [success] => 1
+    [message] => 👋 Salut ! Je suis Foxy Events, votre assistant virtuel ! Je peux vous aider à trouver des événements gaming. Essayez de me demander : 'Quels événements ce week-end ?' ou 'Tournois Valorant en mars'
+    [events] => Array
+        (
+        )
+
+)
+
+[21-Dec-2025 23:09:13 Europe/Berlin] JSON response: {"success":true,"message":"\ud83d\udc4b Salut ! Je suis Foxy Events, votre assistant virtuel ! Je peux vous aider \u00e0 trouver des \u00e9v\u00e9nements gaming. Essayez de me demander : 'Quels \u00e9v\u00e9nements ce week-end ?' ou 'Tournois Valorant en mars'","events":[]}
+[21-Dec-2025 23:09:13 Europe/Berlin] JSON last error: No error
+[21-Dec-2025 23:09:13 Europe/Berlin] ===== CHATBOT HANDLER END =====
+[21-Dec-2025 23:14:46 Europe/Berlin] ===== CHATBOT HANDLER START =====
+[21-Dec-2025 23:14:46 Europe/Berlin] Request method: POST
+[21-Dec-2025 23:14:46 Europe/Berlin] Raw input: {"message":"\"Événements populaires"}
+[21-Dec-2025 23:14:46 Europe/Berlin] Decoded data: Array
+(
+    [message] => "Événements populaires
+)
+
+[21-Dec-2025 23:14:46 Europe/Berlin] User message: "Événements populaires
+[21-Dec-2025 23:14:46 Europe/Berlin] Loading FoxyEventsController...
+[21-Dec-2025 23:14:46 Europe/Berlin] Creating FoxyEventsController instance...
+[21-Dec-2025 23:14:46 Europe/Berlin] Processing message...
+[21-Dec-2025 23:14:46 Europe/Berlin] ===== getPopularEvents START =====
+[21-Dec-2025 23:14:46 Europe/Berlin] upcomingEvents count: 16
+[21-Dec-2025 23:14:46 Europe/Berlin] Processing event: Retro with 0 participants
+[21-Dec-2025 23:14:46 Europe/Berlin] Processing event: VR Gaming  with 0 participants
+[21-Dec-2025 23:14:46 Europe/Berlin] Processing event: Game Development Bootcamp with 0 participants
+[21-Dec-2025 23:14:46 Europe/Berlin] Processing event: Fighting Games  with 1 participants
+[21-Dec-2025 23:14:46 Europe/Berlin] Processing event:  Gaming Night with 0 participants
+[21-Dec-2025 23:14:46 Europe/Berlin] Processing event: test1 with 0 participants
+[21-Dec-2025 23:14:46 Europe/Berlin] Processing event: Retro Gaming Night with 1 participants
+[21-Dec-2025 23:14:46 Europe/Berlin] Processing event: Gaming Tournament 2026 with 1 participants
+[21-Dec-2025 23:14:46 Europe/Berlin] Processing event: LAN Party - Spring Edition with 1 participants
+[21-Dec-2025 23:14:46 Europe/Berlin] Processing event: Apex Legends Championship with 0 participants
+[21-Dec-2025 23:14:46 Europe/Berlin] Processing event: Cosplay Convention 2026 with 1 participants
+[21-Dec-2025 23:14:46 Europe/Berlin] Processing event: Valorant Masters Tunisia with 0 participants
+[21-Dec-2025 23:14:46 Europe/Berlin] Processing event: FIFA 26 Tournament with 1 participants
+[21-Dec-2025 23:14:46 Europe/Berlin] Processing event: Tech & Gaming Expo 2026 with 0 participants
+[21-Dec-2025 23:14:46 Europe/Berlin] Processing event: Minecraft Building Contest with 0 participants
+[21-Dec-2025 23:14:46 Europe/Berlin] Processing event: League of Legends Clash with 0 participants
+[21-Dec-2025 23:14:46 Europe/Berlin] Before usort, count: 16
+[21-Dec-2025 23:14:46 Europe/Berlin] After usort
+[21-Dec-2025 23:14:46 Europe/Berlin] Top events count: 5
+[21-Dec-2025 23:14:46 Europe/Berlin] Formatting event: Fighting Games 
+[21-Dec-2025 23:14:46 Europe/Berlin] Formatting event: 25
+[21-Dec-2025 23:14:46 Europe/Berlin] Event formatted successfully
+[21-Dec-2025 23:14:46 Europe/Berlin] Formatting event: Retro Gaming Night
+[21-Dec-2025 23:14:46 Europe/Berlin] Formatting event: 16
+[21-Dec-2025 23:14:46 Europe/Berlin] Event formatted successfully
+[21-Dec-2025 23:14:46 Europe/Berlin] Formatting event: Gaming Tournament 2026
+[21-Dec-2025 23:14:46 Europe/Berlin] Formatting event: 11
+[21-Dec-2025 23:14:46 Europe/Berlin] Event formatted successfully
+[21-Dec-2025 23:14:46 Europe/Berlin] Formatting event: LAN Party - Spring Edition
+[21-Dec-2025 23:14:46 Europe/Berlin] Formatting event: 12
+[21-Dec-2025 23:14:46 Europe/Berlin] Event formatted successfully
+[21-Dec-2025 23:14:46 Europe/Berlin] Formatting event: Cosplay Convention 2026
+[21-Dec-2025 23:14:46 Europe/Berlin] Formatting event: 14
+[21-Dec-2025 23:14:46 Europe/Berlin] Event formatted successfully
+[21-Dec-2025 23:14:46 Europe/Berlin] Final events count: 5
+[21-Dec-2025 23:14:46 Europe/Berlin] ===== getPopularEvents END =====
+[21-Dec-2025 23:14:46 Europe/Berlin] Response: Array
+(
+    [success] => 1
+    [message] => ⭐ Voici les événements les plus populaires !
+    [events] => Array
+        (
+            [0] => Array
+                (
+                    [id] => 25
+                    [title] => Fighting Games 
+                    [date] => 2026-01-09 21:41:00
+                    [location] => marsa
+                    [description] => Tournoi de jeux de combat : Tekken, Street Fighter, Mortal Kombat. Matches rapides et ambiance comp�...
+                )
+
+            [1] => Array
+                (
+                    [id] => 16
+                    [title] => Retro Gaming Night
+                    [date] => 2026-01-30 19:00:00
+                    [location] => Game Bar, Hammamet
+                    [description] => SoirÚe dÚdiÚe aux jeux rÚtro des annÚes 80-90. Consoles classiques et arcade....
+                )
+
+            [2] => Array
+                (
+                    [id] => 11
+                    [title] => Gaming Tournament 2026
+                    [date] => 2026-02-15 14:00:00
+                    [location] => Tunis Gaming Arena, La Marsa
+                    [description] => Grand tournoi de gaming avec des prix exceptionnels. Participez aux compÚtitions de CS2, Valorant, ...
+                )
+
+            [3] => Array
+                (
+                    [id] => 12
+                    [title] => LAN Party - Spring Edition
+                    [date] => 2026-03-20 18:00:00
+                    [location] => Espace Culturel, Sousse
+                    [description] => SoirÚe LAN gÚante avec 200 participants. Apportez votre PC et jouez toute la nuit !...
+                )
+
+            [4] => Array
+                (
+                    [id] => 14
+                    [title] => Cosplay Convention 2026
+                    [date] => 2026-05-25 10:00:00
+                    [location] => Palais des CongrÞs, Tunis
+                    [description] => Convention de cosplay avec concours, stands de marchands, et rencontres avec des artistes....
+                )
+
+        )
+
+)
+
+[21-Dec-2025 23:14:46 Europe/Berlin] JSON response: 
+[21-Dec-2025 23:14:46 Europe/Berlin] JSON last error: Malformed UTF-8 characters, possibly incorrectly encoded
+[21-Dec-2025 23:14:46 Europe/Berlin] ===== CHATBOT HANDLER END =====
+[21-Dec-2025 23:14:50 Europe/Berlin] ===== CHATBOT HANDLER START =====
+[21-Dec-2025 23:14:50 Europe/Berlin] Request method: POST
+[21-Dec-2025 23:14:50 Europe/Berlin] Raw input: {"message":"Événements populaires"}
+[21-Dec-2025 23:14:50 Europe/Berlin] Decoded data: Array
+(
+    [message] => Événements populaires
+)
+
+[21-Dec-2025 23:14:50 Europe/Berlin] User message: Événements populaires
+[21-Dec-2025 23:14:50 Europe/Berlin] Loading FoxyEventsController...
+[21-Dec-2025 23:14:50 Europe/Berlin] Creating FoxyEventsController instance...
+[21-Dec-2025 23:14:50 Europe/Berlin] Processing message...
+[21-Dec-2025 23:14:50 Europe/Berlin] ===== getPopularEvents START =====
+[21-Dec-2025 23:14:50 Europe/Berlin] upcomingEvents count: 16
+[21-Dec-2025 23:14:50 Europe/Berlin] Processing event: Retro with 0 participants
+[21-Dec-2025 23:14:50 Europe/Berlin] Processing event: VR Gaming  with 0 participants
+[21-Dec-2025 23:14:50 Europe/Berlin] Processing event: Game Development Bootcamp with 0 participants
+[21-Dec-2025 23:14:50 Europe/Berlin] Processing event: Fighting Games  with 1 participants
+[21-Dec-2025 23:14:50 Europe/Berlin] Processing event:  Gaming Night with 0 participants
+[21-Dec-2025 23:14:50 Europe/Berlin] Processing event: test1 with 0 participants
+[21-Dec-2025 23:14:50 Europe/Berlin] Processing event: Retro Gaming Night with 1 participants
+[21-Dec-2025 23:14:50 Europe/Berlin] Processing event: Gaming Tournament 2026 with 1 participants
+[21-Dec-2025 23:14:50 Europe/Berlin] Processing event: LAN Party - Spring Edition with 1 participants
+[21-Dec-2025 23:14:50 Europe/Berlin] Processing event: Apex Legends Championship with 0 participants
+[21-Dec-2025 23:14:50 Europe/Berlin] Processing event: Cosplay Convention 2026 with 1 participants
+[21-Dec-2025 23:14:50 Europe/Berlin] Processing event: Valorant Masters Tunisia with 0 participants
+[21-Dec-2025 23:14:50 Europe/Berlin] Processing event: FIFA 26 Tournament with 1 participants
+[21-Dec-2025 23:14:50 Europe/Berlin] Processing event: Tech & Gaming Expo 2026 with 0 participants
+[21-Dec-2025 23:14:50 Europe/Berlin] Processing event: Minecraft Building Contest with 0 participants
+[21-Dec-2025 23:14:50 Europe/Berlin] Processing event: League of Legends Clash with 0 participants
+[21-Dec-2025 23:14:50 Europe/Berlin] Before usort, count: 16
+[21-Dec-2025 23:14:50 Europe/Berlin] After usort
+[21-Dec-2025 23:14:50 Europe/Berlin] Top events count: 5
+[21-Dec-2025 23:14:50 Europe/Berlin] Formatting event: Fighting Games 
+[21-Dec-2025 23:14:50 Europe/Berlin] Formatting event: 25
+[21-Dec-2025 23:14:50 Europe/Berlin] Event formatted successfully
+[21-Dec-2025 23:14:50 Europe/Berlin] Formatting event: Retro Gaming Night
+[21-Dec-2025 23:14:50 Europe/Berlin] Formatting event: 16
+[21-Dec-2025 23:14:50 Europe/Berlin] Event formatted successfully
+[21-Dec-2025 23:14:50 Europe/Berlin] Formatting event: Gaming Tournament 2026
+[21-Dec-2025 23:14:50 Europe/Berlin] Formatting event: 11
+[21-Dec-2025 23:14:50 Europe/Berlin] Event formatted successfully
+[21-Dec-2025 23:14:50 Europe/Berlin] Formatting event: LAN Party - Spring Edition
+[21-Dec-2025 23:14:50 Europe/Berlin] Formatting event: 12
+[21-Dec-2025 23:14:50 Europe/Berlin] Event formatted successfully
+[21-Dec-2025 23:14:50 Europe/Berlin] Formatting event: Cosplay Convention 2026
+[21-Dec-2025 23:14:50 Europe/Berlin] Formatting event: 14
+[21-Dec-2025 23:14:50 Europe/Berlin] Event formatted successfully
+[21-Dec-2025 23:14:50 Europe/Berlin] Final events count: 5
+[21-Dec-2025 23:14:50 Europe/Berlin] ===== getPopularEvents END =====
+[21-Dec-2025 23:14:50 Europe/Berlin] Response: Array
+(
+    [success] => 1
+    [message] => ⭐ Voici les événements les plus populaires !
+    [events] => Array
+        (
+            [0] => Array
+                (
+                    [id] => 25
+                    [title] => Fighting Games 
+                    [date] => 2026-01-09 21:41:00
+                    [location] => marsa
+                    [description] => Tournoi de jeux de combat : Tekken, Street Fighter, Mortal Kombat. Matches rapides et ambiance comp�...
+                )
+
+            [1] => Array
+                (
+                    [id] => 16
+                    [title] => Retro Gaming Night
+                    [date] => 2026-01-30 19:00:00
+                    [location] => Game Bar, Hammamet
+                    [description] => SoirÚe dÚdiÚe aux jeux rÚtro des annÚes 80-90. Consoles classiques et arcade....
+                )
+
+            [2] => Array
+                (
+                    [id] => 11
+                    [title] => Gaming Tournament 2026
+                    [date] => 2026-02-15 14:00:00
+                    [location] => Tunis Gaming Arena, La Marsa
+                    [description] => Grand tournoi de gaming avec des prix exceptionnels. Participez aux compÚtitions de CS2, Valorant, ...
+                )
+
+            [3] => Array
+                (
+                    [id] => 12
+                    [title] => LAN Party - Spring Edition
+                    [date] => 2026-03-20 18:00:00
+                    [location] => Espace Culturel, Sousse
+                    [description] => SoirÚe LAN gÚante avec 200 participants. Apportez votre PC et jouez toute la nuit !...
+                )
+
+            [4] => Array
+                (
+                    [id] => 14
+                    [title] => Cosplay Convention 2026
+                    [date] => 2026-05-25 10:00:00
+                    [location] => Palais des CongrÞs, Tunis
+                    [description] => Convention de cosplay avec concours, stands de marchands, et rencontres avec des artistes....
+                )
+
+        )
+
+)
+
+[21-Dec-2025 23:14:50 Europe/Berlin] JSON response: 
+[21-Dec-2025 23:14:50 Europe/Berlin] JSON last error: Malformed UTF-8 characters, possibly incorrectly encoded
+[21-Dec-2025 23:14:50 Europe/Berlin] ===== CHATBOT HANDLER END =====
+[21-Dec-2025 23:14:51 Europe/Berlin] ===== CHATBOT HANDLER START =====
+[21-Dec-2025 23:14:51 Europe/Berlin] Request method: POST
+[21-Dec-2025 23:14:51 Europe/Berlin] Raw input: {"message":"Événements ce week-end"}
+[21-Dec-2025 23:14:51 Europe/Berlin] Decoded data: Array
+(
+    [message] => Événements ce week-end
+)
+
+[21-Dec-2025 23:14:51 Europe/Berlin] User message: Événements ce week-end
+[21-Dec-2025 23:14:51 Europe/Berlin] Loading FoxyEventsController...
+[21-Dec-2025 23:14:51 Europe/Berlin] Creating FoxyEventsController instance...
+[21-Dec-2025 23:14:51 Europe/Berlin] Processing message...
+[21-Dec-2025 23:14:51 Europe/Berlin] Response: Array
+(
+    [success] => 1
+    [message] => 😕 Aucun événement prévu ce week-end. Voulez-vous voir les événements à venir ?
+    [events] => Array
+        (
+        )
+
+)
+
+[21-Dec-2025 23:14:51 Europe/Berlin] JSON response: {"success":true,"message":"\ud83d\ude15 Aucun \u00e9v\u00e9nement pr\u00e9vu ce week-end. Voulez-vous voir les \u00e9v\u00e9nements \u00e0 venir ?","events":[]}
+[21-Dec-2025 23:14:51 Europe/Berlin] JSON last error: No error
+[21-Dec-2025 23:14:51 Europe/Berlin] ===== CHATBOT HANDLER END =====

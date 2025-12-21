@@ -18,10 +18,10 @@ class NewsAdminController
     {
         global $pdo;
 
-        $this->action     = $_GET['action'] ?? '';
-        $this->id         = $_GET['id'] ?? '';
+        $this->action = $_GET['action'] ?? '';
+        $this->id = $_GET['id'] ?? '';
         $this->categories = Categorie::getAll();
-        $this->articles   = Article::getAll();
+        $this->articles = Article::getAll();
         foreach ($this->articles as &$art) {
             $art['sentiment_stats'] = Comment::getSentimentStats($art['idArticle']);
         }
@@ -47,6 +47,9 @@ class NewsAdminController
                     break;
                 case 'update_comment':
                     $this->handleUpdateComment();
+                    break;
+                case 'delete_comment':
+                    $this->handleDeleteComment();
                     break;
             }
         }
@@ -75,7 +78,8 @@ class NewsAdminController
         if ($ok) {
             $this->messages[] = 'Article added successfully. View it on the news page.';
             $count = Categorie::notifySubscribersForArticle($item);
-            if ($count > 0) $this->messages[] = "Notification sent to $count subscribers.";
+            if ($count > 0)
+                $this->messages[] = "Notification sent to $count subscribers.";
 
             header('Refresh: 1.5; url=/projet_web/view/front/news.php');
         } else {
@@ -106,17 +110,18 @@ class NewsAdminController
         [$ok, $after] = Article::update($this->id, $_POST, $_FILES);
         if ($ok) {
             $this->messages[] = 'Article updated successfully.';
-            
+
             // Trigger Notification if HOT and not sent yet (handled by service)
             if (!empty($after['hot'])) {
                 // We need the full article record with ID to check flag
-                $full = Article::findBySlug($this->id); 
+                $full = Article::findBySlug($this->id);
                 // findBySlug returns array, let's ensure we have notification status
                 // If the update didn't return notification_sent, retrieve it.
                 // Ideally, Service queries DB or we add it to Repo. 
                 // Let's rely on Service to query/check. Pass $full.
-                 $count = Categorie::notifySubscribersForArticle($full);
-                 if ($count > 0) $this->messages[] = "Notification sent to $count subscribers.";
+                $count = Categorie::notifySubscribersForArticle($full);
+                if ($count > 0)
+                    $this->messages[] = "Notification sent to $count subscribers.";
             }
 
         } else {
@@ -149,9 +154,10 @@ class NewsAdminController
         if ($res !== null) {
             $this->messages[] = 'Article ' . ($res ? 'marked as hot' : 'removed from hot news') . '.';
             if ($res) { // became hot
-                 $full = Article::findBySlug($this->id);
-                 $count = Categorie::notifySubscribersForArticle($full);
-                 if ($count > 0) $this->messages[] = "Notification sent to $count subscribers.";
+                $full = Article::findBySlug($this->id);
+                $count = Categorie::notifySubscribersForArticle($full);
+                if ($count > 0)
+                    $this->messages[] = "Notification sent to $count subscribers.";
             }
         } else {
             $this->errors[] = 'Failed to update hot status — database error.';
@@ -196,6 +202,28 @@ class NewsAdminController
             $this->messages[] = 'Comment updated.';
         } else {
             $this->errors[] = 'Failed to update comment.';
+        }
+    }
+
+    private function handleDeleteComment(): void
+    {
+        $commentId = isset($_POST['id_comment']) ? intval($_POST['id_comment']) : 0;
+        $slug = $_POST['slug'] ?? '';
+
+        if (empty($slug)) {
+            $this->errors[] = 'Missing article slug for comment deletion.';
+            return;
+        }
+
+        if ($commentId <= 0) {
+            $this->errors[] = 'Invalid comment ID.';
+            return;
+        }
+
+        if (Comment::deleteById($commentId)) {
+            $this->messages[] = 'Comment deleted successfully.';
+        } else {
+            $this->errors[] = 'Failed to delete comment.';
         }
     }
 
@@ -260,17 +288,13 @@ class NewsAdminController
 $__newsAdminController = new NewsAdminController();
 $__newsAdminController->handleRequest();
 
-$messages   = $__newsAdminController->getMessages();
-$errors     = $__newsAdminController->getErrors();
+$messages = $__newsAdminController->getMessages();
+$errors = $__newsAdminController->getErrors();
 $categories = $__newsAdminController->getCategories();
-$data       = $__newsAdminController->getArticles();
-$editing    = $__newsAdminController->getEditing();
-$action     = $__newsAdminController->getAction();
-$id         = $__newsAdminController->getId();
+$data = $__newsAdminController->getArticles();
+$editing = $__newsAdminController->getEditing();
+$action = $__newsAdminController->getAction();
+$id = $__newsAdminController->getId();
 
 unset($__newsAdminController);
 ?>
-
-
-
-

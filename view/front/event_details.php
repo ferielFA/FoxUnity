@@ -12,6 +12,11 @@ $commentController = new CommentController();
 $isLoggedIn = UserController::isLoggedIn();
 $currentUser = UserController::getCurrentUser();
 
+$userImage = null;
+if ($currentUser && $currentUser->getImage()) {
+    $userImage = '../../view/' . $currentUser->getImage();
+}
+
 $message = '';
 $event = null;
 $participants = [];
@@ -23,7 +28,7 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     exit;
 }
 
-$eventId = (int)$_GET['id'];
+$eventId = (int) $_GET['id'];
 $event = $eventController->lireParId($eventId);
 
 if (!$event) {
@@ -44,14 +49,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     // Check if already registered
     $emailToCheck = $isLoggedIn ? $currentUser->getEmail() : htmlspecialchars($_POST['email_participant']);
     $isAlreadyRegistered = $participationController->verifierInscription($emailToCheck, $eventId);
-    
+
     if ($isAlreadyRegistered) {
         $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> You are already registered for this event!</div>';
     } else {
         $participantId = $isLoggedIn ? $currentUser->getId() : null;
         $participantName = $isLoggedIn ? $currentUser->getUsername() : htmlspecialchars($_POST['nom_participant']);
         $participantEmail = $isLoggedIn ? $currentUser->getEmail() : htmlspecialchars($_POST['email_participant']);
-        
+
         $participation = new Participation(
             null,
             $eventId,
@@ -60,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $participantEmail,
             new DateTime()
         );
-        
+
         if ($participationController->inscrire($participation)) {
             $message = '<div class="alert success"><i class="fas fa-check-circle"></i> Registration confirmed! Welcome aboard!</div>';
             // Refresh participants list
@@ -77,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $userId = $isLoggedIn ? $currentUser->getId() : null;
     $userName = $isLoggedIn ? $currentUser->getUsername() : htmlspecialchars($_POST['user_name']);
     $userEmail = $isLoggedIn ? $currentUser->getEmail() : htmlspecialchars($_POST['user_email']);
-    
+
     $comment = new Comment(
         null,
         $eventId,
@@ -85,9 +90,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $userName,
         $userEmail,
         htmlspecialchars($_POST['comment_content']),
-        (int)$_POST['rating']
+        (int) $_POST['rating']
     );
-    
+
     if ($commentController->addComment($comment)) {
         $message = '<div class="alert success"><i class="fas fa-star"></i> Merci pour votre avis !</div>';
         // Refresh comments and stats
@@ -100,9 +105,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
 // Handle comment interactions (like/dislike/report) via GET
 if (isset($_GET['action']) && isset($_GET['comment_id'])) {
-    $commentId = (int)$_GET['comment_id'];
+    $commentId = (int) $_GET['comment_id'];
     $action = $_GET['action'];
-    
+
     if ($action === 'like' && isset($_GET['user_email'])) {
         $userEmail = $_GET['user_email'];
         $userId = $isLoggedIn ? $currentUser->getId() : null;
@@ -113,7 +118,7 @@ if (isset($_GET['action']) && isset($_GET['comment_id'])) {
         header("Location: event_details.php?id=$eventId");
         exit;
     }
-    
+
     if ($action === 'dislike' && isset($_GET['user_email'])) {
         $userEmail = $_GET['user_email'];
         $userId = $isLoggedIn ? $currentUser->getId() : null;
@@ -123,7 +128,7 @@ if (isset($_GET['action']) && isset($_GET['comment_id'])) {
         header("Location: event_details.php?id=$eventId");
         exit;
     }
-    
+
     if ($action === 'report' && isset($_GET['reason'])) {
         $reason = htmlspecialchars($_GET['reason']);
         if ($commentController->reportComment($commentId, $reason)) {
@@ -143,12 +148,14 @@ $statuts = [
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($event->getTitre()) ?> - FoxUnity</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .alert {
@@ -162,12 +169,27 @@ $statuts = [
             gap: 12px;
             animation: slideDown 0.5s ease;
         }
-        .alert.success { background: linear-gradient(135deg, #10b981, #059669); color: white; }
-        .alert.error { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
-        
+
+        .alert.success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .alert.error {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+
         @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .event-details-section {
@@ -203,7 +225,7 @@ $statuts = [
             border-radius: 20px;
             padding: 40px;
             margin-bottom: 30px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
         }
 
         .event-status-badge {
@@ -215,10 +237,25 @@ $statuts = [
             margin-bottom: 15px;
         }
 
-        .badge-upcoming { background: #3b82f6; color: #fff; }
-        .badge-ongoing { background: #10b981; color: #fff; }
-        .badge-completed { background: #6b7280; color: #fff; }
-        .badge-cancelled { background: #ef4444; color: #fff; }
+        .badge-upcoming {
+            background: #3b82f6;
+            color: #fff;
+        }
+
+        .badge-ongoing {
+            background: #10b981;
+            color: #fff;
+        }
+
+        .badge-completed {
+            background: #6b7280;
+            color: #fff;
+        }
+
+        .badge-cancelled {
+            background: #ef4444;
+            color: #fff;
+        }
 
         .event-title-detail {
             font-family: 'Orbitron', sans-serif;
@@ -277,7 +314,7 @@ $statuts = [
             background: linear-gradient(135deg, #16161a, #1b1b20);
             border-radius: 20px;
             padding: 40px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
         }
 
         .section-title {
@@ -306,7 +343,7 @@ $statuts = [
             background: linear-gradient(135deg, #16161a, #1b1b20);
             border-radius: 20px;
             padding: 30px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
             text-align: center;
         }
 
@@ -362,7 +399,7 @@ $statuts = [
             background: linear-gradient(135deg, #16161a, #1b1b20);
             border-radius: 20px;
             padding: 40px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
         }
 
         .participant-item {
@@ -431,8 +468,8 @@ $statuts = [
         .form-group input {
             width: 100%;
             padding: 14px 18px;
-            background: rgba(255,255,255,0.05);
-            border: 2px solid rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
             border-radius: 10px;
             color: #fff;
             font-size: 1rem;
@@ -443,7 +480,7 @@ $statuts = [
         .form-group input:focus {
             outline: none;
             border-color: #f5c242;
-            background: rgba(245,194,66,0.05);
+            background: rgba(245, 194, 66, 0.05);
         }
 
         .error-message {
@@ -482,7 +519,7 @@ $statuts = [
             border-radius: 20px;
             padding: 40px;
             margin-bottom: 30px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
         }
 
         .rating-overview {
@@ -540,7 +577,7 @@ $statuts = [
         .rating-bar-container {
             flex: 1;
             height: 8px;
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 10px;
             overflow: hidden;
         }
@@ -569,7 +606,7 @@ $statuts = [
 
         .star-rating-input .star {
             cursor: pointer;
-            color: rgba(255,255,255,0.2);
+            color: rgba(255, 255, 255, 0.2);
             transition: all 0.2s ease;
         }
 
@@ -583,8 +620,8 @@ $statuts = [
             width: 100%;
             min-height: 120px;
             padding: 14px 18px;
-            background: rgba(255,255,255,0.05);
-            border: 2px solid rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
             border-radius: 10px;
             color: #fff;
             font-size: 1rem;
@@ -596,7 +633,7 @@ $statuts = [
         .form-group textarea:focus {
             outline: none;
             border-color: #f5c242;
-            background: rgba(245,194,66,0.05);
+            background: rgba(245, 194, 66, 0.05);
         }
 
         .btn-submit-comment {
@@ -623,7 +660,7 @@ $statuts = [
 
         /* Comment Item */
         .comment-item {
-            background: rgba(255,255,255,0.03);
+            background: rgba(255, 255, 255, 0.03);
             padding: 25px;
             border-radius: 15px;
             margin-bottom: 20px;
@@ -632,7 +669,7 @@ $statuts = [
         }
 
         .comment-item:hover {
-            background: rgba(255,255,255,0.05);
+            background: rgba(255, 255, 255, 0.05);
             border-left-color: #f5c242;
         }
 
@@ -713,7 +750,7 @@ $statuts = [
         }
 
         .comment-action-btn:hover {
-            background: rgba(255,255,255,0.05);
+            background: rgba(255, 255, 255, 0.05);
             color: #fff;
         }
 
@@ -787,8 +824,160 @@ $statuts = [
         #currentLang {
             font-size: 0.85rem;
         }
+
+        /* User Dropdown Styles */
+        .user-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .username-display {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            padding: 5px 10px;
+            border-radius: 8px;
+        }
+
+        .username-display:hover {
+            background: rgba(255, 122, 0, 0.1);
+        }
+
+        .username-display img {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ff7a00;
+        }
+
+        .username-display span {
+            color: #ff7a00;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .username-display i.fa-chevron-down {
+            font-size: 12px;
+            color: #ff7a00;
+            transition: transform 0.3s ease;
+        }
+
+        .username-display i.fa-user-circle {
+            font-size: 24px;
+            color: #ff7a00;
+        }
+
+        .user-dropdown.active .username-display i.fa-chevron-down {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 10px;
+            background: rgba(20, 20, 20, 0.98);
+            border: 2px solid rgba(255, 122, 0, 0.3);
+            border-radius: 12px;
+            min-width: 200px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .user-dropdown.active .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-item {
+            padding: 12px 15px;
+            color: #fff;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(255, 122, 0, 0.1);
+            border-left-color: #ff7a00;
+        }
+
+        .dropdown-item i {
+            font-size: 16px;
+            color: #ff7a00;
+            width: 20px;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: rgba(255, 122, 0, 0.2);
+            margin: 5px 0;
+        }
+
+        .dropdown-item.logout {
+            color: #ff4444;
+        }
+
+        .dropdown-item.logout i {
+            color: #ff4444;
+        }
+
+        .dropdown-item.logout:hover {
+            background: rgba(255, 68, 68, 0.1);
+            border-left-color: #ff4444;
+        }
+
+        /* Cart Icon Styles */
+        .cart-icon {
+            color: #ff7a00 !important;
+            position: relative;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cart-icon:hover {
+            color: #ff9933 !important;
+            transform: translateY(-2px);
+        }
+
+        .cart-icon i {
+            color: #ff7a00;
+            font-size: 18px;
+        }
+
+        .cart-count {
+            background: linear-gradient(135deg, #ff7a00, #ff4f00);
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: 700;
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            min-width: 18px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(255, 122, 0, 0.4);
+        }
     </style>
 </head>
+
 <body>
     <div class="bubbles">
         <div class="bubble"></div>
@@ -803,34 +992,90 @@ $statuts = [
             <img src="../images/Nine__1_-removebg-preview.png" alt="FoxUnity Logo" class="site-logo">
             <span class="site-name">FoxUnity</span>
         </div>
-        
+
         <nav class="site-nav">
             <a href="index.php" data-lang-en="Home" data-lang-fr="Accueil">Home</a>
             <a href="events.php" class="active" data-lang-en="Events" data-lang-fr="Événements">Events</a>
             <a href="shop.php" data-lang-en="Shop" data-lang-fr="Boutique">Shop</a>
             <a href="trading.php" data-lang-en="Trading" data-lang-fr="Échange">Trading</a>
             <a href="news.php" data-lang-en="News" data-lang-fr="Actualités">News</a>
-            <a href="reclamation.html" data-lang-en="Support" data-lang-fr="Support">Support</a>
-            <a href="about.php" data-lang-en="About Us" data-lang-fr="À Propos">About Us</a>
+            <a href="reclamation.php">Support</a>
+            <a href="contact_us.php">New Request</a>
+            <a href="public_reclamations.php"><i class="fas fa-star"></i> Public Evaluations</a>
+            <a href="about.php">About Us</a>
         </nav>
-        
+
         <div class="header-right">
-            <button id="langToggle" class="lang-toggle" onclick="toggleLanguage()">
-                <i class="fas fa-language"></i>
-                <span id="currentLang">FR</span>
-            </button>
-            <a href="Login.php" class="login-register-link" data-lang-en="Login / Register" data-lang-fr="Connexion / S'inscrire">
-                <i class="fas fa-user"></i> <span>Login / Register</span>
+
+            <div class="user-dropdown" id="userDropdown">
+                <div class="username-display">
+                    <?php if ($isLoggedIn && $currentUser): ?>
+                        <?php if ($userImage): ?>
+                            <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Profile">
+                        <?php else: ?>
+                            <i class="fas fa-user-circle"></i>
+                        <?php endif; ?>
+                        <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
+                    <?php else: ?>
+                        <i class="fas fa-user-circle"></i>
+                        <span>Guest</span>
+                    <?php endif; ?>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+
+                <div class="dropdown-menu">
+                    <?php if ($isLoggedIn && $currentUser): ?>
+                        <a href="profile.php" class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            <span>My Profile</span>
+                        </a>
+                        <a href="tradehis.php" class="dropdown-item">
+                            <i class="fas fa-history"></i>
+                            <span>Trade History</span>
+                        </a>
+                        <a href="events.php?view=history" class="dropdown-item">
+                            <i class="fas fa-ticket-alt"></i>
+                            <span>Event History</span>
+                        </a>
+                        <?php
+                        $userRole = strtolower($currentUser->getRole());
+                        if ($userRole === 'admin' || $userRole === 'superadmin'):
+                            ?>
+                            <a href="../back/dashboard.php" class="dropdown-item">
+                                <i class="fas fa-tachometer-alt"></i>
+                                <span>Dashboard</span>
+                            </a>
+                        <?php endif; ?>
+                        <div class="dropdown-divider"></div>
+                        <a href="logout.php" class="dropdown-item logout">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </a>
+                    <?php else: ?>
+                        <a href="Login.php" class="dropdown-item">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span>Login/Register</span>
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <a href="panier.php" class="cart-icon">
+                <i class="fas fa-shopping-cart"></i> Cart
+                <span class="cart-count">0</span>
             </a>
         </div>
     </header>
 
     <main class="main-section">
-        <?php if ($message): echo $message; endif; ?>
+        <?php if ($message):
+            echo $message;
+        endif; ?>
 
         <section class="event-details-section">
             <div class="event-details-container">
-                <a href="events.php" class="back-button" data-lang-en="Back to Events" data-lang-fr="Retour aux Événements">
+                <a href="events.php" class="back-button" data-lang-en="Back to Events"
+                    data-lang-fr="Retour aux Événements">
                     <i class="fas fa-arrow-left"></i> <span>Back to Events</span>
                 </a>
 
@@ -839,40 +1084,44 @@ $statuts = [
                         <?= $statuts[$event->getStatut()] ?>
                     </span>
                     <h1 class="event-title-detail"><?= htmlspecialchars($event->getTitre()) ?></h1>
-                    
+
                     <div class="event-meta-grid">
                         <div class="meta-item">
                             <i class="fas fa-calendar-check"></i>
                             <div class="meta-content">
-                                <div class="meta-label" data-lang-en="Start Date" data-lang-fr="Date de Début">Start Date</div>
+                                <div class="meta-label" data-lang-en="Start Date" data-lang-fr="Date de Début">Start
+                                    Date</div>
                                 <div class="meta-value"><?= $event->getDateDebut()->format('M d, Y') ?></div>
                             </div>
                         </div>
-                        
+
                         <div class="meta-item">
                             <i class="fas fa-clock"></i>
                             <div class="meta-content">
-                                <div class="meta-label" data-lang-en="Start Time" data-lang-fr="Heure de Début">Start Time</div>
+                                <div class="meta-label" data-lang-en="Start Time" data-lang-fr="Heure de Début">Start
+                                    Time</div>
                                 <div class="meta-value"><?= $event->getDateDebut()->format('H:i') ?></div>
                             </div>
                         </div>
-                        
+
                         <div class="meta-item">
                             <i class="fas fa-calendar-times"></i>
                             <div class="meta-content">
-                                <div class="meta-label" data-lang-en="End Date" data-lang-fr="Date de Fin">End Date</div>
+                                <div class="meta-label" data-lang-en="End Date" data-lang-fr="Date de Fin">End Date
+                                </div>
                                 <div class="meta-value"><?= $event->getDateFin()->format('M d, Y') ?></div>
                             </div>
                         </div>
-                        
+
                         <div class="meta-item">
                             <i class="fas fa-clock"></i>
                             <div class="meta-content">
-                                <div class="meta-label" data-lang-en="End Time" data-lang-fr="Heure de Fin">End Time</div>
+                                <div class="meta-label" data-lang-en="End Time" data-lang-fr="Heure de Fin">End Time
+                                </div>
                                 <div class="meta-value"><?= $event->getDateFin()->format('H:i') ?></div>
                             </div>
                         </div>
-                        
+
                         <div class="meta-item">
                             <i class="fas fa-map-marker-alt"></i>
                             <div class="meta-content">
@@ -880,12 +1129,15 @@ $statuts = [
                                 <div class="meta-value"><?= htmlspecialchars($event->getLieu()) ?></div>
                             </div>
                         </div>
-                        
+
                         <div class="meta-item">
                             <i class="fas fa-users"></i>
                             <div class="meta-content">
-                                <div class="meta-label" data-lang-en="Participants" data-lang-fr="Participants">Participants</div>
-                                <div class="meta-value" data-lang-en="<?= $nbParticipants ?> Registered" data-lang-fr="<?= $nbParticipants ?> Inscrits"><?= $nbParticipants ?> Registered</div>
+                                <div class="meta-label" data-lang-en="Participants" data-lang-fr="Participants">
+                                    Participants</div>
+                                <div class="meta-value" data-lang-en="<?= $nbParticipants ?> Registered"
+                                    data-lang-fr="<?= $nbParticipants ?> Inscrits"><?= $nbParticipants ?> Registered
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -893,7 +1145,8 @@ $statuts = [
 
                 <div class="event-content-grid">
                     <div class="event-description-detail">
-                        <h2 class="section-title" data-lang-en="Event Description" data-lang-fr="Description de l'Événement">
+                        <h2 class="section-title" data-lang-en="Event Description"
+                            data-lang-fr="Description de l'Événement">
                             <i class="fas fa-info-circle"></i>
                             <span>Event Description</span>
                         </h2>
@@ -906,36 +1159,61 @@ $statuts = [
                         <div class="join-card">
                             <div class="participants-display">
                                 <div class="participants-number"><?= $nbParticipants ?></div>
-                                <div class="participants-label" data-lang-en="Participants Registered" data-lang-fr="Participants Inscrits">Participants Registered</div>
+                                <div class="participants-label" data-lang-en="Participants Registered"
+                                    data-lang-fr="Participants Inscrits">Participants Registered</div>
                             </div>
-                            
+
                             <?php if ($event->getStatut() === 'upcoming'): ?>
                                 <form method="POST" id="participationForm" novalidate>
                                     <input type="hidden" name="action" value="participate">
-                                    
+
                                     <?php if (!$isLoggedIn): ?>
                                         <div class="form-group">
-                                            <label for="nom_participant" data-lang-en="Your Name *" data-lang-fr="Votre Nom *">Your Name *</label>
-                                            <input type="text" id="nom_participant" name="nom_participant" placeholder="Enter your full name" data-lang-en="Enter your full name" data-lang-fr="Entrez votre nom complet" required>
+                                            <label for="nom_participant" data-lang-en="Your Name *"
+                                                data-lang-fr="Votre Nom *">Your Name *</label>
+                                            <input type="text" id="nom_participant" name="nom_participant"
+                                                placeholder="Enter your full name" data-lang-en="Enter your full name"
+                                                data-lang-fr="Entrez votre nom complet" required>
                                             <div class="error-message" id="error-nom_participant"></div>
                                         </div>
 
                                         <div class="form-group">
-                                            <label for="email_participant" data-lang-en="Your Email *" data-lang-fr="Votre Email *">Your Email *</label>
-                                            <input type="text" id="email_participant" name="email_participant" placeholder="your.email@example.com" data-lang-en="your.email@example.com" data-lang-fr="votre.email@exemple.com" required>
+                                            <label for="email_participant" data-lang-en="Your Email *"
+                                                data-lang-fr="Votre Email *">Your Email *</label>
+                                            <input type="text" id="email_participant" name="email_participant"
+                                                placeholder="your.email@example.com" data-lang-en="your.email@example.com"
+                                                data-lang-fr="votre.email@exemple.com" required>
                                             <div class="error-message" id="error-email_participant"></div>
                                         </div>
                                     <?php endif; ?>
-                                    
-                                    <button type="submit" class="btn-join-detail" data-lang-en="Join This Event" data-lang-fr="Rejoindre cet Événement">
+
+                                    <button type="button" id="joinEventBtn" class="btn-join-detail" data-lang-en="Join This Event"
+                                        data-lang-fr="Rejoindre cet Événement">
                                         <i class="fas fa-user-plus"></i> <span>Join This Event</span>
                                     </button>
                                 </form>
                             <?php else: ?>
-                                <button class="btn-join-detail" disabled data-lang-en="Registration Closed" data-lang-fr="Inscription Fermée">
+                                <button class="btn-join-detail" disabled data-lang-en="Registration Closed"
+                                    data-lang-fr="Inscription Fermée">
                                     <i class="fas fa-ban"></i> <span>Registration Closed</span>
                                 </button>
                             <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Confirmation Popup -->
+                <div id="confirmationPopup" class="popup-overlay">
+                    <div class="popup-content">
+                        <div class="popup-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h3 class="popup-title">Registration Confirmed!</h3>
+                        <p class="popup-message">You have successfully registered for this event. We're excited to see you there!</p>
+                        <div class="popup-actions">
+                            <button id="closePopupBtn" class="btn-popup-primary">
+                                <i class="fas fa-check"></i> Got it!
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -951,186 +1229,227 @@ $statuts = [
 
                     <!-- Rating Overview -->
                     <?php if ($ratingStats['total'] > 0): ?>
-                    <div class="rating-overview">
-                        <div class="rating-score">
-                            <div class="rating-number"><?= number_format($ratingStats['average'], 1) ?></div>
-                            <div class="rating-stars">
-                                <?php
-                                $fullStars = floor($ratingStats['average']);
-                                $hasHalfStar = ($ratingStats['average'] - $fullStars) >= 0.5;
-                                for ($i = 1; $i <= 5; $i++) {
-                                    if ($i <= $fullStars) {
-                                        echo '<i class="fas fa-star"></i>';
-                                    } elseif ($i == $fullStars + 1 && $hasHalfStar) {
-                                        echo '<i class="fas fa-star-half-alt"></i>';
-                                    } else {
-                                        echo '<i class="far fa-star"></i>';
+                        <div class="rating-overview">
+                            <div class="rating-score">
+                                <div class="rating-number"><?= number_format($ratingStats['average'], 1) ?></div>
+                                <div class="rating-stars">
+                                    <?php
+                                    $fullStars = floor($ratingStats['average']);
+                                    $hasHalfStar = ($ratingStats['average'] - $fullStars) >= 0.5;
+                                    for ($i = 1; $i <= 5; $i++) {
+                                        if ($i <= $fullStars) {
+                                            echo '<i class="fas fa-star"></i>';
+                                        } elseif ($i == $fullStars + 1 && $hasHalfStar) {
+                                            echo '<i class="fas fa-star-half-alt"></i>';
+                                        } else {
+                                            echo '<i class="far fa-star"></i>';
+                                        }
                                     }
-                                }
-                                ?>
-                            </div>
-                    <div class="rating-count" id="totalReviewsCount" data-lang-en="<?= $ratingStats['total'] ?> reviews" data-lang-fr="<?= $ratingStats['total'] ?> avis"><?= $ratingStats['total'] ?> avis</div>
-
-                        <div class="rating-bars">
-                            <?php foreach ([5, 4, 3, 2, 1] as $stars): ?>
-                                <?php 
-                                $count = $ratingStats['distribution'][$stars];
-                                $percentage = $ratingStats['total'] > 0 ? ($count / $ratingStats['total']) * 100 : 0;
-                                ?>
-                                <div class="rating-bar-item">
-                                    <div class="rating-bar-label"><?= $stars ?> <i class="fas fa-star"></i></div>
-                                    <div class="rating-bar-container">
-                                        <div class="rating-bar-fill" style="width: <?= $percentage ?>%"></div>
-                                    </div>
-                                    <div class="rating-bar-count"><?= $count ?></div>
+                                    ?>
                                 </div>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                    <?php endif; ?>
+                                <div class="rating-count" id="totalReviewsCount"
+                                    data-lang-en="<?= $ratingStats['total'] ?> reviews"
+                                    data-lang-fr="<?= $ratingStats['total'] ?> avis"><?= $ratingStats['total'] ?> avis</div>
 
-                    <!-- Comment Form -->
-                    <div style="background: rgba(245,194,66,0.05); padding: 30px; border-radius: 15px; margin-bottom: 30px;">
-                        <h3 style="color: #f5c242; margin-bottom: 20px; font-size: 1.3rem;" data-lang-en="Share Your Experience" data-lang-fr="Partagez votre expérience">
-                            <i class="fas fa-pen"></i> <span>Partagez votre expérience</span>
-                        </h3>
-                        
-                        <?php if ($isLoggedIn): ?>
-                            <div style="background: rgba(245,194,66,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #f5c242;">
-                                <p style="color: #f5c242; margin: 0;">
-                                    <i class="fas fa-user-circle"></i> 
-                                    <span data-lang-en="Posting as: <?= htmlspecialchars($currentUser->getUsername()) ?>" data-lang-fr="Publier en tant que: <?= htmlspecialchars($currentUser->getUsername()) ?>">
-                                        Publier en tant que: <strong><?= htmlspecialchars($currentUser->getUsername()) ?></strong>
-                                    </span>
-                                </p>
-                            </div>
-                            
-                            <form method="POST" action="" id="commentForm" novalidate>
-                                <input type="hidden" name="action" value="add_comment">
-                                
-                                <div class="form-group">
-                                    <label data-lang-en="Rating *" data-lang-fr="Note *">Note *</label>
-                                    <div class="star-rating-input" id="starRating">
-                                        <i class="fas fa-star star" data-rating="1"></i>
-                                        <i class="fas fa-star star" data-rating="2"></i>
-                                        <i class="fas fa-star star" data-rating="3"></i>
-                                        <i class="fas fa-star star" data-rating="4"></i>
-                                        <i class="fas fa-star star" data-rating="5"></i>
-                                    </div>
-                                    <input type="hidden" id="rating" name="rating" value="5">
-                                    <div class="error-message" id="error-rating"></div>
+                                <div class="rating-bars">
+                                    <?php foreach ([5, 4, 3, 2, 1] as $stars): ?>
+                                        <?php
+                                        $count = $ratingStats['distribution'][$stars];
+                                        $percentage = $ratingStats['total'] > 0 ? ($count / $ratingStats['total']) * 100 : 0;
+                                        ?>
+                                        <div class="rating-bar-item">
+                                            <div class="rating-bar-label"><?= $stars ?> <i class="fas fa-star"></i></div>
+                                            <div class="rating-bar-container">
+                                                <div class="rating-bar-fill" style="width: <?= $percentage ?>%"></div>
+                                            </div>
+                                            <div class="rating-bar-count"><?= $count ?></div>
+                                        </div>
+                                    <?php endforeach; ?>
                                 </div>
-
-                                <div class="form-group">
-                                    <label for="comment_content" data-lang-en="Your Review *" data-lang-fr="Votre avis *">Votre avis *</label>
-                                    <textarea id="comment_content" name="comment_content" placeholder="Partagez votre expérience sur cet événement..." data-lang-en="Share your experience about this event..." data-lang-fr="Partagez votre expérience sur cet événement..." required></textarea>
-                                    <div class="error-message" id="error-comment_content"></div>
-                                </div>
-
-                                <button type="submit" class="btn-submit-comment" data-lang-en="Publish My Review" data-lang-fr="Publier mon avis">
-                                    <i class="fas fa-paper-plane"></i> <span>Publier mon avis</span>
-                                </button>
-                            </form>
-                        <?php else: ?>
-                            <div style="text-align: center; padding: 40px 20px;">
-                                <i class="fas fa-lock" style="font-size: 3rem; color: #f5c242; margin-bottom: 15px;"></i>
-                                <h4 style="color: #fff; margin-bottom: 10px;" data-lang-en="Login Required" data-lang-fr="Connexion Requise">Connexion Requise</h4>
-                                <p style="color: #cfd3d8; margin-bottom: 20px;" data-lang-en="Please login to share your review and rating" data-lang-fr="Veuillez vous connecter pour partager votre avis et note">
-                                    Veuillez vous connecter pour partager votre avis et note
-                                </p>
-                                <a href="Login.php" class="btn-submit-comment" style="display: inline-block; text-decoration: none;" data-lang-en="Login / Register" data-lang-fr="Connexion / S'inscrire">
-                                    <i class="fas fa-sign-in-alt"></i> <span>Connexion / S'inscrire</span>
-                                </a>
                             </div>
                         <?php endif; ?>
-                    </div>
 
-                    <!-- Comments List -->
-                    <h3 style="color: #fff; margin-bottom: 25px; font-size: 1.3rem;" data-lang-en="All Reviews (<?= count($comments) ?>)" data-lang-fr="Tous les avis (<?= count($comments) ?>)">
-                    <i class="fas fa-list"></i> <span>Tous les avis (<span id="commentCount"><?= count($comments) ?></span>)</span>
-                    <?php if (empty($comments)): ?>
-                        <div class="empty-comments">
-                            <i class="fas fa-comment-slash"></i>
-                            <h3 data-lang-en="No Reviews Yet" data-lang-fr="Aucun avis pour le moment">Aucun avis pour le moment</h3>
-                            <p data-lang-en="Be the first to share your experience!" data-lang-fr="Soyez le premier à partager votre expérience !">Soyez le premier à partager votre expérience !</p>
-                        </div>
-                    <?php else: ?>
-                        <?php foreach ($comments as $comment): ?>
-                            <div class="comment-item">
-                                <div class="comment-header">
-                                    <div class="comment-author">
-                                        <div class="comment-avatar">
-                                            <?= $comment->getUserInitials() ?>
+                        <!-- Comment Form -->
+                        <div
+                            style="background: rgba(245,194,66,0.05); padding: 30px; border-radius: 15px; margin-bottom: 30px;">
+                            <h3 style="color: #f5c242; margin-bottom: 20px; font-size: 1.3rem;"
+                                data-lang-en="Share Your Experience" data-lang-fr="Partagez votre expérience">
+                                <i class="fas fa-pen"></i> <span>Partagez votre expérience</span>
+                            </h3>
+
+                            <?php if ($isLoggedIn): ?>
+                                <div
+                                    style="background: rgba(245,194,66,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #f5c242;">
+                                    <p style="color: #f5c242; margin: 0;">
+                                        <i class="fas fa-user-circle"></i>
+                                        <span
+                                            data-lang-en="Posting as: <?= htmlspecialchars($currentUser->getUsername()) ?>"
+                                            data-lang-fr="Publier en tant que: <?= htmlspecialchars($currentUser->getUsername()) ?>">
+                                            Publier en tant que:
+                                            <strong><?= htmlspecialchars($currentUser->getUsername()) ?></strong>
+                                        </span>
+                                    </p>
+                                </div>
+
+                                <form method="POST" action="" id="commentForm" novalidate>
+                                    <input type="hidden" name="action" value="add_comment">
+
+                                    <div class="form-group">
+                                        <label data-lang-en="Rating *" data-lang-fr="Note *">Note *</label>
+                                        <div class="star-rating-input" id="starRating">
+                                            <i class="fas fa-star star" data-rating="1"></i>
+                                            <i class="fas fa-star star" data-rating="2"></i>
+                                            <i class="fas fa-star star" data-rating="3"></i>
+                                            <i class="fas fa-star star" data-rating="4"></i>
+                                            <i class="fas fa-star star" data-rating="5"></i>
                                         </div>
-                                        <div class="comment-author-info">
-                                            <h4><?= htmlspecialchars($comment->getUserName()) ?></h4>
-                                            <div class="comment-meta">
-                                                <span class="comment-rating">
-                                                    <?= str_repeat('★', $comment->getRating()) ?><?= str_repeat('☆', 5 - $comment->getRating()) ?>
-                                                </span>
-                                                <span class="comment-time" data-lang-en="<i class='far fa-clock'></i> <?= $comment->getTimeAgo() ?> ago" data-lang-fr="<i class='far fa-clock'></i> Il y a <?= $comment->getTimeAgo() ?>">
-                                                    <i class="far fa-clock"></i> Il y a <?= $comment->getTimeAgo() ?>
-                                                </span>
+                                        <input type="hidden" id="rating" name="rating" value="5">
+                                        <div class="error-message" id="error-rating"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="comment_content" data-lang-en="Your Review *"
+                                            data-lang-fr="Votre avis *">Votre avis *</label>
+                                        <textarea id="comment_content" name="comment_content"
+                                            placeholder="Partagez votre expérience sur cet événement..."
+                                            data-lang-en="Share your experience about this event..."
+                                            data-lang-fr="Partagez votre expérience sur cet événement..."
+                                            required></textarea>
+                                        <div class="error-message" id="error-comment_content"></div>
+                                    </div>
+
+                                    <button type="submit" class="btn-submit-comment" data-lang-en="Publish My Review"
+                                        data-lang-fr="Publier mon avis">
+                                        <i class="fas fa-paper-plane"></i> <span>Publier mon avis</span>
+                                    </button>
+                                </form>
+                            <?php else: ?>
+                                <div style="text-align: center; padding: 40px 20px;">
+                                    <i class="fas fa-lock"
+                                        style="font-size: 3rem; color: #f5c242; margin-bottom: 15px;"></i>
+                                    <h4 style="color: #fff; margin-bottom: 10px;" data-lang-en="Login Required"
+                                        data-lang-fr="Connexion Requise">Connexion Requise</h4>
+                                    <p style="color: #cfd3d8; margin-bottom: 20px;"
+                                        data-lang-en="Please login to share your review and rating"
+                                        data-lang-fr="Veuillez vous connecter pour partager votre avis et note">
+                                        Veuillez vous connecter pour partager votre avis et note
+                                    </p>
+                                    <a href="Login.php" class="btn-submit-comment"
+                                        style="display: inline-block; text-decoration: none;"
+                                        data-lang-en="Login / Register" data-lang-fr="Connexion / S'inscrire">
+                                        <i class="fas fa-sign-in-alt"></i> <span>Connexion / S'inscrire</span>
+                                    </a>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- Comments List -->
+                        <h3 style="color: #fff; margin-bottom: 25px; font-size: 1.3rem;"
+                            data-lang-en="All Reviews (<?= count($comments) ?>)"
+                            data-lang-fr="Tous les avis (<?= count($comments) ?>)">
+                            <i class="fas fa-list"></i> <span>Tous les avis (<span
+                                    id="commentCount"><?= count($comments) ?></span>)</span>
+                            <?php if (empty($comments)): ?>
+                                <div class="empty-comments">
+                                    <i class="fas fa-comment-slash"></i>
+                                    <h3 data-lang-en="No Reviews Yet" data-lang-fr="Aucun avis pour le moment">Aucun avis
+                                        pour le moment</h3>
+                                    <p data-lang-en="Be the first to share your experience!"
+                                        data-lang-fr="Soyez le premier à partager votre expérience !">Soyez le premier à
+                                        partager votre expérience !</p>
+                                </div>
+                            <?php else: ?>
+                                <?php foreach ($comments as $comment): ?>
+                                    <div class="comment-item">
+                                        <div class="comment-header">
+                                            <div class="comment-author">
+                                                <div class="comment-avatar">
+                                                    <?= $comment->getUserInitials() ?>
+                                                </div>
+                                                <div class="comment-author-info">
+                                                    <h4><?= htmlspecialchars($comment->getUserName()) ?></h4>
+                                                    <div class="comment-meta">
+                                                        <span class="comment-rating">
+                                                            <?= str_repeat('★', $comment->getRating()) ?>
+                                                            <?= str_repeat('☆', 5 - $comment->getRating()) ?>
+                                                        </span>
+                                                        <span class="comment-time"
+                                                            data-lang-en="<i class='far fa-clock'></i> <?= $comment->getTimeAgo() ?> ago"
+                                                            data-lang-fr="<i class='far fa-clock'></i> Il y a <?= $comment->getTimeAgo() ?>">
+                                                            <i class="far fa-clock"></i> Il y a <?= $comment->getTimeAgo() ?>
+                                                        </span>
+                                                    </div>
+                                                </div>
                                             </div>
+                                            <?php if ($comment->getIsReported()): ?>
+                                                <span class="reported-badge" data-lang-en="Reported" data-lang-fr="Signalé">
+                                                    <i class="fas fa-flag"></i> <span>Signalé</span>
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
+
+                                        <div class="comment-content">
+                                            <?= nl2br(htmlspecialchars($comment->getContent())) ?>
+                                        </div>
+
+                                        <div class="comment-actions">
+                                            <button class="comment-action-btn like-btn"
+                                                data-comment-id="<?= $comment->getIdComment() ?>" title="Like"
+                                                data-lang-en="Like" data-lang-fr="J'aime">
+                                                <i class="fas fa-thumbs-up"></i>
+                                                <span><?= $comment->getLikes() ?></span>
+                                            </button>
+                                            <button class="comment-action-btn dislike-btn"
+                                                data-comment-id="<?= $comment->getIdComment() ?>" title="Dislike"
+                                                data-lang-en="Dislike" data-lang-fr="Je n'aime pas">
+                                                <i class="fas fa-thumbs-down"></i>
+                                                <span><?= $comment->getDislikes() ?></span>
+                                            </button>
+                                            <?php if (!$comment->getIsReported()): ?>
+                                                <button class="comment-action-btn report-btn"
+                                                    data-comment-id="<?= $comment->getIdComment() ?>" data-lang-en="Report"
+                                                    data-lang-fr="Signaler">
+                                                    <i class="fas fa-flag"></i> <span>Signaler</span>
+                                                </button>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
-                                    <?php if ($comment->getIsReported()): ?>
-                                        <span class="reported-badge" data-lang-en="Reported" data-lang-fr="Signalé">
-                                            <i class="fas fa-flag"></i> <span>Signalé</span>
-                                        </span>
-                                    <?php endif; ?>
-                                </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                    </div>
 
-                                <div class="comment-content">
-                                    <?= nl2br(htmlspecialchars($comment->getContent())) ?>
-                                </div>
+                    <div class="participants-list-card">
+                        <h2 class="section-title" data-lang-en="Registered Participants"
+                            data-lang-fr="Participants Inscrits">
+                            <i class="fas fa-user-friends"></i>
+                            <span>Registered Participants</span>
+                        </h2>
 
-                                <div class="comment-actions">
-                                    <button class="comment-action-btn like-btn" data-comment-id="<?= $comment->getIdComment() ?>" title="Like" data-lang-en="Like" data-lang-fr="J'aime">
-                                        <i class="fas fa-thumbs-up"></i> 
-                                        <span><?= $comment->getLikes() ?></span>
-                                    </button>
-                                    <button class="comment-action-btn dislike-btn" data-comment-id="<?= $comment->getIdComment() ?>" title="Dislike" data-lang-en="Dislike" data-lang-fr="Je n'aime pas">
-                                        <i class="fas fa-thumbs-down"></i> 
-                                        <span><?= $comment->getDislikes() ?></span>
-                                    </button>
-                                    <?php if (!$comment->getIsReported()): ?>
-                                    <button class="comment-action-btn report-btn" data-comment-id="<?= $comment->getIdComment() ?>" data-lang-en="Report" data-lang-fr="Signaler">
-                                        <i class="fas fa-flag"></i> <span>Signaler</span>
-                                    </button>
-                                    <?php endif; ?>
-                                </div>
+                        <?php if (empty($participants)): ?>
+                            <div class="empty-participants">
+                                <i class="fas fa-user-slash"></i>
+                                <p data-lang-en="No participants yet. Be the first to join!"
+                                    data-lang-fr="Aucun participant pour le moment. Soyez le premier à rejoindre !">No
+                                    participants yet. Be the first to join!</p>
                             </div>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </div>
-
-                <div class="participants-list-card">
-                    <h2 class="section-title" data-lang-en="Registered Participants" data-lang-fr="Participants Inscrits">
-                        <i class="fas fa-user-friends"></i>
-                        <span>Registered Participants</span>
-                    </h2>
-                    
-                    <?php if (empty($participants)): ?>
-                        <div class="empty-participants">
-                            <i class="fas fa-user-slash"></i>
-                            <p data-lang-en="No participants yet. Be the first to join!" data-lang-fr="Aucun participant pour le moment. Soyez le premier à rejoindre !">No participants yet. Be the first to join!</p>
-                        </div>
-                    <?php else: ?>
-                        <?php foreach ($participants as $participant): ?>
-                            <div class="participant-item">
-                                <div class="participant-avatar">
-                                    <?= strtoupper(substr($participant->getNomParticipant(), 0, 1)) ?>
+                        <?php else: ?>
+                            <?php foreach ($participants as $participant): ?>
+                                <div class="participant-item">
+                                    <div class="participant-avatar">
+                                        <?= strtoupper(substr($participant->getNomParticipant(), 0, 1)) ?>
+                                    </div>
+                                    <div class="participant-info">
+                                        <div class="participant-name"><?= htmlspecialchars($participant->getNomParticipant()) ?>
+                                        </div>
+                                        <div class="participant-email">
+                                            <?= htmlspecialchars($participant->getEmailParticipant()) ?>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="participant-info">
-                                    <div class="participant-name"><?= htmlspecialchars($participant->getNomParticipant()) ?></div>
-                                    <div class="participant-email"><?= htmlspecialchars($participant->getEmailParticipant()) ?></div>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
                 </div>
-            </div>
         </section>
     </main>
 
@@ -1160,36 +1479,36 @@ $statuts = [
     <script>
         // Validation Functions 
         const Validator = {
-            isEmpty: function(value) {
+            isEmpty: function (value) {
                 return value.trim() === '';
             },
-            
-            isValidLength: function(value, min, max) {
+
+            isValidLength: function (value, min, max) {
                 const length = value.trim().length;
                 return length >= min && length <= max;
             },
-            
-            isValidEmail: function(email) {
+
+            isValidEmail: function (email) {
                 const emailPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
                 return emailPattern.test(email.trim());
             },
-            
-            showError: function(fieldId, message) {
+
+            showError: function (fieldId, message) {
                 const field = document.getElementById(fieldId);
                 const errorDiv = document.getElementById('error-' + fieldId);
                 const formGroup = field.closest('.form-group');
-                
+
                 formGroup.classList.add('error');
                 formGroup.classList.remove('success');
                 errorDiv.textContent = message;
                 errorDiv.classList.add('show');
             },
-            
-            clearError: function(fieldId) {
+
+            clearError: function (fieldId) {
                 const field = document.getElementById(fieldId);
                 const errorDiv = document.getElementById('error-' + fieldId);
                 const formGroup = field.closest('.form-group');
-                
+
                 formGroup.classList.remove('error');
                 formGroup.classList.add('success');
                 errorDiv.classList.remove('show');
@@ -1199,11 +1518,11 @@ $statuts = [
         // Participation Form Validation
         const participationForm = document.getElementById('participationForm');
         if (participationForm) {
-            participationForm.addEventListener('submit', function(e) {
+            participationForm.addEventListener('submit', function (e) {
                 e.preventDefault();
-                
+
                 let isValid = true;
-                
+
                 // Validate Name
                 const nom = document.getElementById('nom_participant').value;
                 if (Validator.isEmpty(nom)) {
@@ -1218,7 +1537,7 @@ $statuts = [
                 } else {
                     Validator.clearError('nom_participant');
                 }
-                
+
                 // Validate Email
                 const email = document.getElementById('email_participant').value;
                 if (Validator.isEmpty(email)) {
@@ -1230,17 +1549,17 @@ $statuts = [
                 } else {
                     Validator.clearError('email_participant');
                 }
-                
+
                 if (isValid) {
                     this.submit();
                 }
             });
-            
+
             // Real-time validation
             ['nom_participant', 'email_participant'].forEach(fieldId => {
                 const field = document.getElementById(fieldId);
                 if (field) {
-                    field.addEventListener('input', function() {
+                    field.addEventListener('input', function () {
                         const errorDiv = document.getElementById('error-' + fieldId);
                         if (errorDiv.classList.contains('show')) {
                             Validator.clearError(fieldId);
@@ -1257,37 +1576,37 @@ $statuts = [
         // Star Rating Interactive Selector
         const starRating = document.getElementById('starRating');
         const ratingInput = document.getElementById('rating');
-        
+
         if (starRating) {
             const stars = starRating.querySelectorAll('.star');
             let currentRating = 5; // Default 5 stars
-            
+
             // Set all stars active by default
             stars.forEach(star => star.classList.add('active'));
-            
+
             stars.forEach((star, index) => {
                 // Click to select rating
-                star.addEventListener('click', function() {
+                star.addEventListener('click', function () {
                     currentRating = parseInt(this.getAttribute('data-rating'));
                     ratingInput.value = currentRating;
                     updateStars(currentRating);
-                    
+
                     // Save rating in real-time
                     saveRatingRealTime(currentRating);
                 });
-                
+
                 // Hover preview
-                star.addEventListener('mouseenter', function() {
+                star.addEventListener('mouseenter', function () {
                     const hoverRating = parseInt(this.getAttribute('data-rating'));
                     updateStars(hoverRating);
                 });
             });
-            
+
             // Reset to current rating on mouse leave
-            starRating.addEventListener('mouseleave', function() {
+            starRating.addEventListener('mouseleave', function () {
                 updateStars(currentRating);
             });
-            
+
             function updateStars(rating) {
                 stars.forEach((star, index) => {
                     if (index < rating) {
@@ -1306,7 +1625,7 @@ $statuts = [
                 const currentCount = parseInt(commentCount.textContent) || 0;
                 const newCount = currentCount + 1;
                 commentCount.textContent = newCount;
-                
+
                 // Update rating count if visible
                 const totalReviewsCount = document.getElementById('totalReviewsCount');
                 if (totalReviewsCount) {
@@ -1321,11 +1640,11 @@ $statuts = [
         // Comment Form Validation
         const commentForm = document.getElementById('commentForm');
         if (commentForm) {
-            commentForm.addEventListener('submit', function(e) {
+            commentForm.addEventListener('submit', function (e) {
                 e.preventDefault();
-                
+
                 let isValid = true;
-                
+
                 // Validate Rating
                 const rating = parseInt(ratingInput.value);
                 if (!rating || rating < 1 || rating > 5) {
@@ -1334,7 +1653,7 @@ $statuts = [
                 } else {
                     Validator.clearError('rating');
                 }
-                
+
                 // Validate Comment Content
                 const commentContent = document.getElementById('comment_content');
                 if (commentContent) {
@@ -1348,19 +1667,19 @@ $statuts = [
                         Validator.clearError('comment_content');
                     }
                 }
-                
+
                 if (isValid) {
                     // Update count immediately on successful submission
                     updateCommentCount();
                     this.submit();
                 }
             });
-            
+
             // Real-time validation
             ['comment_content'].forEach(fieldId => {
                 const field = document.getElementById(fieldId);
                 if (field) {
-                    field.addEventListener('input', function() {
+                    field.addEventListener('input', function () {
                         const errorDiv = document.getElementById('error-' + fieldId);
                         if (errorDiv && errorDiv.classList.contains('show')) {
                             Validator.clearError(fieldId);
@@ -1376,10 +1695,10 @@ $statuts = [
 
         // Like buttons
         document.querySelectorAll('.like-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', function () {
                 const commentId = this.getAttribute('data-comment-id');
                 const userEmail = prompt('Entrez votre email pour liker ce commentaire:');
-                
+
                 if (userEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmail)) {
                     // Redirect to same page with action parameters
                     window.location.href = `?id=<?= $eventId ?>&action=like&comment_id=${commentId}&user_email=${encodeURIComponent(userEmail)}`;
@@ -1391,10 +1710,10 @@ $statuts = [
 
         // Dislike buttons
         document.querySelectorAll('.dislike-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', function () {
                 const commentId = this.getAttribute('data-comment-id');
                 const userEmail = prompt('Entrez votre email pour disliker ce commentaire:');
-                
+
                 if (userEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmail)) {
                     window.location.href = `?id=<?= $eventId ?>&action=dislike&comment_id=${commentId}&user_email=${encodeURIComponent(userEmail)}`;
                 } else if (userEmail) {
@@ -1405,10 +1724,10 @@ $statuts = [
 
         // Report buttons
         document.querySelectorAll('.report-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', function () {
                 const commentId = this.getAttribute('data-comment-id');
                 const reason = prompt('Pourquoi signalez-vous ce commentaire?\n(spam, contenu inapproprié, hors sujet, etc.)');
-                
+
                 if (reason && reason.trim().length > 0) {
                     if (confirm('Êtes-vous sûr de vouloir signaler ce commentaire ?')) {
                         window.location.href = `?id=<?= $eventId ?>&action=report&comment_id=${commentId}&reason=${encodeURIComponent(reason)}`;
@@ -1421,37 +1740,37 @@ $statuts = [
         function saveRatingRealTime(rating) {
             const eventId = <?= $eventId ?>;
             <?php if ($isLoggedIn): ?>
-            const userId = <?= $currentUser->getId() ?>;
-            const userName = "<?= addslashes($currentUser->getUsername()) ?>";
-            const userEmail = "<?= addslashes($currentUser->getEmail()) ?>";
+                const userId = <?= $currentUser->getId() ?>;
+                const userName = "<?= addslashes($currentUser->getUsername()) ?>";
+                const userEmail = "<?= addslashes($currentUser->getEmail()) ?>";
             <?php else: ?>
-            const userId = null;
-            let userName = document.getElementById('user_name_comment')?.value || '';
-            let userEmail = document.getElementById('user_email_comment')?.value || '';
-            
-            // If not logged in and email is empty, ask for it
-            if (!userEmail) {
-                userEmail = prompt('Please enter your email to save your rating:');
-                if (!userEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmail)) {
-                    alert('Valid email is required to save your rating');
-                    return;
-                }
-                
-                if (!userName) {
-                    userName = prompt('Please enter your name:');
+                const userId = null;
+                let userName = document.getElementById('user_name_comment')?.value || '';
+                let userEmail = document.getElementById('user_email_comment')?.value || '';
+
+                // If not logged in and email is empty, ask for it
+                if (!userEmail) {
+                    userEmail = prompt('Please enter your email to save your rating:');
+                    if (!userEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmail)) {
+                        alert('Valid email is required to save your rating');
+                        return;
+                    }
+
                     if (!userName) {
-                        userName = 'Guest';
+                        userName = prompt('Please enter your name:');
+                        if (!userName) {
+                            userName = 'Guest';
+                        }
+                    }
+
+                    // Update form fields
+                    if (document.getElementById('user_email_comment')) {
+                        document.getElementById('user_email_comment').value = userEmail;
+                    }
+                    if (document.getElementById('user_name_comment')) {
+                        document.getElementById('user_name_comment').value = userName;
                     }
                 }
-                
-                // Update form fields
-                if (document.getElementById('user_email_comment')) {
-                    document.getElementById('user_email_comment').value = userEmail;
-                }
-                if (document.getElementById('user_name_comment')) {
-                    document.getElementById('user_name_comment').value = userName;
-                }
-            }
             <?php endif; ?>
 
             // Show loading indicator
@@ -1475,54 +1794,326 @@ $statuts = [
                     content: 'Quick rating: ' + rating + ' stars'
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Show success message
-                    const message = document.createElement('div');
-                    message.className = 'alert success';
-                    message.style.cssText = 'position: fixed; top: 80px; right: 20px; z-index: 10000; animation: slideIn 0.3s ease;';
-                    message.innerHTML = '<i class="fas fa-check-circle"></i> Rating saved: ' + rating + ' stars!';
-                    document.body.appendChild(message);
-                    
-                    // Remove after 3 seconds
-                    setTimeout(() => {
-                        message.style.animation = 'slideOut 0.3s ease';
-                        setTimeout(() => message.remove(), 300);
-                    }, 3000);
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show success message
+                        const message = document.createElement('div');
+                        message.className = 'alert success';
+                        message.style.cssText = 'position: fixed; top: 80px; right: 20px; z-index: 10000; animation: slideIn 0.3s ease;';
+                        message.innerHTML = '<i class="fas fa-check-circle"></i> Rating saved: ' + rating + ' stars!';
+                        document.body.appendChild(message);
 
-                    // Update stats if available
-                    if (data.stats) {
-                        console.log('Updated stats:', data.stats);
-                        // You can update the stats display here if needed
+                        // Remove after 3 seconds
+                        setTimeout(() => {
+                            message.style.animation = 'slideOut 0.3s ease';
+                            setTimeout(() => message.remove(), 300);
+                        }, 3000);
+
+                        // Update stats if available
+                        if (data.stats) {
+                            console.log('Updated stats:', data.stats);
+                            // You can update the stats display here if needed
+                        }
+                    } else {
+                        console.error('Failed to save rating:', data.message);
+                        alert('Error: ' + data.message);
                     }
-                } else {
-                    console.error('Failed to save rating:', data.message);
-                    alert('Error: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Network error. Please try again.');
-            })
-            .finally(() => {
-                // Restore star rating
-                starRating.style.opacity = '1';
-                starRating.style.pointerEvents = 'auto';
-            });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Network error. Please try again.');
+                })
+                .finally(() => {
+                    // Restore star rating
+                    starRating.style.opacity = '1';
+                    starRating.style.pointerEvents = 'auto';
+                });
         }
     </script>
     <style>
         @keyframes slideIn {
-            from { transform: translateX(400px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
+
         @keyframes slideOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(400px); opacity: 0; }
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        /* Popup Styles */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .popup-overlay.active {
+            display: flex;
+        }
+
+        .popup-content {
+            background: linear-gradient(135deg, #16161a, #1b1b20);
+            border-radius: 25px;
+            padding: 50px 40px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 2px solid #f5c242;
+            animation: popIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .popup-icon {
+            width: 90px;
+            height: 90px;
+            margin: 0 auto 25px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: scaleIn 0.5s ease 0.2s both;
+        }
+
+        .popup-icon i {
+            font-size: 3rem;
+            color: #fff;
+        }
+
+        .popup-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            color: #f5c242;
+            margin-bottom: 15px;
+            animation: slideInUp 0.5s ease 0.3s both;
+        }
+
+        .popup-message {
+            color: #d7d9dd;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            animation: slideInUp 0.5s ease 0.4s both;
+        }
+
+        .popup-actions {
+            animation: slideInUp 0.5s ease 0.5s both;
+        }
+
+        .btn-popup-primary {
+            background: linear-gradient(135deg, #f5c242, #f39c12);
+            color: #000;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-popup-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(245, 194, 66, 0.5);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes popIn {
+            from {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes scaleIn {
+            from {
+                transform: scale(0);
+            }
+            to {
+                transform: scale(1);
+            }
+        }
+
+        @keyframes slideInUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
     </style>
 
-    <script src="lang-toggle.js"></script>
+    <script >
+        document.addEventListener('DOMContentLoaded', function () {
+            const userDropdown = document.getElementById('userDropdown');
+            if (userDropdown) {
+                userDropdown.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    this.classList.toggle('active');
+                });
+
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function (e) {
+                    if (!userDropdown.contains(e.target)) {
+                        userDropdown.classList.remove('active');
+                    }
+                });
+            }
+
+            // Update cart count on load
+            updateCartCount();
+
+            // Handle Join Event Button
+            const joinEventBtn = document.getElementById('joinEventBtn');
+            const confirmationPopup = document.getElementById('confirmationPopup');
+            const closePopupBtn = document.getElementById('closePopupBtn');
+            const participationForm = document.getElementById('participationForm');
+
+            if (joinEventBtn && participationForm) {
+                joinEventBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+
+                    // Get form data
+                    const formData = new FormData(participationForm);
+                    const data = {
+                        event_id: <?= $eventId ?>
+                    };
+
+                    // Add guest info if not logged in
+                    <?php if (!$isLoggedIn): ?>
+                    const participantName = document.getElementById('nom_participant')?.value;
+                    const participantEmail = document.getElementById('email_participant')?.value;
+
+                    if (!participantName || !participantEmail) {
+                        alert('Please fill in all required fields');
+                        return;
+                    }
+
+                    data.participant_name = participantName;
+                    data.participant_email = participantEmail;
+                    <?php endif; ?>
+
+                    // Disable button and show loading
+                    joinEventBtn.disabled = true;
+                    const originalText = joinEventBtn.querySelector('span').textContent;
+                    joinEventBtn.querySelector('span').textContent = 'Processing...';
+                    joinEventBtn.querySelector('i').className = 'fas fa-spinner fa-spin';
+
+                    // Send AJAX request
+                    fetch('join_event_ajax.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data)
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            // Update participant count
+                            if (result.participant_count) {
+                                const participantNumber = document.querySelector('.participants-number');
+                                if (participantNumber) {
+                                    participantNumber.textContent = result.participant_count;
+                                }
+                            }
+
+                            // Show confirmation popup
+                            confirmationPopup.classList.add('active');
+
+                            // Hide join button or disable it
+                            joinEventBtn.style.display = 'none';
+                        } else {
+                            alert(result.message || 'Registration failed. Please try again.');
+                            // Reset button
+                            joinEventBtn.disabled = false;
+                            joinEventBtn.querySelector('span').textContent = originalText;
+                            joinEventBtn.querySelector('i').className = 'fas fa-user-plus';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Network error. Please try again.');
+                        // Reset button
+                        joinEventBtn.disabled = false;
+                        joinEventBtn.querySelector('span').textContent = originalText;
+                        joinEventBtn.querySelector('i').className = 'fas fa-user-plus';
+                    });
+                });
+            }
+
+            // Close popup
+            if (closePopupBtn && confirmationPopup) {
+                closePopupBtn.addEventListener('click', function() {
+                    confirmationPopup.classList.remove('active');
+                });
+
+                // Close popup when clicking outside
+                confirmationPopup.addEventListener('click', function(e) {
+                    if (e.target === confirmationPopup) {
+                        confirmationPopup.classList.remove('active');
+                    }
+                });
+            }
+        });
+
+        function updateCartCount() {
+            const cart = JSON.parse(localStorage.getItem('cart')) || [];
+            let totalQuantity = 0;
+
+            cart.forEach(item => {
+                totalQuantity += item.quantity || 1;
+            });
+
+            const cartCount = document.querySelector('.cart-count');
+            if (cartCount) {
+                cartCount.textContent = totalQuantity;
+            }
+        }
+    </script>
 </body>
+
 </html>
