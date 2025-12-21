@@ -17,12 +17,14 @@ if ($currentUser && $currentUser->getImage()) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FoxUnity - Gaming for Good</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         /* User Dropdown Menu Styles - LARGE PHOTO LIKE PROFILE.PHP */
@@ -147,17 +149,17 @@ if ($currentUser && $currentUser->getImage()) {
             font-weight: 600;
             transition: all 0.3s ease;
         }
-        
+
         .cart-icon:hover {
             color: #ff9933 !important;
             transform: translateY(-2px);
         }
-        
+
         .cart-icon i {
             color: #ff7a00;
             font-size: 18px;
         }
-        
+
         .cart-count {
             background: linear-gradient(135deg, #ff7a00, #ff4f00);
             color: white;
@@ -392,8 +394,15 @@ if ($currentUser && $currentUser->getImage()) {
         }
 
         @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-20px); }
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
         }
 
         /* Responsive Design */
@@ -411,13 +420,199 @@ if ($currentUser && $currentUser->getImage()) {
                 font-size: 150px;
             }
         }
+
         /* Navigation star icon */
-.site-nav a i.fa-star {
-    margin-right: 5px;
-    color: #ffd700;
-}
+        .site-nav a i.fa-star {
+            margin-right: 5px;
+            color: #ffd700;
+        }
+
+        /* ============================================
+           FLOATING CHATBOT BUTTON - BOTTOM LEFT CORNER
+           ============================================ */
+        .floating-chatbot {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #ff7a00, #ff4f00);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(255, 122, 0, 0.6);
+            transition: all 0.3s ease;
+            z-index: 9999;
+            text-decoration: none;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            animation: pulse-glow 2.5s infinite;
+        }
+
+        .floating-chatbot:hover {
+            transform: scale(1.15) translateY(-5px);
+            box-shadow: 0 15px 40px rgba(255, 122, 0, 0.8);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .floating-chatbot i {
+            font-size: 32px;
+            color: #fff;
+            animation: bounce-icon 2s infinite ease-in-out;
+        }
+
+        .floating-chatbot:hover i {
+            animation: shake 0.6s;
+        }
+
+        /* Online Status Badge */
+        .chatbot-status-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #00ff88;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 3px solid #1a1a1a;
+            animation: pulse-badge 2s infinite;
+        }
+
+        /* Tooltip on Hover */
+        .chatbot-tooltip {
+            position: absolute;
+            bottom: 50%;
+            left: calc(100% + 18px);
+            transform: translateY(50%);
+            background: rgba(10, 10, 10, 0.98);
+            color: #fff;
+            padding: 12px 18px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 122, 0, 0.4);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .chatbot-tooltip::before {
+            content: '';
+            position: absolute;
+            right: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 10px solid transparent;
+            border-right-color: rgba(255, 122, 0, 0.4);
+        }
+
+        .chatbot-tooltip::after {
+            content: '';
+            position: absolute;
+            right: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 8px solid transparent;
+            border-right-color: rgba(10, 10, 10, 0.98);
+            margin-right: 2px;
+        }
+
+        .floating-chatbot:hover .chatbot-tooltip {
+            opacity: 1;
+            left: calc(100% + 22px);
+        }
+
+        /* Animations */
+        @keyframes pulse-glow {
+            0%, 100% {
+                box-shadow: 0 10px 30px rgba(255, 122, 0, 0.6);
+            }
+            50% {
+                box-shadow: 0 10px 40px rgba(255, 122, 0, 0.9), 0 0 0 0 rgba(255, 122, 0, 0.4);
+            }
+        }
+
+        @keyframes pulse-badge {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.3);
+                opacity: 0.7;
+            }
+        }
+
+        @keyframes bounce-icon {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg);
+            }
+            25% {
+                transform: translateY(-4px) rotate(-5deg);
+            }
+            50% {
+                transform: translateY(0) rotate(0deg);
+            }
+            75% {
+                transform: translateY(-2px) rotate(5deg);
+            }
+        }
+
+        @keyframes shake {
+            0%, 100% { 
+                transform: rotate(0deg); 
+            }
+            10%, 30%, 50%, 70%, 90% { 
+                transform: rotate(-8deg); 
+            }
+            20%, 40%, 60%, 80% { 
+                transform: rotate(8deg); 
+            }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .floating-chatbot {
+                width: 60px;
+                height: 60px;
+                bottom: 20px;
+                left: 20px;
+            }
+
+            .floating-chatbot i {
+                font-size: 26px;
+            }
+
+            .chatbot-tooltip {
+                display: none;
+            }
+
+            .chatbot-status-badge {
+                width: 15px;
+                height: 15px;
+                border-width: 2px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .floating-chatbot {
+                width: 55px;
+                height: 55px;
+                bottom: 15px;
+                left: 15px;
+            }
+
+            .floating-chatbot i {
+                font-size: 24px;
+            }
+        }
     </style>
 </head>
+
 <body>
     <!-- Animated red bubbles -->
     <div class="bubbles">
@@ -431,25 +626,32 @@ if ($currentUser && $currentUser->getImage()) {
         <div class="bubble"></div>
     </div>
 
+    <!-- FLOATING CHATBOT BUTTON -->
+    <a href="chatbot.php" class="floating-chatbot" title="Chat with AI Assistant">
+        <i class="fas fa-robot"></i>
+        <span class="chatbot-status-badge"></span>
+        <span class="chatbot-tooltip">💬 Need Help? Chat with AI!</span>
+    </a>
+
     <!-- HEADER -->
     <header class="site-header">
         <div class="logo-section">
             <img src="../images/Nine__1_-removebg-preview.png" alt="FoxUnity Logo" class="site-logo">
             <span class="site-name">FoxUnity</span>
         </div>
-        
+
         <nav class="site-nav">
-    <a href="index.php" class="active">Home</a>
-    <a href="events.php">Events</a>
-    <a href="shop.html">Shop</a>
-    <a href="trading.php">Trading</a>
-    <a href="news.php">News</a>
-    <a href="reclamation.php">Support</a>
-    <a href="contact_us.php">New Request</a>
-    <a href="public_reclamations.php"><i class="fas fa-star"></i> Public Evaluations</a>
-    <a href="about.php">About Us</a>
-</nav>
-        
+            <a href="index.php" class="active">Home</a>
+            <a href="events.php">Events</a>
+            <a href="shop.php">Shop</a>
+            <a href="trading.php">Trading</a>
+            <a href="news.php">News</a>
+            <a href="reclamation.php">Support</a>
+            <a href="contact_us.php">New Request</a>
+            <a href="public_reclamations.php"><i class="fas fa-star"></i> Public Evaluations</a>
+            <a href="about.php">About Us</a>
+        </nav>
+
         <div class="header-right">
             <div class="user-dropdown" id="userDropdown">
                 <div class="username-display">
@@ -466,49 +668,49 @@ if ($currentUser && $currentUser->getImage()) {
                     <?php endif; ?>
                     <i class="fas fa-chevron-down"></i>
                 </div>
-                
+
                 <div class="dropdown-menu">
                     <?php if ($isLoggedIn && $currentUser): ?>
-                    <a href="profile.php" class="dropdown-item">
-                        <i class="fas fa-user"></i>
-                        <span>My Profile</span>
-                    </a>
-                    
-                    <a href="tradehis.php" class="dropdown-item">
-                        <i class="fas fa-history"></i>
-                        <span>Trade History</span>
-                    </a>
-                    
-                    <a href="events.php?view=history" class="dropdown-item">
-                        <i class="fas fa-ticket-alt"></i>
-                        <span>Event History</span>
-                    </a>
-                    
-                    <?php 
-                    $userRole = strtolower($currentUser->getRole());
-                    if ($userRole === 'admin' || $userRole === 'superadmin'): 
-                    ?>
-                    <a href="../back/dashboard.php" class="dropdown-item">
-                        <i class="fas fa-tachometer-alt"></i>
-                        <span>Dashboard</span>
-                    </a>
-                    <?php endif; ?>
-                    
-                    <div class="dropdown-divider"></div>
-                    
-                    <a href="logout.php" class="dropdown-item logout">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>Logout</span>
-                    </a>
+                        <a href="profile.php" class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            <span>My Profile</span>
+                        </a>
+
+                        <a href="tradehis.php" class="dropdown-item">
+                            <i class="fas fa-history"></i>
+                            <span>Trade History</span>
+                        </a>
+
+                        <a href="events.php?view=history" class="dropdown-item">
+                            <i class="fas fa-ticket-alt"></i>
+                            <span>Event History</span>
+                        </a>
+
+                        <?php
+                        $userRole = strtolower($currentUser->getRole());
+                        if ($userRole === 'admin' || $userRole === 'superadmin'):
+                            ?>
+                            <a href="../back/dashboard.php" class="dropdown-item">
+                                <i class="fas fa-tachometer-alt"></i>
+                                <span>Dashboard</span>
+                            </a>
+                        <?php endif; ?>
+
+                        <div class="dropdown-divider"></div>
+
+                        <a href="logout.php" class="dropdown-item logout">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </a>
                     <?php else: ?>
-                    <a href="login.php" class="dropdown-item">
-                        <i class="fas fa-sign-in-alt"></i>
-                        <span>Login/Register</span>
-                    </a>
+                        <a href="login.php" class="dropdown-item">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span>Login/Register</span>
+                        </a>
                     <?php endif; ?>
                 </div>
             </div>
-            
+
             <a href="panier.php" class="cart-icon">
                 <i class="fas fa-shopping-cart"></i> Cart
                 <span class="cart-count">0</span>
@@ -527,9 +729,9 @@ if ($currentUser && $currentUser->getImage()) {
                     Unite. <span>Buy.</span> Give Back.
                 </h1>
                 <p class="intro-description">
-                    Welcome to FoxUnity, where gaming meets charity. Buy gaming gear in our shop, 
-                    trade Skins at negotiable prices, and participate in community events. 
-                    <strong>10% of every purchase and trade</strong> goes directly to verified charitable organizations, 
+                    Welcome to FoxUnity, where gaming meets charity. Buy gaming gear in our shop,
+                    trade Skins at negotiable prices, and participate in community events.
+                    <strong>10% of every purchase and trade</strong> goes directly to verified charitable organizations,
                     helping communities worldwide. Together, we're proving that gaming can change the world.
                 </p>
             </div>
@@ -569,7 +771,8 @@ if ($currentUser && $currentUser->getImage()) {
                 <div class="feature-text">
                     <h2>Shop <span>Marketplace</span></h2>
                     <p class="feature-description">
-                        Browse high-quality gaming gear and equipment. Every purchase contributes 10% to charitable causes.
+                        Browse high-quality gaming gear and equipment. Every purchase contributes 10% to charitable
+                        causes.
                     </p>
                     <ul class="feature-list">
                         <li><i class="fas fa-check"></i> Gaming Gear</li>
@@ -577,7 +780,7 @@ if ($currentUser && $currentUser->getImage()) {
                         <li><i class="fas fa-check"></i> Accessories & More</li>
                         <li><i class="fas fa-check"></i> 10% Goes to Charity</li>
                     </ul>
-                    <a href="shop.html" class="feature-btn">
+                    <a href="shop.php" class="feature-btn">
                         <i class="fas fa-store"></i> Explore Shop
                     </a>
                 </div>
@@ -616,7 +819,8 @@ if ($currentUser && $currentUser->getImage()) {
                 <div class="feature-text">
                     <h2>Community <span>Events</span></h2>
                     <p class="feature-description">
-                        Join exciting gaming tournaments, challenges, and community events. Compete, have fun, and support charities.
+                        Join exciting gaming tournaments, challenges, and community events. Compete, have fun, and
+                        support charities.
                     </p>
                     <ul class="feature-list">
                         <li><i class="fas fa-check"></i> Gaming Tournaments</li>
@@ -637,7 +841,8 @@ if ($currentUser && $currentUser->getImage()) {
                 <div class="feature-text">
                     <h2>Latest <span>News</span></h2>
                     <p class="feature-description">
-                        Stay updated with the latest announcements, platform updates, community achievements, and gaming news from FoxUnity.
+                        Stay updated with the latest announcements, platform updates, community achievements, and gaming
+                        news from FoxUnity.
                     </p>
                     <ul class="feature-list">
                         <li><i class="fas fa-check"></i> Platform Updates</li>
@@ -658,8 +863,9 @@ if ($currentUser && $currentUser->getImage()) {
         <!-- Our Impact Section -->
         <section class="impact-section">
             <h2 class="section-title">Our <span>Impact</span></h2>
-            <p class="section-subtitle">Together, we're making a real difference in communities worldwide through gaming</p>
-            
+            <p class="section-subtitle">Together, we're making a real difference in communities worldwide through gaming
+            </p>
+
             <div class="impact-stats-container">
                 <div class="impact-stat-card">
                     <div class="impact-stat-icon">
@@ -713,8 +919,9 @@ if ($currentUser && $currentUser->getImage()) {
                 <div class="support-text-area">
                     <h2 class="section-title">Need <span>Support?</span></h2>
                     <p class="support-description">
-                        Our dedicated support team is here to help you with any questions, issues, or feedback. 
-                        Whether you need technical assistance, have questions about donations, or want to learn more about our platform.
+                        Our dedicated support team is here to help you with any questions, issues, or feedback.
+                        Whether you need technical assistance, have questions about donations, or want to learn more
+                        about our platform.
                     </p>
                     <div class="support-features">
                         <div class="support-feature">
@@ -758,7 +965,8 @@ if ($currentUser && $currentUser->getImage()) {
             </div>
             <div class="footer-section">
                 <h4>Back to Top</h4>
-                <a href="#" class="back-to-top-link" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;">
+                <a href="#" class="back-to-top-link"
+                    onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;">
                     <i class="fas fa-arrow-up"></i> Scroll to Top
                 </a>
             </div>
@@ -785,33 +993,33 @@ if ($currentUser && $currentUser->getImage()) {
 
     <script>
         // Dropdown Menu Toggle
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const userDropdown = document.getElementById('userDropdown');
-            
+
             if (userDropdown) {
                 const usernameDisplay = userDropdown.querySelector('.username-display');
-                
+
                 // Toggle dropdown on click
-                usernameDisplay.addEventListener('click', function(e) {
+                usernameDisplay.addEventListener('click', function (e) {
                     e.stopPropagation();
                     userDropdown.classList.toggle('active');
                 });
-                
+
                 // Close dropdown when clicking outside
-                document.addEventListener('click', function(e) {
+                document.addEventListener('click', function (e) {
                     if (!userDropdown.contains(e.target)) {
                         userDropdown.classList.remove('active');
                     }
                 });
-                
+
                 // Close dropdown when pressing Escape
-                document.addEventListener('keydown', function(e) {
+                document.addEventListener('keydown', function (e) {
                     if (e.key === 'Escape') {
                         userDropdown.classList.remove('active');
                     }
                 });
             }
-            
+
             // Update cart count from localStorage
             const cart = JSON.parse(localStorage.getItem('cart')) || [];
             const cartCount = document.querySelector('.cart-count');
@@ -821,4 +1029,5 @@ if ($currentUser && $currentUser->getImage()) {
         });
     </script>
 </body>
+
 </html>

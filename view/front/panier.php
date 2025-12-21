@@ -17,12 +17,14 @@ if ($currentUser && $currentUser->getImage()) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FoxUnity - Your Cart</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         /* User Dropdown Menu Styles */
@@ -146,17 +148,17 @@ if ($currentUser && $currentUser->getImage()) {
             font-weight: 600;
             transition: all 0.3s ease;
         }
-        
+
         .cart-icon:hover {
             color: #ff9933 !important;
             transform: translateY(-2px);
         }
-        
+
         .cart-icon i {
             color: #ff7a00;
             font-size: 18px;
         }
-        
+
         .cart-count {
             background: linear-gradient(135deg, #ff7a00, #ff4f00);
             color: white;
@@ -248,17 +250,25 @@ if ($currentUser && $currentUser->getImage()) {
             display: flex;
             align-items: center;
             background: rgba(255, 255, 255, 0.05);
-            padding: 15px;
-            border-radius: 10px;
+            padding: 20px;
+            border-radius: 15px;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            gap: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .cart-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 122, 0, 0.3);
         }
 
         .cart-item img {
-            width: 80px;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 8px;
-            margin-right: 20px;
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
         }
 
         .item-details {
@@ -269,32 +279,276 @@ if ($currentUser && $currentUser->getImage()) {
             color: #fff;
             font-size: 18px;
             font-weight: 600;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+        }
+
+        .item-type {
+            color: #aaa;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .item-price {
-            color: #ff7a00;
+            color: #2ed573;
             font-weight: 700;
+            font-size: 1.3rem;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .item-quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px 15px;
+            border-radius: 25px;
+            border: 1px solid rgba(255, 122, 0, 0.3);
+        }
+
+        .quantity-btn {
+            background: transparent;
+            border: none;
+            color: #ff7a00;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .quantity-btn:hover:not(:disabled) {
+            background: rgba(255, 122, 0, 0.2);
+            transform: scale(1.1);
+        }
+
+        .quantity-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .quantity-value {
+            color: #fff;
+            font-weight: 600;
+            min-width: 30px;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        .item-subtotal {
+            text-align: right;
+            min-width: 120px;
+        }
+
+        .subtotal-label {
+            color: #aaa;
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+        }
+
+        .subtotal-price {
+            color: #2ed573;
+            font-weight: 700;
+            font-size: 1.4rem;
+            font-family: 'Orbitron', sans-serif;
         }
 
         .remove-btn {
             color: #ff4444;
-            background: none;
-            border: none;
+            background: transparent;
+            border: 2px solid #ff4444;
             cursor: pointer;
-            font-size: 18px;
+            font-size: 16px;
             padding: 10px;
-            transition: color 0.3s;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .remove-btn:hover {
-            color: #ff0000;
+            background: rgba(255, 68, 68, 0.2);
+            transform: scale(1.1);
+        }
+
+        /* ============================================ */
+        /* COUPON SECTION STYLES                        */
+        /* ============================================ */
+        .coupon-section {
+            background: linear-gradient(135deg, rgba(20, 20, 35, 0.95) 0%, rgba(10, 10, 20, 0.9) 100%);
+            border: 2px solid rgba(255, 122, 0, 0.2);
+            border-radius: 16px;
+            padding: 25px;
+            margin: 25px 0;
+            transition: all 0.3s ease;
+        }
+
+        .coupon-section:hover {
+            border-color: rgba(255, 122, 0, 0.4);
+            box-shadow: 0 8px 25px rgba(255, 122, 0, 0.15);
+        }
+
+        .coupon-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 18px;
+            color: #ff7a00;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .coupon-header i {
+            font-size: 20px;
+        }
+
+        .coupon-input-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .coupon-input {
+            flex: 1;
+            padding: 14px 18px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .coupon-input:focus {
+            border-color: #ff7a00;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 15px rgba(255, 122, 0, 0.2);
+        }
+
+        .coupon-input:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .coupon-btn {
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #ff7a00, #ff4f00);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            box-shadow: 0 4px 15px rgba(255, 122, 0, 0.3);
+        }
+
+        .coupon-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 122, 0, 0.4);
+        }
+
+        .coupon-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .coupon-btn-remove {
+            background: transparent;
+            border: 2px solid #ff4444;
+            color: #ff4444;
+            box-shadow: none;
+        }
+
+        .coupon-btn-remove:hover:not(:disabled) {
+            background: rgba(255, 68, 68, 0.1);
+            border-color: #ff6666;
+            color: #ff6666;
+        }
+
+        .coupon-message {
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .coupon-success {
+            background: rgba(46, 213, 115, 0.15);
+            border: 1px solid rgba(46, 213, 115, 0.4);
+            color: #2ed573;
+        }
+
+        .coupon-success i {
+            font-size: 18px;
+        }
+
+        .coupon-error {
+            background: rgba(255, 68, 68, 0.15);
+            border: 1px solid rgba(255, 68, 68, 0.4);
+            color: #ff4444;
+        }
+
+        .coupon-error i {
+            font-size: 18px;
+        }
+
+        .coupon-spinner {
+            display: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .checkout-btn {
-            background: #2ed573;
+            background: linear-gradient(135deg, #2ed573, #26af61);
             color: #fff;
-            padding: 15px 40px;
+            padding: 18px 50px;
             border-radius: 30px;
             border: none;
             font-weight: 700;
@@ -307,37 +561,140 @@ if ($currentUser && $currentUser->getImage()) {
             align-items: center;
             justify-content: center;
             gap: 10px;
+            box-shadow: 0 5px 20px rgba(46, 213, 115, 0.3);
         }
 
         .checkout-btn:hover {
-            background: #26af61;
+            background: linear-gradient(135deg, #26af61, #2ed573);
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(46, 213, 115, 0.3);
+            box-shadow: 0 8px 25px rgba(46, 213, 115, 0.4);
         }
 
         .cart-summary {
             margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            text-align: right;
+            padding-top: 25px;
+            border-top: 2px solid rgba(255, 122, 0, 0.3);
         }
 
-        .total-price {
-            font-size: 24px;
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            color: #aaa;
+            font-size: 16px;
+        }
+
+        .summary-row.discount-row {
+            color: #2ed573;
+            display: none;
+        }
+
+        .summary-row.discount-row.show {
+            display: flex;
+        }
+
+        .summary-row.total {
+            font-size: 28px;
             color: #fff;
             font-weight: 700;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .total-price span {
-            color: #ff7a00;
+        .summary-row.total .summary-value {
+            color: #2ed573;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20, 20, 20, 0.95);
+            color: #fff;
+            padding: 15px 30px;
+            border-radius: 50px;
+            border: 1px solid #ff7a00;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+            z-index: 3000;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            visibility: hidden;
+            opacity: 0;
+            transition: all 0.5s ease;
+        }
+
+        .toast.show {
+            visibility: visible;
+            opacity: 1;
+            top: 30px;
+        }
+
+        .toast i {
+            font-size: 1.2em;
+        }
+
+        .toast.success i {
+            color: #2ed573;
+        }
+
+        .toast.error i {
+            color: #ff4757;
+        }
+
+        @media (max-width: 768px) {
+            .cart-item {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .item-quantity-controls {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .quantity-control {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .item-subtotal {
+                text-align: center;
+            }
+
+            .coupon-input-group {
+                flex-direction: column;
+            }
+
+            .coupon-btn {
+                width: 100%;
+            }
         }
     </style>
 </head>
+
 <body>
     <!-- Animated red bubbles -->
     <div class="bubbles">
-        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
-        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+    </div>
+
+    <!-- Toast Notification Element -->
+    <div id="toast" class="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">Action successful</span>
     </div>
 
     <!-- HEADER -->
@@ -346,17 +703,19 @@ if ($currentUser && $currentUser->getImage()) {
             <img src="../images/Nine__1_-removebg-preview.png" alt="FoxUnity Logo" class="site-logo">
             <span class="site-name">FoxUnity</span>
         </div>
-        
+
         <nav class="site-nav">
             <a href="index.php">Home</a>
             <a href="events.php">Events</a>
-            <a href="shop.html">Shop</a>
+            <a href="shop.php">Shop</a>
             <a href="trading.php">Trading</a>
             <a href="news.php">News</a>
-            <a href="reclamation.html">Support</a>
+            <a href="reclamation.php">Support</a>
+            <a href="contact_us.php">New Request</a>
+            <a href="public_reclamations.php"><i class="fas fa-star"></i> Public Evaluations</a>
             <a href="about.php">About Us</a>
         </nav>
-        
+
         <div class="header-right">
             <div class="user-dropdown" id="userDropdown">
                 <div class="username-display">
@@ -373,49 +732,49 @@ if ($currentUser && $currentUser->getImage()) {
                     <?php endif; ?>
                     <i class="fas fa-chevron-down"></i>
                 </div>
-                
+
                 <div class="dropdown-menu">
                     <?php if ($isLoggedIn && $currentUser): ?>
-                    <a href="profile.php" class="dropdown-item">
-                        <i class="fas fa-user"></i>
-                        <span>My Profile</span>
-                    </a>
-                    
-                    <a href="tradehis.php" class="dropdown-item">
-                        <i class="fas fa-history"></i>
-                        <span>Trade History</span>
-                    </a>
-                    
-                    <a href="events.php?view=history" class="dropdown-item">
-                        <i class="fas fa-ticket-alt"></i>
-                        <span>Event History</span>
-                    </a>
-                    
-                    <?php 
-                    $userRole = strtolower($currentUser->getRole());
-                    if ($userRole === 'admin' || $userRole === 'superadmin'): 
-                    ?>
-                    <a href="../back/dashboard.php" class="dropdown-item">
-                        <i class="fas fa-tachometer-alt"></i>
-                        <span>Dashboard</span>
-                    </a>
-                    <?php endif; ?>
-                    
-                    <div class="dropdown-divider"></div>
-                    
-                    <a href="logout.php" class="dropdown-item logout">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>Logout</span>
-                    </a>
+                        <a href="profile.php" class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            <span>My Profile</span>
+                        </a>
+
+                        <a href="tradehis.php" class="dropdown-item">
+                            <i class="fas fa-history"></i>
+                            <span>Trade History</span>
+                        </a>
+
+                        <a href="events.php?view=history" class="dropdown-item">
+                            <i class="fas fa-ticket-alt"></i>
+                            <span>Event History</span>
+                        </a>
+
+                        <?php
+                        $userRole = strtolower($currentUser->getRole());
+                        if ($userRole === 'admin' || $userRole === 'superadmin'):
+                            ?>
+                            <a href="../back/dashboard.php" class="dropdown-item">
+                                <i class="fas fa-tachometer-alt"></i>
+                                <span>Dashboard</span>
+                            </a>
+                        <?php endif; ?>
+
+                        <div class="dropdown-divider"></div>
+
+                        <a href="logout.php" class="dropdown-item logout">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </a>
                     <?php else: ?>
-                    <a href="login.php" class="dropdown-item">
-                        <i class="fas fa-sign-in-alt"></i>
-                        <span>Login/Register</span>
-                    </a>
+                        <a href="login.php" class="dropdown-item">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span>Login/Register</span>
+                        </a>
                     <?php endif; ?>
                 </div>
             </div>
-            
+
             <a href="panier.php" class="cart-icon active">
                 <i class="fas fa-shopping-cart"></i> Cart
                 <span class="cart-count">0</span>
@@ -426,16 +785,62 @@ if ($currentUser && $currentUser->getImage()) {
     <main class="main-section">
         <section class="cart-section">
             <h1 class="cart-title">Your <span>Cart</span></h1>
-            
+
             <div class="cart-container">
                 <div id="cartContent" class="cart-items">
                     <!-- Cart items will be injected here via JS -->
                 </div>
-                
+
+                <!-- ============================================ -->
+                <!-- COUPON SECTION                               -->
+                <!-- ============================================ -->
+                <div id="couponSectionContainer" style="display: none;">
+                    <div class="coupon-section">
+                        <div class="coupon-header">
+                            <i class="fas fa-tag"></i>
+                            <span>Have a coupon code?</span>
+                        </div>
+
+                        <div class="coupon-input-group">
+                            <input type="text" id="couponCode" class="coupon-input"
+                                placeholder="Enter coupon code (e.g., WELCOME10)" maxlength="50">
+                            <button id="applyCouponBtn" class="coupon-btn" onclick="applyCoupon()">
+                                <i class="fas fa-check"></i> Apply
+                                <span id="couponSpinner" class="coupon-spinner"></span>
+                            </button>
+                            <button id="removeCouponBtn" class="coupon-btn coupon-btn-remove" onclick="removeCoupon()"
+                                style="display: none;">
+                                <i class="fas fa-times"></i> Remove
+                            </button>
+                        </div>
+
+                        <div id="couponSuccess" class="coupon-message coupon-success">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Coupon applied successfully!</span>
+                        </div>
+
+                        <div id="couponError" class="coupon-message coupon-error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <span>Invalid coupon code</span>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="cartSummary" class="cart-summary" style="display: none;">
-                    <div class="total-price">Total: <span id="cartTotal">$0.00</span></div>
+                    <div class="summary-row">
+                        <span>Items:</span>
+                        <span class="summary-value" id="totalItems">0</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Subtotal:</span>
+                        <span class="summary-value" id="subtotalPrice">$0.00</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span>Total:</span>
+                        <span class="summary-value" id="cartTotal">$0.00</span>
+                    </div>
                     <button id="checkoutBtn" class="checkout-btn">
-                        <i class="fas fa-check-circle"></i> Checkout
+                        <i class="fas fa-check-circle"></i> Proceed to Checkout
                     </button>
                 </div>
 
@@ -443,7 +848,7 @@ if ($currentUser && $currentUser->getImage()) {
                     <i class="fas fa-shopping-cart"></i>
                     <h3>Your cart is empty</h3>
                     <p>Looks like you haven't added anything yet.</p>
-                    <a href="trading.php" class="shop-btn">Start Trading</a>
+                    <a href="shop.php" class="shop-btn">Browse Products</a>
                 </div>
             </div>
         </section>
@@ -457,13 +862,14 @@ if ($currentUser && $currentUser->getImage()) {
             </div>
             <div class="footer-section">
                 <h4>Back to Top</h4>
-                <a href="#" class="back-to-top-link" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;">
+                <a href="#" class="back-to-top-link"
+                    onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;">
                     <i class="fas fa-arrow-up"></i> Scroll to Top
                 </a>
             </div>
             <div class="footer-section">
                 <h4>Support</h4>
-                <a href="reclamation.html">Contact Support</a>
+                <a href="reclamation.php">Contact Support</a>
                 <a href="#">FAQ</a>
                 <a href="#">Privacy Policy</a>
             </div>
@@ -475,7 +881,6 @@ if ($currentUser && $currentUser->getImage()) {
                     <a href="#"><i class="fab fa-youtube"></i></a>
                 </div>
             </div>
-
         </div>
         <div class="footer-bottom">
             <p>© 2025 FoxUnity. All rights reserved. Made with <span>♥</span> by gamers for gamers</p>
@@ -483,154 +888,453 @@ if ($currentUser && $currentUser->getImage()) {
     </footer>
 
     <script>
-        // Dropdown Menu Toggle
-        document.addEventListener('DOMContentLoaded', function() {
+        // ============================================
+        // GLOBAL VARIABLES
+        // ============================================
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        let appliedCoupon = null;
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function () {
             const userDropdown = document.getElementById('userDropdown');
-            
+
             if (userDropdown) {
                 const usernameDisplay = userDropdown.querySelector('.username-display');
-                
-                usernameDisplay.addEventListener('click', function(e) {
+
+                usernameDisplay.addEventListener('click', function (e) {
                     e.stopPropagation();
                     userDropdown.classList.toggle('active');
                 });
-                
-                document.addEventListener('click', function(e) {
+
+                document.addEventListener('click', function (e) {
                     if (!userDropdown.contains(e.target)) {
                         userDropdown.classList.remove('active');
                     }
                 });
-                
-                document.addEventListener('keydown', function(e) {
+
+                document.addEventListener('keydown', function (e) {
                     if (e.key === 'Escape') {
                         userDropdown.classList.remove('active');
                     }
                 });
             }
-            
-            // Cart Logic
-            const cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+            // Coupon enter key support
+            const couponInput = document.getElementById('couponCode');
+            if (couponInput) {
+                couponInput.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        applyCoupon();
+                    }
+                });
+            }
+
+            // Initialize cart
+            updateCartCount();
+            renderCart();
+        });
+
+        // ============================================
+        // CART FUNCTIONS
+        // ============================================
+        function updateCartCount() {
+            let totalQuantity = 0;
+            cart.forEach(item => {
+                totalQuantity += item.quantity || 1;
+            });
+
             const cartCount = document.querySelector('.cart-count');
+            if (cartCount) {
+                cartCount.textContent = totalQuantity;
+            }
+        }
+
+        async function renderCart() {
             const cartContent = document.getElementById('cartContent');
             const emptyCartMessage = document.getElementById('emptyCartMessage');
             const cartSummary = document.getElementById('cartSummary');
-            const cartTotal = document.getElementById('cartTotal');
-            const checkoutBtn = document.getElementById('checkoutBtn');
-            
-            if (cartCount) {
-                cartCount.textContent = cart.length;
+            const couponSection = document.getElementById('couponSectionContainer');
+
+            if (cart.length === 0) {
+                cartContent.style.display = 'none';
+                cartSummary.style.display = 'none';
+                couponSection.style.display = 'none';
+                emptyCartMessage.style.display = 'block';
+                return;
             }
 
-            async function renderCart() {
-                if (cart.length === 0) {
-                    cartContent.style.display = 'none';
-                    cartSummary.style.display = 'none';
-                    emptyCartMessage.style.display = 'block';
+            const cartItems = cart.map(item => ({
+                id: item.id,
+                type: item.type || 'skin',
+                quantity: item.quantity || 1
+            }));
+
+            try {
+                const formData = new FormData();
+                formData.append('cart_items', JSON.stringify(cartItems));
+
+                const response = await fetch('get_cart_prices.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    console.error('Failed to fetch prices:', data.error);
+                    showToast('Error loading cart items', 'error');
                     return;
                 }
-                
-                // Fetch exact prices from database
-                const skinIds = cart.map(item => item.id);
-                
-                try {
-                    const formData = new FormData();
-                    formData.append('skin_ids', JSON.stringify(skinIds));
-                    
-                    const response = await fetch('get_cart_prices.php', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (!data.success) {
-                        console.error('Failed to fetch prices:', data.error);
-                        alert('Failed to load cart prices. Please refresh the page.');
-                        return;
+
+                const prices = data.prices;
+
+                cartContent.style.display = 'flex';
+                cartSummary.style.display = 'block';
+                couponSection.style.display = 'block';
+                emptyCartMessage.style.display = 'none';
+                cartContent.innerHTML = '';
+
+                let total = 0;
+                let totalItems = 0;
+
+                cart.forEach((item, index) => {
+                    const type = item.type || 'skin';
+                    const quantity = item.quantity || 1;
+                    let key = item.id;
+                    if (type === 'product') {
+                        key = item.id + '_product';
                     }
-                    
-                    const prices = data.prices;
-                    
-                    cartContent.style.display = 'flex';
-                    cartSummary.style.display = 'block';
-                    emptyCartMessage.style.display = 'none';
-                    cartContent.innerHTML = '';
-                    
-                    let total = 0;
-                    
-                    cart.forEach((item, index) => {
-                        const priceData = prices[item.id];
-                        if (!priceData) {
-                            // Item no longer exists, skip it
-                            return;
-                        }
-                        
-                        const price = priceData.price;
-                        total += price;
-                        
-                        const itemEl = document.createElement('div');
-                        itemEl.className = 'cart-item';
-                        itemEl.innerHTML = `
-                            <img src="${priceData.image}" alt="${priceData.name}">
-                            <div class="item-details">
-                                <div class="item-name">${priceData.name}</div>
-                                <div class="item-price">$${price.toFixed(2)}</div>
+
+                    const priceData = prices[key];
+                    if (!priceData) return;
+
+                    const unitPrice = parseFloat(priceData.price);
+                    const subtotal = unitPrice * quantity;
+                    total += subtotal;
+                    totalItems += quantity;
+
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'cart-item';
+                    itemEl.innerHTML = `
+                        <img src="${priceData.image}" alt="${priceData.name}" onerror="this.src='https://via.placeholder.com/100x100?text=No+Image'">
+                        <div class="item-details">
+                            <div class="item-name">${priceData.name}</div>
+                            <div class="item-type">${type}</div>
+                            <div class="item-price">$${unitPrice.toFixed(2)} each</div>
+                        </div>
+                        <div class="item-quantity-controls">
+                            <div class="quantity-control">
+                                <button class="quantity-btn" onclick="decreaseQuantity(${index})" ${quantity <= 1 ? 'disabled' : ''}>
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <span class="quantity-value">${quantity}</span>
+                                <button class="quantity-btn" onclick="increaseQuantity(${index})">
+                                    <i class="fas fa-plus"></i>
+                                </button>
                             </div>
-                            <button class="remove-btn" onclick="removeFromCart(${index})">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        `;
-                        cartContent.appendChild(itemEl);
-                    });
-                    
-                    cartTotal.textContent = '$' + total.toFixed(2);
-                } catch (error) {
-                    console.error('Error fetching prices:', error);
-                    alert('Failed to load cart prices. Please refresh the page.');
+                        </div>
+                        <div class="item-subtotal">
+                            <div class="subtotal-label">Subtotal</div>
+                            <div class="subtotal-price">$${subtotal.toFixed(2)}</div>
+                        </div>
+                        <button class="remove-btn" onclick="removeFromCart(${index})" title="Remove item">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    `;
+                    cartContent.appendChild(itemEl);
+                });
+
+                document.getElementById('totalItems').textContent = totalItems;
+                document.getElementById('subtotalPrice').textContent = '$' + total.toFixed(2);
+                document.getElementById('cartTotal').textContent = '$' + total.toFixed(2);
+
+                // Update with coupon if applied
+                updateCartDisplayWithCoupon();
+
+            } catch (error) {
+                console.error('Error fetching prices:', error);
+                showToast('Error loading cart', 'error');
+            }
+        }
+
+        function increaseQuantity(index) {
+            cart[index].quantity = (cart[index].quantity || 1) + 1;
+            localStorage.setItem('cart', JSON.stringify(cart));
+            appliedCoupon = null; // Reset coupon on cart change
+            updateCartCount();
+            renderCart();
+        }
+
+        function decreaseQuantity(index) {
+            if ((cart[index].quantity || 1) > 1) {
+                cart[index].quantity--;
+                localStorage.setItem('cart', JSON.stringify(cart));
+                appliedCoupon = null; // Reset coupon on cart change
+                updateCartCount();
+                renderCart();
+            }
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            localStorage.setItem('cart', JSON.stringify(cart));
+            appliedCoupon = null; // Reset coupon on cart change
+            updateCartCount();
+            renderCart();
+            showToast('Item removed from cart', 'success');
+        }
+
+        // ============================================
+        // COUPON MANAGEMENT SYSTEM
+        // ============================================
+        async function applyCoupon() {
+            const couponInput = document.getElementById('couponCode');
+            const couponCode = couponInput.value.trim().toUpperCase();
+
+            if (!couponCode) {
+                showCouponError('Please enter a coupon code');
+                return;
+            }
+
+            const cartTotal = getCartTotalForCoupon();
+
+            if (cartTotal <= 0) {
+                showCouponError('Your cart is empty');
+                return;
+            }
+
+            showCouponLoading(true);
+
+            try {
+                const response = await fetch('api/validate_coupon.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        coupon_code: couponCode,
+                        total_amount: cartTotal
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    appliedCoupon = {
+                        id: data.coupon_id,
+                        code: data.code,
+                        discount_amount: data.discount_amount,
+                        original_amount: data.original_amount,
+                        final_amount: data.final_amount
+                    };
+
+                    showCouponSuccess(data.message);
+                    updateCartDisplayWithCoupon();
+
+                    couponInput.disabled = true;
+                    document.getElementById('applyCouponBtn').style.display = 'none';
+                    document.getElementById('removeCouponBtn').style.display = 'inline-block';
+
+                } else {
+                    showCouponError(data.error);
+                }
+
+            } catch (error) {
+                console.error('Coupon validation error:', error);
+                showCouponError('Error validating coupon. Please try again.');
+            } finally {
+                showCouponLoading(false);
+            }
+        }
+
+        function removeCoupon() {
+            appliedCoupon = null;
+
+            document.getElementById('couponCode').value = '';
+            document.getElementById('couponCode').disabled = false;
+            document.getElementById('applyCouponBtn').style.display = 'inline-block';
+            document.getElementById('removeCouponBtn').style.display = 'none';
+
+            document.getElementById('couponSuccess').style.display = 'none';
+            document.getElementById('couponError').style.display = 'none';
+
+            updateCartDisplayWithCoupon();
+        }
+
+        function updateCartDisplayWithCoupon() {
+            if (!appliedCoupon) {
+                const discountRow = document.querySelector('.summary-row.discount-row');
+                if (discountRow) {
+                    discountRow.classList.remove('show');
+                }
+
+                const totalEl = document.getElementById('cartTotal');
+                const subtotalEl = document.getElementById('subtotalPrice');
+                if (totalEl && subtotalEl) {
+                    totalEl.textContent = subtotalEl.textContent;
+                }
+            } else {
+                let discountRow = document.querySelector('.summary-row.discount-row');
+
+                if (!discountRow) {
+                    const summaryDiv = document.querySelector('.cart-summary');
+                    const totalRow = summaryDiv.querySelector('.summary-row.total');
+
+                    discountRow = document.createElement('div');
+                    discountRow.className = 'summary-row discount-row';
+                    summaryDiv.insertBefore(discountRow, totalRow);
+                }
+
+                discountRow.innerHTML = `
+                    <span>Discount (${appliedCoupon.code}):</span>
+                    <span class="summary-value" style="color: #2ed573; font-weight: 700;">-$${Number(appliedCoupon.discount_amount).toFixed(2)}</span>
+                `;
+                discountRow.classList.add('show');
+
+                const totalEl = document.getElementById('cartTotal');
+                if (totalEl) {
+                    totalEl.textContent = '$' + Number(appliedCoupon.final_amount).toFixed(2);
                 }
             }
-            
-            window.removeFromCart = function(index) {
-                cart.splice(index, 1);
-                localStorage.setItem('cart', JSON.stringify(cart));
-                if (cartCount) cartCount.textContent = cart.length;
-                renderCart();
-            };
+        }
 
-            if (checkoutBtn) {
-                checkoutBtn.addEventListener('click', function() {
-                    if (cart.length === 0) return;
-                    
-                    const skinIds = cart.map(item => item.id);
-                    
-                    const formData = new FormData();
-                    formData.append('buy_skins', '1');
-                    formData.append('skin_ids', JSON.stringify(skinIds));
-                    
-                    fetch('trading.php', {
-                        method: 'POST',
-                        body: formData
-                    })
+        function getCartTotalForCoupon() {
+            const totalEl = document.getElementById('subtotalPrice');
+            if (totalEl) {
+                const totalText = totalEl.textContent.replace('$', '').replace(',', '');
+                return parseFloat(totalText) || 0;
+            }
+            return 0;
+        }
+
+        function showCouponSuccess(message) {
+            const successEl = document.getElementById('couponSuccess');
+            const errorEl = document.getElementById('couponError');
+
+            errorEl.style.display = 'none';
+            successEl.querySelector('span').textContent = message;
+            successEl.style.display = 'flex';
+        }
+
+        function showCouponError(message) {
+            const successEl = document.getElementById('couponSuccess');
+            const errorEl = document.getElementById('couponError');
+
+            successEl.style.display = 'none';
+            errorEl.querySelector('span').textContent = message;
+            errorEl.style.display = 'flex';
+        }
+
+        function showCouponLoading(loading) {
+            const btn = document.getElementById('applyCouponBtn');
+            const spinner = document.getElementById('couponSpinner');
+
+            if (loading) {
+                btn.disabled = true;
+                spinner.style.display = 'inline-block';
+            } else {
+                btn.disabled = false;
+                spinner.style.display = 'none';
+            }
+        }
+
+        function getAppliedCouponData() {
+            return appliedCoupon;
+        }
+
+        // ============================================
+        // CHECKOUT WITH COUPON SUPPORT
+        // ============================================
+        const checkoutBtn = document.getElementById('checkoutBtn');
+        if (checkoutBtn) {
+            checkoutBtn.addEventListener('click', function () {
+                if (cart.length === 0) return;
+
+                // Get coupon data if applied
+                const couponData = getAppliedCouponData();
+
+                const productsData = cart.filter(item => item.type === 'product').map(item => ({
+                    id: item.id,
+                    quantity: item.quantity || 1
+                }));
+
+                const skinsData = cart.filter(item => !item.type || item.type === 'skin').map(item => ({
+                    id: item.id,
+                    quantity: item.quantity || 1
+                }));
+
+                const formData = new FormData();
+                formData.append('buy_skins', '1');
+                formData.append('skin_ids', JSON.stringify(skinsData.map(s => s.id)));
+                formData.append('product_ids', JSON.stringify(productsData.map(p => p.id)));
+                formData.append('quantities', JSON.stringify({
+                    products: productsData,
+                    skins: skinsData
+                }));
+
+                // ADD COUPON DATA
+                if (couponData) {
+                    formData.append('coupon_id', couponData.id);
+                    formData.append('coupon_code', couponData.code);
+                    formData.append('discount_amount', couponData.discount_amount);
+                    formData.append('final_amount', couponData.final_amount);
+                }
+
+                fetch('trading.php', {
+                    method: 'POST',
+                    body: formData
+                })
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            alert('Purchase successful! You bought ' + data.count + ' items.');
+                            showToast('Purchase successful! Redirecting...', 'success');
                             localStorage.removeItem('cart');
-                            window.location.href = 'trading.php';
+                            setTimeout(() => {
+                                window.location.href = 'trading.php';
+                            }, 2000);
                         } else {
-                            alert('Purchase failed: ' + (data.error || 'Unknown error'));
-                            if (data.details) console.error(data.details);
+                            showToast('Purchase failed: ' + (data.error || 'Unknown error'), 'error');
                         }
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        alert('An error occurred during checkout.');
+                        showToast('An error occurred during checkout.', 'error');
                     });
-                });
+            });
+        }
+
+        // ============================================
+        // TOAST NOTIFICATION
+        // ============================================
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            if (!toast) return;
+
+            const msgSpan = document.getElementById('toastMessage');
+            const icon = toast.querySelector('i');
+
+            msgSpan.textContent = message;
+
+            toast.className = 'toast';
+            if (type === 'success') {
+                toast.classList.add('success');
+                icon.className = 'fas fa-check-circle';
+            } else {
+                toast.classList.add('error');
+                icon.className = 'fas fa-times-circle';
             }
 
-            renderCart();
-        });
+            void toast.offsetWidth;
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
     </script>
 </body>
+
 </html>

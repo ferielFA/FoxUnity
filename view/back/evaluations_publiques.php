@@ -38,7 +38,7 @@ $allSatisfactions = $satisfactionController->getAllSatisfactions();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FoxUnity - Évaluations Publiques</title>
+    <title>FoxUnity - Public Evaluations</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@700&display=swap"
         rel="stylesheet">
@@ -58,7 +58,61 @@ $allSatisfactions = $satisfactionController->getAllSatisfactions();
             --danger-color: #f44336;
         }
 
+        /* Espacement supplémentaire pour éviter la compression */
+        .main {
+            padding: 40px 60px !important;
+            margin-left: 30px !important;
+        }
 
+        .topbar {
+            margin-bottom: 40px !important;
+            padding: 30px 50px !important;
+        }
+
+        .stats-grid {
+            margin-bottom: 40px !important;
+            gap: 25px !important;
+        }
+
+        .reviews-section {
+            margin-bottom: 40px !important;
+        }
+
+        .reviews-list {
+            gap: 30px !important;
+        }
+
+        .review-card {
+            padding: 30px !important;
+        }
+
+        /* Admin Dropdown Active State */
+        .admin-dropdown.active .admin-dropdown-menu {
+            opacity: 1 !important;
+            visibility: visible !important;
+            transform: translateY(0) !important;
+        }
+
+        .admin-user i.fa-user-circle {
+            font-size: 35px;
+            color: #fff;
+        }
+
+        .admin-user span {
+            color: #fff;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .admin-user i.fa-chevron-down {
+            font-size: 12px;
+            color: #fff;
+            transition: transform 0.3s ease;
+        }
+
+        .admin-dropdown.active .admin-user i.fa-chevron-down {
+            transform: rotate(180deg);
+        }
 
         /* Stats Cards */
         .stats-grid {
@@ -481,7 +535,7 @@ $allSatisfactions = $satisfactionController->getAllSatisfactions();
         <h2>Dashboard</h2>
         <a href="dashboard.php">Overview</a>
         <a href="users.php">Users</a>
-        <a href="#">Shop</a>
+        <a href="shopb.php">Shop</a>
         <a href="tradingb.php">Trade History</a>
         <a href="eventsb.php">Events</a>
         <a href="news_admin.php">News</a>
@@ -489,37 +543,42 @@ $allSatisfactions = $satisfactionController->getAllSatisfactions();
         <a href="categories.php" id="categories-link">Categories</a>
         <a href="newsletter_admin.php" id="newsletter-link">Newsletter</a>
         <a href="reclamback.php">Support</a>
-        <a href="evaluations_publiques.php" class="active">Évaluations Publiques</a>
+        <a href="evaluations_publiques.php" class="active">Public Evaluations</a>
         <a href="../front/index.php">← Return Homepage</a>
     </div>
 
     <!-- Main Content -->
     <div class="main">
         <div class="topbar">
-            <h1>Évaluations <span>Publiques</span></h1>
-            <div class="admin-dropdown" id="adminDropdown">
-                <div class="user admin-user">
-                    <?php if ($userImage): ?>
-                        <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
-                    <?php else: ?>
-                        <i class="fas fa-user-circle"></i>
-                    <?php endif; ?>
-                    <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
-                    <i class="fas fa-chevron-down"></i>
-                </div>
+            <h1>Public <span>Evaluations</span></h1>
+            <div class="topbar-right" style="display: flex; align-items: center; gap: 20px;">
+                <!-- Système de Notifications Tout-en-un -->
+                <?php include __DIR__ . '/includes/notifications.php'; ?>
 
-                <div class="admin-dropdown-menu">
-                    <a href="admin-profile.php" class="dropdown-item">
-                        <i class="fas fa-user"></i>
-                        <span>My Profile</span>
-                    </a>
+                <div class="admin-dropdown" id="adminDropdown">
+                    <div class="user admin-user">
+                        <?php if ($userImage): ?>
+                            <img src="<?php echo htmlspecialchars($userImage); ?>" alt="Admin Avatar">
+                        <?php else: ?>
+                            <i class="fas fa-user-circle"></i>
+                        <?php endif; ?>
+                        <span><?php echo htmlspecialchars($currentUser->getUsername()); ?></span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
 
-                    <div class="dropdown-divider"></div>
+                    <div class="admin-dropdown-menu">
+                        <a href="admin-profile.php" class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            <span>My Profile</span>
+                        </a>
 
-                    <a href="../front/logout.php" class="dropdown-item logout">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>Logout</span>
-                    </a>
+                        <div class="dropdown-divider"></div>
+
+                        <a href="../front/logout.php" class="dropdown-item logout">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -686,71 +745,76 @@ $allSatisfactions = $satisfactionController->getAllSatisfactions();
             </div>
 
 
-    <!-- Attachment Modal -->
-    <div id="attachment-modal" class="modal" style="display: none;">
-        <div class="modal-content"
-            style="max-width: 90vw; max-height: 90vh; background: rgba(10,10,10,0.98); border: 2px solid rgba(255,122,0,0.3); border-radius: 15px; padding: 20px; position: relative;">
-            <button class="modal-close" onclick="closeAttachmentModal()"
-                style="position: absolute; top: 15px; right: 15px; background: rgba(255,60,60,0.2); color: #ff3c3c; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; z-index: 10; transition: all 0.3s ease;">
-                <i class="fas fa-times"></i>
-            </button>
-            <div id="attachment-modal-content"
-                style="display: flex; align-items: center; justify-content: center; min-height: 400px;">
-                <!-- Content will be inserted here -->
+            <!-- Attachment Modal -->
+            <div id="attachment-modal" class="modal" style="display: none;">
+                <div class="modal-content"
+                    style="max-width: 90vw; max-height: 90vh; background: rgba(10,10,10,0.98); border: 2px solid rgba(255,122,0,0.3); border-radius: 15px; padding: 20px; position: relative;">
+                    <button class="modal-close" onclick="closeAttachmentModal()"
+                        style="position: absolute; top: 15px; right: 15px; background: rgba(255,60,60,0.2); color: #ff3c3c; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; z-index: 10; transition: all 0.3s ease;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div id="attachment-modal-content"
+                        style="display: flex; align-items: center; justify-content: center; min-height: 400px;">
+                        <!-- Content will be inserted here -->
+                    </div>
+                    <div style="text-align: center; margin-top: 15px;">
+                        <a id="attachment-download-link" href="#" target="_blank"
+                            style="color: #ff7a00; text-decoration: none; font-size: 14px;">
+                            <i class="fas fa-download"></i> Download
+                        </a>
+                    </div>
+                </div>
             </div>
-            <div style="text-align: center; margin-top: 15px;">
-                <a id="attachment-download-link" href="#" target="_blank"
-                    style="color: #ff7a00; text-decoration: none; font-size: 14px;">
-                    <i class="fas fa-download"></i> Download
-                </a>
-            </div>
+
+            <footer class="site-footer">
+                © 2025 <span>Nine Tailed Fox</span>. All Rights Reserved.
+            </footer>
         </div>
-    </div>
 
-    <script>
-        // Attachment Modal Functions
-        function openAttachmentModal(element) {
-            const modal = document.getElementById('attachment-modal');
-            const modalContent = document.getElementById('attachment-modal-content');
-            const downloadLink = document.getElementById('attachment-download-link');
-            const fileSrc = element.getAttribute('data-src');
-            const fileType = element.getAttribute('data-type');
+        <script>
+            // Attachment Modal Functions
+            function openAttachmentModal(element) {
+                const modal = document.getElementById('attachment-modal');
+                const modalContent = document.getElementById('attachment-modal-content');
+                const downloadLink = document.getElementById('attachment-download-link');
+                const fileSrc = element.getAttribute('data-src');
+                const fileType = element.getAttribute('data-type');
 
-            if (!modal || !modalContent) {
-                console.error('Attachment modal elements not found');
-                return;
-            }
+                if (!modal || !modalContent) {
+                    console.error('Attachment modal elements not found');
+                    return;
+                }
 
-            modal.style.display = 'flex';
-            if (downloadLink) {
-                downloadLink.href = fileSrc;
-            }
+                modal.style.display = 'flex';
+                if (downloadLink) {
+                    downloadLink.href = fileSrc;
+                }
 
-            if (fileType === 'image') {
-                console.log('Opening image modal with src:', fileSrc);
+                if (fileType === 'image') {
+                    console.log('Opening image modal with src:', fileSrc);
 
-                // Afficher directement l'image avec gestion d'erreur
-                modalContent.innerHTML = `
+                    // Afficher directement l'image avec gestion d'erreur
+                    modalContent.innerHTML = `
                     <img src="${fileSrc}" 
                          alt="Full size attachment" 
                          style="max-width: 100%; max-height: 85vh; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: block; margin: 0 auto;"
                          onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\\'text-align: center; padding: 40px; color: #ff7a00;\\'><i class=\\'fas fa-exclamation-triangle\\' style=\\'font-size: 48px; margin-bottom: 20px; display: block;\\'></i><p style=\\'font-size: 18px; margin-bottom: 10px;\\'>Impossible de charger l\\'image</p><p style=\\'font-size: 14px; color: #aaa; word-break: break-all;\\'>Chemin: ${fileSrc}</p><a href=\\'${fileSrc}\\' target=\\'_blank\\' style=\\'color: #ff7a00; text-decoration: none; margin-top: 20px; display: inline-block;\\'><i class=\\'fas fa-external-link-alt\\'></i> Ouvrir dans un nouvel onglet</a></div>';">
                 `;
-            } else if (fileType === 'video') {
-                const videoExt = fileSrc.split('.').pop();
-                const video = document.createElement('video');
-                video.controls = true;
-                video.autoplay = true;
-                video.style.cssText = 'max-width: 100%; max-height: 85vh; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: block; margin: 0 auto;';
+                } else if (fileType === 'video') {
+                    const videoExt = fileSrc.split('.').pop();
+                    const video = document.createElement('video');
+                    video.controls = true;
+                    video.autoplay = true;
+                    video.style.cssText = 'max-width: 100%; max-height: 85vh; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: block; margin: 0 auto;';
 
-                const source = document.createElement('source');
-                source.src = fileSrc;
-                source.type = `video/${videoExt}`;
-                video.appendChild(source);
+                    const source = document.createElement('source');
+                    source.src = fileSrc;
+                    source.type = `video/${videoExt}`;
+                    video.appendChild(source);
 
-                video.onerror = function () {
-                    console.error('Erreur de chargement de la vidéo:', fileSrc);
-                    modalContent.innerHTML = `
+                    video.onerror = function () {
+                        console.error('Erreur de chargement de la vidéo:', fileSrc);
+                        modalContent.innerHTML = `
                         <div style="text-align: center; padding: 40px; color: #ff7a00;">
                             <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 20px; display: block;"></i>
                             <p style="font-size: 18px; margin-bottom: 10px;">Impossible de charger la vidéo</p>
@@ -760,83 +824,83 @@ $allSatisfactions = $satisfactionController->getAllSatisfactions();
                             </a>
                         </div>
                     `;
-                };
+                    };
 
-                modalContent.innerHTML = '';
-                modalContent.appendChild(video);
-            }
-
-            // Prevent body scroll when modal is open
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeAttachmentModal() {
-            const modal = document.getElementById('attachment-modal');
-            const modalContent = document.getElementById('attachment-modal-content');
-
-            if (!modal) return;
-
-            modal.style.display = 'none';
-            if (modalContent) {
-                modalContent.innerHTML = '';
-            }
-
-            // Restore body scroll
-            document.body.style.overflow = '';
-        }
-
-        // Close modal when clicking outside (only if modal exists)
-        const attachmentModal = document.getElementById('attachment-modal');
-        if (attachmentModal) {
-            attachmentModal.addEventListener('click', function (e) {
-                if (e.target === this) {
-                    closeAttachmentModal();
+                    modalContent.innerHTML = '';
+                    modalContent.appendChild(video);
                 }
-            });
-        }
 
-        // Close modal with Escape key
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') {
+                // Prevent body scroll when modal is open
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeAttachmentModal() {
                 const modal = document.getElementById('attachment-modal');
-                if (modal && modal.style.display === 'flex') {
-                    closeAttachmentModal();
-                }
-            }
-        });
+                const modalContent = document.getElementById('attachment-modal-content');
 
-        document.querySelectorAll('.sidebar a').forEach(item => {
-            item.addEventListener('click', function () {
-                document.querySelectorAll('.sidebar a').forEach(nav => {
-                    nav.classList.remove('active');
+                if (!modal) return;
+
+                modal.style.display = 'none';
+                if (modalContent) {
+                    modalContent.innerHTML = '';
+                }
+
+                // Restore body scroll
+                document.body.style.overflow = '';
+            }
+
+            // Close modal when clicking outside (only if modal exists)
+            const attachmentModal = document.getElementById('attachment-modal');
+            if (attachmentModal) {
+                attachmentModal.addEventListener('click', function (e) {
+                    if (e.target === this) {
+                        closeAttachmentModal();
+                    }
                 });
-                this.classList.add('active');
-            });
-        });
-        // Admin Dropdown Logic
-        const adminDropdown = document.getElementById('adminDropdown');
-        if (adminDropdown) {
-          const adminUser = adminDropdown.querySelector('.admin-user');
-          if (adminUser) {
-            adminUser.addEventListener('click', function(e) {
-              e.stopPropagation();
-              adminDropdown.classList.toggle('active');
-            });
-          }
-          
-          document.addEventListener('click', function(e) {
-            if (!adminDropdown.contains(e.target)) {
-              adminDropdown.classList.remove('active');
             }
-          });
-          
-          document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-              adminDropdown.classList.remove('active');
+
+            // Close modal with Escape key
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    const modal = document.getElementById('attachment-modal');
+                    if (modal && modal.style.display === 'flex') {
+                        closeAttachmentModal();
+                    }
+                }
+            });
+
+            document.querySelectorAll('.sidebar a').forEach(item => {
+                item.addEventListener('click', function () {
+                    document.querySelectorAll('.sidebar a').forEach(nav => {
+                        nav.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                });
+            });
+            // Admin Dropdown Logic
+            const adminDropdown = document.getElementById('adminDropdown');
+            if (adminDropdown) {
+                const adminUser = adminDropdown.querySelector('.admin-user');
+                if (adminUser) {
+                    adminUser.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        adminDropdown.classList.toggle('active');
+                    });
+                }
+
+                document.addEventListener('click', function (e) {
+                    if (!adminDropdown.contains(e.target)) {
+                        adminDropdown.classList.remove('active');
+                    }
+                });
+
+                document.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape') {
+                        adminDropdown.classList.remove('active');
+                    }
+                });
             }
-          });
-        }
-    </script>
+        </script>
 </body>
 
 </html>

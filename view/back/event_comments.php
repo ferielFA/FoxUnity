@@ -9,34 +9,34 @@ $message = '';
 
 // Get event ID from URL
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
-    header("Location: eventsb.php");
-    exit;
+  header("Location: eventsb.php");
+  exit;
 }
 
-$eventId = (int)$_GET['id'];
+$eventId = (int) $_GET['id'];
 $event = $eventController->lireParId($eventId);
 
 if (!$event) {
-    header("Location: eventsb.php");
-    exit;
+  header("Location: eventsb.php");
+  exit;
 }
 
 // Handle delete comment
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_comment') {
-    if ($commentController->deleteComment((int)$_POST['id_comment'])) {
-        $message = '<div class="alert success"><i class="fas fa-check-circle"></i> Comment deleted successfully!</div>';
-    } else {
-        $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> Error deleting comment.</div>';
-    }
+  if ($commentController->deleteComment((int) $_POST['id_comment'])) {
+    $message = '<div class="alert success"><i class="fas fa-check-circle"></i> Comment deleted successfully!</div>';
+  } else {
+    $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> Error deleting comment.</div>';
+  }
 }
 
 // Handle unreport comment
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'unreport_comment') {
-    if ($commentController->unreportComment((int)$_POST['id_comment'])) {
-        $message = '<div class="alert success"><i class="fas fa-check-circle"></i> Report dismissed!</div>';
-    } else {
-        $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> Error dismissing report.</div>';
-    }
+  if ($commentController->unreportComment((int) $_POST['id_comment'])) {
+    $message = '<div class="alert success"><i class="fas fa-check-circle"></i> Report dismissed!</div>';
+  } else {
+    $message = '<div class="alert error"><i class="fas fa-exclamation-circle"></i> Error dismissing report.</div>';
+  }
 }
 
 // Get comments and rating stats
@@ -46,14 +46,16 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Event Comments & Ratings - Dashboard</title>
   <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  
+
   <style>
     .comments-management {
       padding: 24px;
@@ -69,12 +71,27 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
       gap: 12px;
       animation: slideDown 0.5s ease;
     }
-    .alert.success { background: linear-gradient(135deg, #10b981, #059669); color: white; }
-    .alert.error { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+
+    .alert.success {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+    }
+
+    .alert.error {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: white;
+    }
 
     @keyframes slideDown {
-      from { opacity: 0; transform: translateY(-20px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .back-button {
@@ -151,9 +168,17 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
       margin-bottom: 12px;
     }
 
-    .stat-card-admin.rating { color: #f5c242; }
-    .stat-card-admin.total { color: #2ed573; }
-    .stat-card-admin.reported { color: #ff6b6b; }
+    .stat-card-admin.rating {
+      color: #f5c242;
+    }
+
+    .stat-card-admin.total {
+      color: #2ed573;
+    }
+
+    .stat-card-admin.reported {
+      color: #ff6b6b;
+    }
 
     .stat-card-admin .stat-number {
       font-family: 'Orbitron', sans-serif;
@@ -198,7 +223,7 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
     .rating-bar-container {
       flex: 1;
       height: 10px;
-      background: rgba(255,255,255,0.1);
+      background: rgba(255, 255, 255, 0.1);
       border-radius: 10px;
       overflow: hidden;
     }
@@ -333,7 +358,7 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
       line-height: 1.7;
       margin-bottom: 16px;
       padding: 16px;
-      background: rgba(255,255,255,0.02);
+      background: rgba(255, 255, 255, 0.02);
       border-radius: 8px;
     }
 
@@ -431,7 +456,7 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
       display: flex;
       gap: 12px;
       margin-bottom: 24px;
-      border-bottom: 2px solid rgba(255,255,255,0.1);
+      border-bottom: 2px solid rgba(255, 255, 255, 0.1);
       padding-bottom: 12px;
     }
 
@@ -452,7 +477,7 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
     }
 
     .filter-tab:hover {
-      background: rgba(255,255,255,0.05);
+      background: rgba(255, 255, 255, 0.05);
       color: #fff;
     }
 
@@ -501,7 +526,7 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
     <h2>Dashboard</h2>
     <a href="dashboard.php">Overview</a>
     <a href="users.php">Users</a>
-    <a href="#">Shop</a>
+    <a href="shopb.php">Shop</a>
     <a href="tradingb.php">Trade History</a>
     <a href="eventsb.php" class="active">Events</a>
     <a href="#">News</a>
@@ -512,7 +537,8 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
   <!-- ===== MAIN ===== -->
   <div class="main">
     <div class="topbar">
-      <h1 data-lang-en="Event Comments & Ratings" data-lang-fr="Commentaires & Notes de l'Événement">Event Comments & Ratings</h1>
+      <h1 data-lang-en="Event Comments & Ratings" data-lang-fr="Commentaires & Notes de l'Événement">Event Comments &
+        Ratings</h1>
       <div style="display: flex; align-items: center; gap: 20px;">
         <button id="langToggle" class="lang-toggle" onclick="toggleLanguage()">
           <i class="fas fa-language"></i>
@@ -527,10 +553,12 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
 
     <div class="content">
       <div class="comments-management">
-        <?php if ($message): echo $message; endif; ?>
+        <?php if ($message):
+          echo $message; endif; ?>
 
         <a href="eventsb.php" class="back-button">
-          <i class="fas fa-arrow-left"></i> <span data-lang-en="Back to Events" data-lang-fr="Retour aux Événements">Back to Events</span>
+          <i class="fas fa-arrow-left"></i> <span data-lang-en="Back to Events"
+            data-lang-fr="Retour aux Événements">Back to Events</span>
         </a>
 
         <!-- Event Header -->
@@ -559,36 +587,40 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
           <div class="stat-card-admin reported">
             <div class="stat-icon-admin"><i class="fas fa-flag"></i></div>
             <div class="stat-number"><?= count($reportedComments) ?></div>
-            <div class="stat-label" data-lang-en="Reported Comments" data-lang-fr="Commentaires Signalés">Reported Comments</div>
+            <div class="stat-label" data-lang-en="Reported Comments" data-lang-fr="Commentaires Signalés">Reported
+              Comments</div>
           </div>
         </div>
 
         <!-- Rating Distribution -->
         <?php if ($ratingStats['total'] > 0): ?>
-        <div class="rating-distribution">
-          <h3 data-lang-en="Rating Distribution" data-lang-fr="Distribution des Notes"><i class="fas fa-chart-bar"></i> <span>Rating Distribution</span></h3>
-          <?php foreach ([5, 4, 3, 2, 1] as $stars): ?>
-            <?php 
-            $count = $ratingStats['distribution'][$stars];
-            $percentage = $ratingStats['total'] > 0 ? ($count / $ratingStats['total']) * 100 : 0;
-            ?>
-            <div class="rating-bar-item">
-              <div class="rating-bar-label"><?= $stars ?> <i class="fas fa-star"></i></div>
-              <div class="rating-bar-container">
-                <div class="rating-bar-fill" style="width: <?= $percentage ?>%"></div>
+          <div class="rating-distribution">
+            <h3 data-lang-en="Rating Distribution" data-lang-fr="Distribution des Notes"><i class="fas fa-chart-bar"></i>
+              <span>Rating Distribution</span></h3>
+            <?php foreach ([5, 4, 3, 2, 1] as $stars): ?>
+              <?php
+              $count = $ratingStats['distribution'][$stars];
+              $percentage = $ratingStats['total'] > 0 ? ($count / $ratingStats['total']) * 100 : 0;
+              ?>
+              <div class="rating-bar-item">
+                <div class="rating-bar-label"><?= $stars ?> <i class="fas fa-star"></i></div>
+                <div class="rating-bar-container">
+                  <div class="rating-bar-fill" style="width: <?= $percentage ?>%"></div>
+                </div>
+                <div class="rating-bar-count"><?= $count ?> (<?= round($percentage) ?>%)</div>
               </div>
-              <div class="rating-bar-count"><?= $count ?> (<?= round($percentage) ?>%)</div>
-            </div>
-          <?php endforeach; ?>
-        </div>
+            <?php endforeach; ?>
+          </div>
         <?php endif; ?>
 
         <!-- Filter Tabs -->
         <div class="filter-tabs">
-          <button class="filter-tab active" onclick="filterComments('all')" data-lang-en="All Comments" data-lang-fr="Tous les Commentaires">
+          <button class="filter-tab active" onclick="filterComments('all')" data-lang-en="All Comments"
+            data-lang-fr="Tous les Commentaires">
             All Comments (<?= count($comments) ?>)
           </button>
-          <button class="filter-tab" onclick="filterComments('reported')" data-lang-en="Reported" data-lang-fr="Signalés">
+          <button class="filter-tab" onclick="filterComments('reported')" data-lang-en="Reported"
+            data-lang-fr="Signalés">
             Reported (<?= count($reportedComments) ?>)
           </button>
           <button class="filter-tab" onclick="filterComments('5stars')">
@@ -605,14 +637,15 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
           <?php if (empty($comments)): ?>
             <div class="empty-state">
               <i class="fas fa-comment-slash"></i>
-              <p data-lang-en="No comments yet for this event." data-lang-fr="Aucun commentaire pour cet événement.">No comments yet for this event.</p>
+              <p data-lang-en="No comments yet for this event." data-lang-fr="Aucun commentaire pour cet événement.">No
+                comments yet for this event.</p>
             </div>
           <?php else: ?>
             <?php foreach ($comments as $comment): ?>
-              <div class="comment-card <?= $comment->getIsReported() ? 'reported' : '' ?>" 
-                   data-rating="<?= $comment->getRating() ?>" 
-                   data-reported="<?= $comment->getIsReported() ? 'true' : 'false' ?>">
-                
+              <div class="comment-card <?= $comment->getIsReported() ? 'reported' : '' ?>"
+                data-rating="<?= $comment->getRating() ?>"
+                data-reported="<?= $comment->getIsReported() ? 'true' : 'false' ?>">
+
                 <div class="comment-header-admin">
                   <div class="comment-author-admin">
                     <div class="comment-avatar-admin">
@@ -622,7 +655,7 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
                       <h4><?= htmlspecialchars($comment->getUserName()) ?></h4>
                       <div class="comment-meta-admin">
                         <span class="comment-rating-admin">
-                          <?= str_repeat('★', $comment->getRating()) ?><?= str_repeat('☆', 5 - $comment->getRating()) ?>
+                          <?= str_repeat('★', $comment->getRating()) ?>    <?= str_repeat('☆', 5 - $comment->getRating()) ?>
                         </span>
                         <span><i class="far fa-clock"></i> <?= $comment->getTimeAgo() ?></span>
                         <span><i class="far fa-envelope"></i> <?= htmlspecialchars($comment->getUserEmail()) ?></span>
@@ -636,7 +669,7 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
                         <i class="fas fa-flag"></i> Reported
                       </span>
                     <?php endif; ?>
-                    
+
                     <?php if ($comment->getNetScore() > 0): ?>
                       <span class="badge positive" data-lang-en="Popular" data-lang-fr="Populaire">
                         <i class="fas fa-thumbs-up"></i> Popular
@@ -651,7 +684,8 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
 
                 <?php if ($comment->getIsReported()): ?>
                   <div class="report-reason">
-                    <strong data-lang-en="Report Reason:" data-lang-fr="Raison du Signalement:"><i class="fas fa-exclamation-triangle"></i> <span>Report Reason:</span></strong>
+                    <strong data-lang-en="Report Reason:" data-lang-fr="Raison du Signalement:"><i
+                        class="fas fa-exclamation-triangle"></i> <span>Report Reason:</span></strong>
                     <p><?= htmlspecialchars($comment->getReportReason() ?? 'No reason provided') ?></p>
                   </div>
                 <?php endif; ?>
@@ -668,7 +702,8 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
                     <i class="fas fa-thumbs-down"></i> <?= $comment->getDislikes() ?> <span>Dislikes</span>
                   </div>
                   <div class="comment-stat-item">
-                    <i class="fas fa-balance-scale"></i> <span data-lang-en="Net Score:" data-lang-fr="Score Net:">Net Score:</span> <?= $comment->getNetScore() ?>
+                    <i class="fas fa-balance-scale"></i> <span data-lang-en="Net Score:" data-lang-fr="Score Net:">Net
+                      Score:</span> <?= $comment->getNetScore() ?>
                   </div>
                 </div>
 
@@ -678,11 +713,12 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
                       <input type="hidden" name="action" value="unreport_comment">
                       <input type="hidden" name="id_comment" value="<?= $comment->getIdComment() ?>">
                       <button type="submit" class="btn-admin approve">
-                        <i class="fas fa-check"></i> <span data-lang-en="Dismiss Report" data-lang-fr="Ignorer le Signalement">Dismiss Report</span>
+                        <i class="fas fa-check"></i> <span data-lang-en="Dismiss Report"
+                          data-lang-fr="Ignorer le Signalement">Dismiss Report</span>
                       </button>
                     </form>
                   <?php endif; ?>
-                  
+
                   <form method="POST" style="display:inline;" onsubmit="return confirmDelete();">
                     <input type="hidden" name="action" value="delete_comment">
                     <input type="hidden" name="id_comment" value="<?= $comment->getIdComment() ?>">
@@ -722,10 +758,10 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
 
       // Update all elements with language attributes
       document.querySelectorAll('[data-lang-en]').forEach(element => {
-        const text = currentLanguage === 'en' 
+        const text = currentLanguage === 'en'
           ? element.getAttribute('data-lang-en')
           : element.getAttribute('data-lang-fr');
-        
+
         // For elements with icon + text structure
         if (element.querySelector('i') && element.querySelector('span')) {
           const span = element.querySelector('span');
@@ -753,7 +789,7 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
     }
 
     function confirmDelete() {
-      const message = currentLanguage === 'en' 
+      const message = currentLanguage === 'en'
         ? 'Are you sure you want to delete this comment?'
         : 'Êtes-vous sûr de vouloir supprimer ce commentaire ?';
       return confirm(message);
@@ -787,18 +823,18 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
     function filterComments(filter) {
       const cards = document.querySelectorAll('.comment-card');
       const tabs = document.querySelectorAll('.filter-tab');
-      
+
       // Update active tab
       tabs.forEach(tab => tab.classList.remove('active'));
       event.target.classList.add('active');
-      
+
       // Filter cards
       cards.forEach(card => {
         const rating = parseInt(card.getAttribute('data-rating'));
         const isReported = card.getAttribute('data-reported') === 'true';
-        
+
         let show = false;
-        
+
         if (filter === 'all') {
           show = true;
         } else if (filter === 'reported') {
@@ -806,11 +842,12 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
         } else if (filter === '5stars') {
           show = rating === 5;
         }
-        
+
         card.style.display = show ? 'block' : 'none';
       });
     }
   </script>
-  
+
 </body>
+
 </html>

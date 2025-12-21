@@ -1,8 +1,11 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+// ✅ DÉSACTIVER L'AFFICHAGE D'ERREURS POUR AJAX
+error_reporting(0);
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
 
 session_start();
+ob_start(); // ✅ CAPTURER TOUTE SORTIE PHP
 
 // Inclure les contrôleurs et les modèles
 require_once __DIR__ . '/../../config/config.php';
@@ -10,10 +13,11 @@ require_once __DIR__ . '/../../controller/reclamationcontroller.php';
 require_once __DIR__ . '/../../controller/ResponseController.php';
 require_once __DIR__ . '/../../controller/UserController.php';
 require_once __DIR__ . '/../../controller/SatisfactionController.php';
+require_once __DIR__ . '/../../controller/EmailConfig.php';
 require_once __DIR__ . '/../../model/Response.php';
 require_once __DIR__ . '/../../model/Reclamation.php';
 require_once __DIR__ . '/../../model/Satisfaction.php';
-require_once __DIR__ . '/../../model/User.php'; // Added User model requirement
+require_once __DIR__ . '/../../model/User.php';
 
 // Check if user is logged in
 if (!UserController::isLoggedIn()) {
@@ -34,145 +38,75 @@ $reclamationController = new ReclamationController();
 $responseController = new ResponseController();
 $satisfactionController = new SatisfactionController();
 
-/**
- * Fonction pour envoyer un email à l'utilisateur lorsqu'une réponse est ajoutée
- * @param string $userEmail L'email de l'utilisateur
- * @param string $reclamationSubject Le sujet de la réclamation
- * @param string $responseMessage Le message de la réponse
- * @param int $reclamationId L'ID de la réclamation
- * @return bool True si l'email a été envoyé avec succès, False sinon
- */
-function sendResponseEmail($userEmail, $reclamationSubject, $responseMessage, $reclamationId)
+
+function sendResponseEmailToUser($userEmail, $reclamationSubject, $responseMessage, $reclamationId)
 {
+    // Désactiver TOUTE sortie pendant l'envoi
+    ob_start();
+
     try {
-        // Vérifier que l'email est valide
         if (empty($userEmail) || !filter_var($userEmail, FILTER_VALIDATE_EMAIL)) {
-            error_log("❌ Email invalide pour l'envoi: " . $userEmail);
+            ob_end_clean();
+            error_log("❌ Email invalide: " . $userEmail);
             return false;
         }
 
-        // Préparer le sujet de l'email
-        $emailSubject = "Réponse à votre réclamation - FoxUnity";
+        require_once __DIR__ . '/../../controller/EmailConfig.php';
+        $mail = EmailConfig::getMailer();
 
-        // Créer le contenu HTML de l'email
-        $emailBody = "
+        if (!$mail) {
+            ob_end_clean();
+            error_log("❌ Impossible d'obtenir l'instance PHPMailer");
+            return false;
+        }
+
+        $mail->addAddress($userEmail);
+        $mail->Subject = "✅ Réponse à votre réclamation - FoxUnity Support";
+        $mail->isHTML(true);
+
+        $mail->Body = "
         <!DOCTYPE html>
         <html lang='fr'>
         <head>
             <meta charset='UTF-8'>
-            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
             <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    line-height: 1.6;
-                    color: #333;
-                    background-color: #f4f4f4;
-                    margin: 0;
-                    padding: 0;
-                }
-                .container {
-                    max-width: 600px;
-                    margin: 0 auto;
-                    background-color: #ffffff;
-                    padding: 20px;
-                }
-                .header {
-                    background: linear-gradient(135deg, #ff7a00, #ff4f00);
-                    color: white;
-                    padding: 30px;
-                    text-align: center;
-                    border-radius: 8px 8px 0 0;
-                }
-                .header h1 {
-                    margin: 0;
-                    font-size: 24px;
-                }
-                .content {
-                    padding: 30px 20px;
-                }
-                .response-box {
-                    background-color: #f9f9f9;
-                    border-left: 4px solid #ff7a00;
-                    padding: 20px;
-                    margin: 20px 0;
-                    border-radius: 4px;
-                }
-                .response-box p {
-                    margin: 0;
-                    white-space: pre-wrap;
-                }
-                .footer {
-                    background-color: #f4f4f4;
-                    padding: 20px;
-                    text-align: center;
-                    font-size: 12px;
-                    color: #666;
-                    border-radius: 0 0 8px 8px;
-                }
-                .button {
-                    display: inline-block;
-                    background-color: #ff7a00;
-                    color: white;
-                    padding: 12px 30px;
-                    text-decoration: none;
-                    border-radius: 5px;
-                    margin: 20px 0;
-                }
-                .button:hover {
-                    background-color: #ff4f00;
-                }
+                body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
+                .email-container { max-width: 600px; margin: 20px auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+                .email-header { background: linear-gradient(135deg, #ff7a00, #ff4f00); color: white; padding: 40px 30px; text-align: center; }
+                .email-content { padding: 40px 30px; }
+                .response-box { background: #fff8f0; border: 2px solid #ffc896; border-radius: 8px; padding: 25px; margin: 25px 0; }
             </style>
         </head>
         <body>
-            <div class='container'>
-                <div class='header'>
-                    <h1>Nouvelle réponse à votre réclamation</h1>
+            <div class='email-container'>
+                <div class='email-header'>
+                    <h1>📬 Nouvelle Réponse</h1>
                 </div>
-                <div class='content'>
-                    <p>Bonjour,</p>
-                    <p>Nous avons le plaisir de vous informer qu'une réponse a été apportée à votre réclamation :</p>
+                <div class='email-content'>
                     <p><strong>Sujet :</strong> " . htmlspecialchars($reclamationSubject) . "</p>
                     <div class='response-box'>
-                        <p><strong>Réponse de l'équipe :</strong></p>
-                        <p>" . nl2br(htmlspecialchars($responseMessage)) . "</p>
+                        <div>" . nl2br(htmlspecialchars($responseMessage)) . "</div>
                     </div>
-                    <p>Vous pouvez consulter votre réclamation et toutes les réponses en vous connectant à votre espace support.</p>
-                    <p style='text-align: center;'>
-                        <a href='http://localhost/foxunity/view/front/reclamation.php' class='button'>Voir ma réclamation</a>
-                    </p>
-                    <p>Cordialement,<br>L'équipe FoxUnity</p>
-                </div>
-                <div class='footer'>
-                    <p>Cet email a été envoyé automatiquement. Merci de ne pas y répondre directement.</p>
-                    <p>© 2025 FoxUnity. Tous droits réservés.</p>
+                    <p>Cordialement,<br><strong style='color: #ff7a00;'>L'équipe FoxUnity</strong></p>
                 </div>
             </div>
         </body>
         </html>
         ";
 
-        // Préparer les en-têtes de l'email
-        $headers = "MIME-Version: 1.0" . "\r\n";
-        $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-        $headers .= "From: FoxUnity Support <noreply@foxunity.com>" . "\r\n";
-        $headers .= "Reply-To: noreply@foxunity.com" . "\r\n";
-        $headers .= "X-Mailer: PHP/" . phpversion();
+        // Vider le buffer AVANT d'envoyer
+        ob_end_clean();
 
-        // Envoyer l'email
-        $mailSent = mail($userEmail, $emailSubject, $emailBody, $headers);
-
-        if ($mailSent) {
-            error_log("✅ Email envoyé avec succès à: " . $userEmail . " pour la réclamation ID: " . $reclamationId);
-            return true;
-        } else {
-            error_log("❌ Échec de l'envoi de l'email à: " . $userEmail . " pour la réclamation ID: " . $reclamationId);
-            return false;
-        }
+        $mail->send();
+        error_log("✅ Email envoyé à: " . $userEmail);
+        return true;
     } catch (Exception $e) {
-        error_log("❌ Erreur lors de l'envoi de l'email: " . $e->getMessage());
+        ob_end_clean();
+        error_log("❌ Erreur email: " . $e->getMessage());
         return false;
     }
 }
+
 
 // Traitement pour récupérer une réclamation par ID (pour View via AJAX)
 if (isset($_GET['view_id']) && isset($_GET['ajax'])) {
@@ -560,17 +494,18 @@ $errorMessage = '';
 
 // Ajouter une réponse
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_response']) && $_POST['add_response'] == '1') {
-    // Détecter si c'est une requête AJAX
     $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
     $isAjax = $isAjax || (isset($_POST['ajax']) && $_POST['ajax'] == '1');
 
     if ($isAjax) {
-        // Désactiver l'affichage des erreurs pour les requêtes AJAX
-        ini_set('display_errors', 0);
-        error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
+        // ✅ NETTOYER ABSOLUMENT TOUT
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+        ob_start();
+
         header('Content-Type: application/json; charset=utf-8');
-        // S'assurer qu'il n'y a pas de sortie avant le JSON
-        ob_clean();
+        header('Cache-Control: no-cache, must-revalidate');
     }
 
     try {
@@ -585,7 +520,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_response']) && $_
                 echo json_encode(['success' => false, 'message' => $errorMessage]);
                 exit;
             }
-            $errorMessage = $errorMessage;
         }
         // Validation du message
         elseif (empty($message) || strlen(trim($message)) === 0) {
@@ -602,12 +536,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_response']) && $_
             }
         } elseif (strlen($message) > 5000) {
             $errorMessage = "La réponse ne doit pas dépasser 5000 caractères.";
-            if ($isAjax) {
-                echo json_encode(['success' => false, 'message' => $errorMessage]);
-                exit;
-            }
-        } elseif (preg_match('/<script|javascript:|on\w+\s*=/i', $message)) {
-            $errorMessage = "La réponse contient des caractères non autorisés pour des raisons de sécurité.";
             if ($isAjax) {
                 echo json_encode(['success' => false, 'message' => $errorMessage]);
                 exit;
@@ -639,73 +567,73 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_response']) && $_
                     if ($userData) {
                         $adminId = (int) $userData['id'];
                     } else {
-                        // Aucun utilisateur trouvé - utiliser l'ID 1 par défaut
                         $adminId = 1;
                     }
                 }
 
-                // Vérifier que l'ID admin existe
-                $verifyQuery = $db->prepare("SELECT id FROM users WHERE id = ?");
-                $verifyQuery->execute([$adminId]);
-                if (!$verifyQuery->fetch()) {
-                    $errorMessage = "Erreur: Aucun utilisateur Admin trouvé dans la base de données.";
+                // Créer l'objet Response
+                $response = new Response($idReclamation, $message, 'Admin');
+                $response->setIdAdmin($adminId);
+
+                // Ajouter la réponse
+                $result = $responseController->addResponse($response);
+
+                if ($result && $result > 0) {
+                    // Mettre à jour le statut en "resolu"
+                    $reclamation = $reclamationController->getReclamationById($idReclamation);
+                    if ($reclamation && $reclamation['statut'] !== 'resolu') {
+                        $updatedReclamation = new Reclamation(
+                            $reclamation['email'] ?? '',
+                            $reclamation['sujet'] ?? '',
+                            $reclamation['description'] ?? '',
+                            $reclamation['id_utilisateur'] ?? null,
+                            'resolu',
+                            $reclamation['categorie'] ?? 'Other'
+                        );
+                        $updatedReclamation->setIdReclamation($idReclamation);
+                        $reclamationController->updateReclamation($updatedReclamation);
+                    }
+
+                    // ✅ ENVOYER L'EMAIL (sans bloquer la réponse)
+                    $emailSent = false;
+                    if ($reclamation && !empty($reclamation['email'])) {
+                        try {
+                            $emailSent = sendResponseEmailToUser(
+                                $reclamation['email'],
+                                $reclamation['sujet'] ?? 'Votre réclamation',
+                                $message,
+                                $reclamation['id_reclamation']
+                            );
+
+                            if ($emailSent) {
+                                error_log("✅ Email envoyé à " . $reclamation['email']);
+                            } else {
+                                error_log("⚠️ Échec envoi email à " . $reclamation['email']);
+                            }
+                        } catch (Exception $e) {
+                            error_log("❌ Erreur email: " . $e->getMessage());
+                        }
+                    }
+
+                    // Retourner le succès
                     if ($isAjax) {
-                        echo json_encode(['success' => false, 'message' => $errorMessage]);
+                        echo json_encode([
+                            'success' => true,
+                            'message' => 'Réponse ajoutée avec succès' . ($emailSent ? ' et email envoyé !' : ' !'),
+                            'id' => $result,
+                            'reclamation_id' => $idReclamation,
+                            'email_sent' => $emailSent
+                        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                        exit;
+                    } else {
+                        header("Location: reclamback.php?response_added=1&reclamation_id=" . $idReclamation);
                         exit;
                     }
                 } else {
-                    // Créer l'objet Response
-                    $response = new Response($idReclamation, $message, 'Admin');
-                    $response->setIdAdmin($adminId);
-
-                    // Ajouter la réponse
-                    $result = $responseController->addResponse($response);
-
-                    if ($result && $result > 0) {
-                        // Mettre à jour automatiquement le statut de la réclamation en "resolu"
-                        $reclamation = $reclamationController->getReclamationById($idReclamation);
-                        if ($reclamation && $reclamation['statut'] !== 'resolu') {
-                            $updatedReclamation = new Reclamation(
-                                $reclamation['email'] ?? '',
-                                $reclamation['sujet'] ?? '',
-                                $reclamation['description'] ?? '',
-                                $reclamation['id_utilisateur'] ?? null,
-                                'resolu',
-                                $reclamation['categorie'] ?? 'Other'
-                            );
-                            $updatedReclamation->setIdReclamation($idReclamation);
-                            $reclamationController->updateReclamation($updatedReclamation);
-                        }
-
-                        // Retourner le succès
-                        if ($isAjax) {
-                            // Envoyer l'email en arrière-plan (ne pas bloquer la réponse JSON)
-                            if ($reclamation && !empty($reclamation['email'])) {
-                                @sendResponseEmail($reclamation['email'], $reclamation['sujet'] ?? 'Votre réclamation', $message, $reclamation['id_reclamation']);
-                            }
-
-                            echo json_encode([
-                                'success' => true,
-                                'message' => 'Réponse ajoutée avec succès',
-                                'id' => $result,
-                                'reclamation_id' => $idReclamation
-                            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-                            exit;
-                        } else {
-                            // Envoyer un email à l'utilisateur
-                            if ($reclamation && !empty($reclamation['email'])) {
-                                sendResponseEmail($reclamation['email'], $reclamation['sujet'] ?? 'Votre réclamation', $message, $reclamation['id_reclamation']);
-                            }
-
-                            header("Location: reclamback.php?response_added=1&reclamation_id=" . $idReclamation);
-                            exit;
-                        }
-                    } else {
-                        $errorMessage = "Erreur lors de l'ajout de la réponse. Veuillez réessayer.";
-                        if ($isAjax) {
-                            echo json_encode(['success' => false, 'message' => $errorMessage]);
-                            exit;
-                        }
+                    $errorMessage = "Erreur lors de l'ajout de la réponse.";
+                    if ($isAjax) {
+                        echo json_encode(['success' => false, 'message' => $errorMessage]);
+                        exit;
                     }
                 }
             }
@@ -957,6 +885,71 @@ unset($reclamation);
             --success-color: #4caf50;
             --warning-color: #ff9800;
             --danger-color: #f44336;
+        }
+
+        /* Espacement supplémentaire pour éviter la compression */
+        .main {
+            padding: 40px 60px !important;
+            margin-left: 30px !important;
+        }
+
+        .topbar {
+            margin-bottom: 40px !important;
+            padding: 30px 50px !important;
+        }
+
+        .stats-grid {
+            margin-bottom: 40px !important;
+            gap: 25px !important;
+        }
+
+        .filters-section {
+            margin-bottom: 40px !important;
+            padding: 30px !important;
+        }
+
+        .reviews-section {
+            margin-bottom: 40px !important;
+        }
+
+        .reviews-list {
+            gap: 30px !important;
+        }
+
+        .review-card {
+            padding: 30px !important;
+        }
+
+        /* Admin Dropdown Active State */
+        .admin-dropdown.active .admin-dropdown-menu {
+            opacity: 1 !important;
+            visibility: visible !important;
+            transform: translateY(0) !important;
+        }
+
+        .admin-user i.fa-user-circle {
+            font-size: 35px;
+            color: #fff;
+        }
+
+        .admin-user span {
+            color: #fff;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .admin-user i.fa-chevron-down {
+            font-size: 12px;
+            color: #fff;
+            transition: transform 0.3s ease;
+        }
+
+        .admin-dropdown.active .admin-user i.fa-chevron-down {
+            transform: rotate(180deg);
+        }
+
+        .admin-dropdown.active .admin-user i.fa-chevron-down {
+            transform: rotate(180deg);
         }
 
         /* Mode Clair */
@@ -2213,16 +2206,16 @@ unset($reclamation);
         <img src="../images/Nine__1_-removebg-preview.png" alt="Nine Tailed Fox Logo" class="dashboard-logo">
         <h2>Dashboard</h2>
         <a href="dashboard.php">Overview</a>
-        <a href="users.php" class="active">Users</a>
-        <a href="#">Shop</a>
+        <a href="users.php">Users</a>
+        <a href="shopb.php">Shop</a>
         <a href="tradingb.php">Trade History</a>
         <a href="eventsb.php">Events</a>
         <a href="news_admin.php">News</a>
-        <a href="news_history.php" id="news-history-link">News History</a>
-        <a href="categories.php" id="categories-link">Categories</a>
-        <a href="newsletter_admin.php" id="newsletter-link">Newsletter</a>
+        <a href="news_history.php">News History</a>
+        <a href="categories.php">Categories</a>
+        <a href="newsletter_admin.php">Newsletter</a>
         <a href="reclamback.php" class="active">Support</a>
-        <a href="evaluations_publiques.php">Évaluations Publiques</a>
+        <a href="evaluations_publiques.php">Public Evaluations</a>
         <a href="../front/index.php">← Return Homepage</a>
     </div>
 
@@ -2232,32 +2225,8 @@ unset($reclamation);
             <h1>Dashboard <span>Support</span></h1>
             <div class="topbar-right">
                 <!-- Notification Bell avec Badge -->
-                <div class="notification-container" id="notification-container">
-                    <button class="notification-btn" id="notification-btn" title="Notifications">
-                        <i class="fas fa-bell"></i>
-                        <span class="notification-badge" id="notification-badge">0</span>
-                    </button>
-                    <div class="notification-dropdown" id="notification-dropdown">
-                        <div class="notification-header">
-                            <h4>Notifications</h4>
-                            <button class="mark-all-read" id="mark-all-read">Tout marquer comme lu</button>
-                        </div>
-                        <div class="notification-list" id="notification-list">
-                            <div class="notification-empty">Aucune nouvelle réclamation</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Toggle Mode Sombre/Clair -->
-                <button class="theme-toggle" id="theme-toggle" title="Basculer le thème">
-                    <i class="fas fa-moon" id="theme-icon"></i>
-                </button>
-
-                <!-- Bouton de test du son (temporaire pour debug) -->
-                <button class="theme-toggle" id="test-sound-btn" title="Tester le son de notification"
-                    style="background: rgba(76, 175, 80, 0.1); border-color: rgba(76, 175, 80, 0.3); color: #4caf50;">
-                    <i class="fas fa-volume-up"></i>
-                </button>
+                <!-- Système de Notifications Tout-en-un -->
+                <?php include __DIR__ . '/includes/notifications.php'; ?>
 
                 <div class="admin-dropdown" id="adminDropdown">
                     <div class="user admin-user">
@@ -2764,161 +2733,165 @@ unset($reclamation);
             </div>
         </div>
 
-        <footer class="site-footer">
-            © 2025 <span>Nine Tailed Fox</span>. All Rights Reserved.
+        <!-- Remplacer le footer existant dans categories.php par celui-ci -->
+        <!-- FOOTER BIEN POSITIONNÉ -->
+        <footer class="site-footer"
+            style="width: 100%; text-align: center; padding: 20px; margin-top: 40px; border-top: 1px solid rgba(255, 122, 0, 0.2); color: #999; clear: both;">
+            © 2025 <span style="color: #ff7a00;">Nine Tailed Fox</span>. All Rights Reserved.
         </footer>
-    </div>
 
+        <!-- Response Modal -->
+        <div class="modal" id="response-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="response-modal-title">Add <span>Response</span></h3>
+                    <button class="close-modal">&times;</button>
+                </div>
 
-    <!-- Response Modal -->
-    <div class="modal" id="response-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="response-modal-title">Add <span>Response</span></h3>
-                <button class="close-modal">&times;</button>
-            </div>
+                <div class="review-preview" id="review-preview">
+                    <!-- Review content will be inserted here -->
+                </div>
 
-            <div class="review-preview" id="review-preview">
-                <!-- Review content will be inserted here -->
-            </div>
+                <form id="response-form" method="POST" action="reclamback.php">
+                    <input type="hidden" name="id_reclamation" id="response-reclamation-id" value="">
+                    <input type="hidden" name="id_response" id="response-id" value="">
+                    <input type="hidden" name="admin_name" id="response-admin-name" value="Admin">
+                    <input type="hidden" name="add_response" id="add-response-flag" value="1">
+                    <input type="hidden" name="edit_response" id="edit-response-flag" value="0">
 
-            <form id="response-form" method="POST" action="reclamback.php">
-                <input type="hidden" name="id_reclamation" id="response-reclamation-id" value="">
-                <input type="hidden" name="id_response" id="response-id" value="">
-                <input type="hidden" name="admin_name" id="response-admin-name" value="Admin">
-                <input type="hidden" name="add_response" id="add-response-flag" value="1">
-                <input type="hidden" name="edit_response" id="edit-response-flag" value="0">
-
-                <div class="form-group">
-                    <label class="form-label">Votre réponse <span style="color: var(--primary-color);">*</span></label>
-                    <textarea class="form-textarea" id="response-text" name="response_text"
-                        placeholder="Tapez votre réponse ici..." required minlength="10" maxlength="5000"></textarea>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
-                        <small id="response-error" style="color: #f44336; display: none; font-size: 12px;">
-                            <i class="fas fa-exclamation-circle"></i> <span id="response-error-text"></span>
-                        </small>
-                        <small id="response-char-count"
-                            style="color: var(--text-gray); font-size: 12px; text-align: right; margin-left: auto;">
-                            <span id="response-char-current">0</span> / <span id="response-char-max">5000</span>
-                            caractères
-                        </small>
+                    <div class="form-group">
+                        <label class="form-label">Votre réponse <span
+                                style="color: var(--primary-color);">*</span></label>
+                        <textarea class="form-textarea" id="response-text" name="response_text"
+                            placeholder="Tapez votre réponse ici..." required minlength="10"
+                            maxlength="5000"></textarea>
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                            <small id="response-error" style="color: #f44336; display: none; font-size: 12px;">
+                                <i class="fas fa-exclamation-circle"></i> <span id="response-error-text"></span>
+                            </small>
+                            <small id="response-char-count"
+                                style="color: var(--text-gray); font-size: 12px; text-align: right; margin-left: auto;">
+                                <span id="response-char-current">0</span> / <span id="response-char-max">5000</span>
+                                caractères
+                            </small>
+                        </div>
                     </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-outline" id="cancel-response">Annuler</button>
+                        <button type="submit" class="btn" id="submit-response">Submit Response</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- View Details Modal -->
+        <div class="modal" id="view-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Request <span>Details</span></h3>
+                    <button class="close-modal">&times;</button>
                 </div>
+                <div class="modal-body" id="view-modal-body">
+                    <p style="text-align: center; color: var(--primary-color);">
+                        <i class="fas fa-spinner fa-spin"></i> Chargement...
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Update Status Modal -->
+        <div class="modal" id="status-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Update <span>Status</span></h3>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <form id="status-form" method="POST" action="">
+                    <input type="hidden" name="update_status" value="1">
+                    <input type="hidden" name="id_reclamation" id="status-reclamation-id">
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select name="statut" class="form-select" id="status-select" required>
+                            <option value="nouveau">New</option>
+                            <option value="en_cours">In Progress</option>
+                            <option value="resolu">Resolved</option>
+                        </select>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-outline" id="cancel-status">Annuler</button>
+                        <button type="submit" class="btn" id="submit-status">Mettre à jour</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div class="modal" id="delete-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Confirmer la <span>Suppression</span></h3>
+                    <button class="close-modal">&times;</button>
+                </div>
+
+                <p>Are you sure you want to delete this request? This action is irreversible.</p>
 
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-outline" id="cancel-response">Annuler</button>
-                    <button type="submit" class="btn" id="submit-response">Submit Response</button>
+                    <button type="button" class="btn btn-outline" id="cancel-delete">Annuler</button>
+                    <button type="button" class="btn btn-danger" id="confirm-delete">Supprimer</button>
                 </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- View Details Modal -->
-    <div class="modal" id="view-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Request <span>Details</span></h3>
-                <button class="close-modal">&times;</button>
-            </div>
-            <div class="modal-body" id="view-modal-body">
-                <p style="text-align: center; color: var(--primary-color);">
-                    <i class="fas fa-spinner fa-spin"></i> Chargement...
-                </p>
             </div>
         </div>
-    </div>
 
-    <!-- Update Status Modal -->
-    <div class="modal" id="status-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Update <span>Status</span></h3>
-                <button class="close-modal">&times;</button>
-            </div>
-            <form id="status-form" method="POST" action="">
-                <input type="hidden" name="update_status" value="1">
-                <input type="hidden" name="id_reclamation" id="status-reclamation-id">
-                <div class="form-group">
-                    <label class="form-label">Status</label>
-                    <select name="statut" class="form-select" id="status-select" required>
-                        <option value="nouveau">New</option>
-                        <option value="en_cours">In Progress</option>
-                        <option value="resolu">Resolved</option>
-                    </select>
+        <!-- Attachment Modal -->
+        <div id="attachment-modal" class="modal" style="display: none;">
+            <div class="modal-content"
+                style="max-width: 90vw; max-height: 90vh; background: rgba(10,10,10,0.98); border: 2px solid rgba(255,122,0,0.3); border-radius: 15px; padding: 20px; position: relative;">
+                <button class="modal-close" onclick="closeAttachmentModal()"
+                    style="position: absolute; top: 15px; right: 15px; background: rgba(255,60,60,0.2); color: #ff3c3c; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; z-index: 10; transition: all 0.3s ease;">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div id="attachment-modal-content"
+                    style="display: flex; align-items: center; justify-content: center; min-height: 400px;">
+                    <!-- Content will be inserted here -->
                 </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-outline" id="cancel-status">Annuler</button>
-                    <button type="submit" class="btn" id="submit-status">Mettre à jour</button>
+                <div style="text-align: center; margin-top: 15px;">
+                    <a id="attachment-download-link" href="#" target="_blank"
+                        style="color: #ff7a00; text-decoration: none; font-size: 14px;">
+                        <i class="fas fa-download"></i> Download
+                    </a>
                 </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Delete Confirmation Modal -->
-    <div class="modal" id="delete-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Confirmer la <span>Suppression</span></h3>
-                <button class="close-modal">&times;</button>
-            </div>
-
-            <p>Are you sure you want to delete this request? This action is irreversible.</p>
-
-            <div class="modal-actions">
-                <button type="button" class="btn btn-outline" id="cancel-delete">Annuler</button>
-                <button type="button" class="btn btn-danger" id="confirm-delete">Supprimer</button>
             </div>
         </div>
-    </div>
 
-    <!-- Attachment Modal -->
-    <div id="attachment-modal" class="modal" style="display: none;">
-        <div class="modal-content"
-            style="max-width: 90vw; max-height: 90vh; background: rgba(10,10,10,0.98); border: 2px solid rgba(255,122,0,0.3); border-radius: 15px; padding: 20px; position: relative;">
-            <button class="modal-close" onclick="closeAttachmentModal()"
-                style="position: absolute; top: 15px; right: 15px; background: rgba(255,60,60,0.2); color: #ff3c3c; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; z-index: 10; transition: all 0.3s ease;">
-                <i class="fas fa-times"></i>
-            </button>
-            <div id="attachment-modal-content"
-                style="display: flex; align-items: center; justify-content: center; min-height: 400px;">
-                <!-- Content will be inserted here -->
-            </div>
-            <div style="text-align: center; margin-top: 15px;">
-                <a id="attachment-download-link" href="#" target="_blank"
-                    style="color: #ff7a00; text-decoration: none; font-size: 14px;">
-                    <i class="fas fa-download"></i> Download
-                </a>
-            </div>
-        </div>
-    </div>
+        <script>
+            // Attendre que le DOM soit complètement chargé
+            document.addEventListener('DOMContentLoaded', function () {
 
-    <script>
-        // Attendre que le DOM soit complètement chargé
-        document.addEventListener('DOMContentLoaded', function () {
+                // Modal functionality
+                const responseModal = document.getElementById('response-modal');
+                const viewModal = document.getElementById('view-modal');
+                const statusModal = document.getElementById('status-modal');
+                const deleteModal = document.getElementById('delete-modal');
+                const closeModalButtons = document.querySelectorAll('.close-modal');
+                const cancelResponse = document.getElementById('cancel-response');
+                const cancelDelete = document.getElementById('cancel-delete');
+                const cancelStatus = document.getElementById('cancel-status');
+                const responseForm = document.getElementById('response-form');
 
-            // Modal functionality
-            const responseModal = document.getElementById('response-modal');
-            const viewModal = document.getElementById('view-modal');
-            const statusModal = document.getElementById('status-modal');
-            const deleteModal = document.getElementById('delete-modal');
-            const closeModalButtons = document.querySelectorAll('.close-modal');
-            const cancelResponse = document.getElementById('cancel-response');
-            const cancelDelete = document.getElementById('cancel-delete');
-            const cancelStatus = document.getElementById('cancel-status');
-            const responseForm = document.getElementById('response-form');
+                // Open response modal - Ajouter une réponse
+                document.querySelectorAll('.add-response-btn').forEach(button => {
+                    button.addEventListener('click', function () {
+                        const reclamationId = this.getAttribute('data-id');
+                        const reviewCard = this.closest('.review-card');
 
-            // Open response modal - Ajouter une réponse
-            document.querySelectorAll('.add-response-btn').forEach(button => {
-                button.addEventListener('click', function () {
-                    const reclamationId = this.getAttribute('data-id');
-                    const reviewCard = this.closest('.review-card');
+                        // Populate review preview
+                        const user = reviewCard.querySelector('.user-info h4').textContent;
+                        const subject = reviewCard.querySelector('.review-content h5').textContent;
+                        const text = reviewCard.querySelector('.review-text').textContent;
 
-                    // Populate review preview
-                    const user = reviewCard.querySelector('.user-info h4').textContent;
-                    const subject = reviewCard.querySelector('.review-content h5').textContent;
-                    const text = reviewCard.querySelector('.review-text').textContent;
-
-                    document.getElementById('review-preview').innerHTML = `
+                        document.getElementById('review-preview').innerHTML = `
                     <div class="review-card" style="margin-bottom: 20px; border: 1px solid var(--border-color); padding: 15px;">
                         <div class="review-header">
                             <div class="review-user">
@@ -2934,281 +2907,281 @@ unset($reclamation);
                     </div>
                 `;
 
-                    // Set form data for adding
-                    if (!reclamationId || reclamationId <= 0) {
-                        alert('Error: Invalid request ID.');
-                        console.error('Invalid request ID:', reclamationId);
-                        return;
-                    }
+                        // Set form data for adding
+                        if (!reclamationId || reclamationId <= 0) {
+                            alert('Error: Invalid request ID.');
+                            console.error('Invalid request ID:', reclamationId);
+                            return;
+                        }
 
-                    // Convertir en nombre pour s'assurer que c'est un entier
-                    const reclamationIdNum = parseInt(reclamationId, 10);
-                    if (isNaN(reclamationIdNum) || reclamationIdNum <= 0) {
-                        alert('Error: Invalid request ID format.');
-                        console.error('Invalid request ID format:', reclamationId);
-                        return;
-                    }
+                        // Convertir en nombre pour s'assurer que c'est un entier
+                        const reclamationIdNum = parseInt(reclamationId, 10);
+                        if (isNaN(reclamationIdNum) || reclamationIdNum <= 0) {
+                            alert('Error: Invalid request ID format.');
+                            console.error('Invalid request ID format:', reclamationId);
+                            return;
+                        }
 
-                    // Vérifier que tous les éléments existent
-                    const reclamationIdField = document.getElementById('response-reclamation-id');
-                    const responseIdField = document.getElementById('response-id');
-                    const addFlagField = document.getElementById('add-response-flag');
-                    const editFlagField = document.getElementById('edit-response-flag');
+                        // Vérifier que tous les éléments existent
+                        const reclamationIdField = document.getElementById('response-reclamation-id');
+                        const responseIdField = document.getElementById('response-id');
+                        const addFlagField = document.getElementById('add-response-flag');
+                        const editFlagField = document.getElementById('edit-response-flag');
 
-                    if (!reclamationIdField || !addFlagField || !editFlagField) {
-                        console.error('❌ Erreur: Éléments du formulaire non trouvés');
-                        alert('Erreur: Formulaire non initialisé correctement. Veuillez recharger la page.');
-                        return;
-                    }
+                        if (!reclamationIdField || !addFlagField || !editFlagField) {
+                            console.error('❌ Erreur: Éléments du formulaire non trouvés');
+                            alert('Erreur: Formulaire non initialisé correctement. Veuillez recharger la page.');
+                            return;
+                        }
 
-                    reclamationIdField.value = reclamationIdNum;
-                    if (responseIdField) responseIdField.value = '';
-                    document.getElementById('response-admin-name').value = 'Admin';
-                    addFlagField.value = '1';
-                    editFlagField.value = '0';
-                    document.getElementById('response-modal-title').innerHTML = 'Add <span>Response</span>';
-                    document.getElementById('submit-response').innerHTML = '<i class="fas fa-paper-plane"></i> Submit Response';
+                        reclamationIdField.value = reclamationIdNum;
+                        if (responseIdField) responseIdField.value = '';
+                        document.getElementById('response-admin-name').value = 'Admin';
+                        addFlagField.value = '1';
+                        editFlagField.value = '0';
+                        document.getElementById('response-modal-title').innerHTML = 'Add <span>Response</span>';
+                        document.getElementById('submit-response').innerHTML = '<i class="fas fa-paper-plane"></i> Submit Response';
 
-                    // Clear textarea and reset validation
-                    const textarea = document.getElementById('response-text');
-                    textarea.value = '';
-                    textarea.classList.remove('error', 'valid');
+                        // Clear textarea and reset validation
+                        const textarea = document.getElementById('response-text');
+                        textarea.value = '';
+                        textarea.classList.remove('error', 'valid');
 
-                    // Reset error message and character count
-                    hideResponseError();
-                    document.getElementById('response-char-current').textContent = '0';
-                    document.getElementById('response-char-current').style.color = 'var(--text-gray)';
-
-                    // Re-enable submit button
-                    const submitBtn = document.getElementById('submit-response');
-                    submitBtn.disabled = false;
-
-                    // Debug
-                    console.log('=== ADD RESPONSE MODAL OPENED ===');
-                    console.log('✅ Request ID:', reclamationIdNum, '(type:', typeof reclamationIdNum, ')');
-                    console.log('✅ Add flag set to:', addFlagField.value);
-                    console.log('✅ Edit flag set to:', editFlagField.value);
-                    console.log('✅ Form configured for adding');
-                    console.log('✅ Form action:', document.getElementById('response-form').action);
-                    console.log('✅ Form method:', document.getElementById('response-form').method);
-
-                    // Show modal
-                    responseModal.classList.add('active');
-                });
-            });
-
-            // Open response modal - Modifier une réponse
-            document.querySelectorAll('.edit-response-btn').forEach(button => {
-                button.addEventListener('click', function () {
-                    const responseId = this.getAttribute('data-id');
-                    const responseText = this.getAttribute('data-text');
-                    const reclamationId = this.getAttribute('data-reclamation');
-                    const reviewCard = this.closest('.review-card');
-
-                    // Populate review preview
-                    const user = reviewCard.querySelector('.user-info h4').textContent;
-                    const subject = reviewCard.querySelector('.review-content h5').textContent;
-                    const text = reviewCard.querySelector('.review-text').textContent;
-
-                    document.getElementById('review-preview').innerHTML = `
-                    <div class="review-card" style="margin-bottom: 20px; border: 1px solid var(--border-color); padding: 15px;">
-                        <div class="review-header">
-                            <div class="review-user">
-                                <div class="user-info">
-                                    <h4>${user}</h4>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="review-content">
-                            <h5 style="color: var(--primary-color); margin-bottom: 10px;">${subject}</h5>
-                            <p class="review-text">${text}</p>
-                        </div>
-                    </div>
-                `;
-
-                    // Set form data for editing
-                    const adminName = this.getAttribute('data-admin') || 'Admin';
-                    document.getElementById('response-reclamation-id').value = reclamationId;
-                    document.getElementById('response-id').value = responseId;
-                    document.getElementById('response-admin-name').value = adminName;
-                    document.getElementById('add-response-flag').value = '0';
-                    document.getElementById('edit-response-flag').value = '1';
-                    document.getElementById('response-modal-title').innerHTML = 'Modifier la <span>Réponse</span>';
-                    document.getElementById('submit-response').innerHTML = '<i class="fas fa-save"></i> Enregistrer les modifications';
-
-                    // Fill textarea with existing response (décoder les entités HTML)
-                    const textarea = document.getElementById('response-text');
-                    const decodedText = responseText.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"');
-                    textarea.value = decodedText;
-                    textarea.classList.remove('error', 'valid');
-
-                    // Reset error message and update character count
-                    hideResponseError();
-                    const charCount = decodedText.length;
-                    document.getElementById('response-char-current').textContent = charCount;
-                    if (charCount > 4500) {
-                        document.getElementById('response-char-current').style.color = '#f44336';
-                    } else if (charCount > 3500) {
-                        document.getElementById('response-char-current').style.color = '#ff9800';
-                    } else {
+                        // Reset error message and character count
+                        hideResponseError();
+                        document.getElementById('response-char-current').textContent = '0';
                         document.getElementById('response-char-current').style.color = 'var(--text-gray)';
-                    }
 
-                    // Re-enable submit button
-                    const submitBtn = document.getElementById('submit-response');
-                    submitBtn.disabled = false;
+                        // Re-enable submit button
+                        const submitBtn = document.getElementById('submit-response');
+                        submitBtn.disabled = false;
 
-                    // Show modal
-                    responseModal.classList.add('active');
+                        // Debug
+                        console.log('=== ADD RESPONSE MODAL OPENED ===');
+                        console.log('✅ Request ID:', reclamationIdNum, '(type:', typeof reclamationIdNum, ')');
+                        console.log('✅ Add flag set to:', addFlagField.value);
+                        console.log('✅ Edit flag set to:', editFlagField.value);
+                        console.log('✅ Form configured for adding');
+                        console.log('✅ Form action:', document.getElementById('response-form').action);
+                        console.log('✅ Form method:', document.getElementById('response-form').method);
+
+                        // Show modal
+                        responseModal.classList.add('active');
+                    });
                 });
-            });
 
-            // Open delete modal (only for reclamation deletion, not response deletion)
-            document.querySelectorAll('.review-actions .action-btn.delete').forEach(button => {
-                button.addEventListener('click', function (e) {
-                    // Only handle if it's not a response delete link
-                    if (!this.closest('.response-item')) {
-                        e.preventDefault();
-                        const requestId = this.getAttribute('data-id');
-                        deleteModal.setAttribute('data-id', requestId);
-                        deleteModal.classList.add('active');
-                    }
+                // Open response modal - Modifier une réponse
+                document.querySelectorAll('.edit-response-btn').forEach(button => {
+                    button.addEventListener('click', function () {
+                        const responseId = this.getAttribute('data-id');
+                        const responseText = this.getAttribute('data-text');
+                        const reclamationId = this.getAttribute('data-reclamation');
+                        const reviewCard = this.closest('.review-card');
+
+                        // Populate review preview
+                        const user = reviewCard.querySelector('.user-info h4').textContent;
+                        const subject = reviewCard.querySelector('.review-content h5').textContent;
+                        const text = reviewCard.querySelector('.review-text').textContent;
+
+                        document.getElementById('review-preview').innerHTML = `
+                    <div class="review-card" style="margin-bottom: 20px; border: 1px solid var(--border-color); padding: 15px;">
+                        <div class="review-header">
+                            <div class="review-user">
+                                <div class="user-info">
+                                    <h4>${user}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="review-content">
+                            <h5 style="color: var(--primary-color); margin-bottom: 10px;">${subject}</h5>
+                            <p class="review-text">${text}</p>
+                        </div>
+                    </div>
+                `;
+
+                        // Set form data for editing
+                        const adminName = this.getAttribute('data-admin') || 'Admin';
+                        document.getElementById('response-reclamation-id').value = reclamationId;
+                        document.getElementById('response-id').value = responseId;
+                        document.getElementById('response-admin-name').value = adminName;
+                        document.getElementById('add-response-flag').value = '0';
+                        document.getElementById('edit-response-flag').value = '1';
+                        document.getElementById('response-modal-title').innerHTML = 'Modifier la <span>Réponse</span>';
+                        document.getElementById('submit-response').innerHTML = '<i class="fas fa-save"></i> Enregistrer les modifications';
+
+                        // Fill textarea with existing response (décoder les entités HTML)
+                        const textarea = document.getElementById('response-text');
+                        const decodedText = responseText.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"');
+                        textarea.value = decodedText;
+                        textarea.classList.remove('error', 'valid');
+
+                        // Reset error message and update character count
+                        hideResponseError();
+                        const charCount = decodedText.length;
+                        document.getElementById('response-char-current').textContent = charCount;
+                        if (charCount > 4500) {
+                            document.getElementById('response-char-current').style.color = '#f44336';
+                        } else if (charCount > 3500) {
+                            document.getElementById('response-char-current').style.color = '#ff9800';
+                        } else {
+                            document.getElementById('response-char-current').style.color = 'var(--text-gray)';
+                        }
+
+                        // Re-enable submit button
+                        const submitBtn = document.getElementById('submit-response');
+                        submitBtn.disabled = false;
+
+                        // Show modal
+                        responseModal.classList.add('active');
+                    });
                 });
-            });
 
-            // View Details functionality
-            document.querySelectorAll('.view-request').forEach(button => {
-                button.addEventListener('click', function () {
-                    const reclamationId = this.getAttribute('data-id');
-                    const modalBody = document.getElementById('view-modal-body');
+                // Open delete modal (only for reclamation deletion, not response deletion)
+                document.querySelectorAll('.review-actions .action-btn.delete').forEach(button => {
+                    button.addEventListener('click', function (e) {
+                        // Only handle if it's not a response delete link
+                        if (!this.closest('.response-item')) {
+                            e.preventDefault();
+                            const requestId = this.getAttribute('data-id');
+                            deleteModal.setAttribute('data-id', requestId);
+                            deleteModal.classList.add('active');
+                        }
+                    });
+                });
 
-                    // Show loading
-                    modalBody.innerHTML = '<p style="text-align: center; color: var(--primary-color);"><i class="fas fa-spinner fa-spin"></i> Chargement...</p>';
-                    viewModal.classList.add('active');
+                // View Details functionality
+                document.querySelectorAll('.view-request').forEach(button => {
+                    button.addEventListener('click', function () {
+                        const reclamationId = this.getAttribute('data-id');
+                        const modalBody = document.getElementById('view-modal-body');
 
-                    // Fetch reclamation details
-                    fetch('reclamback.php?view_id=' + reclamationId + '&ajax=1')
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.error) {
-                                modalBody.innerHTML = '<p style="color: #f44336;">Error: ' + data.error + '</p>';
-                                return;
-                            }
+                        // Show loading
+                        modalBody.innerHTML = '<p style="text-align: center; color: var(--primary-color);"><i class="fas fa-spinner fa-spin"></i> Chargement...</p>';
+                        viewModal.classList.add('active');
 
-                            const statusText = {
-                                'nouveau': 'New',
-                                'en_cours': 'In Progress',
-                                'resolu': 'Resolved',
-                                'pending': 'Pending' // Pour compatibilité
-                            };
+                        // Fetch reclamation details
+                        fetch('reclamback.php?view_id=' + reclamationId + '&ajax=1')
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.error) {
+                                    modalBody.innerHTML = '<p style="color: #f44336;">Error: ' + data.error + '</p>';
+                                    return;
+                                }
 
-                            let responsesHtml = '';
-                            console.log('🔍 Données reçues pour réclamation ID:', reclamationId);
-                            console.log('🔍 Objet data complet:', data);
-                            console.log('🔍 Réponses dans data:', data.responses);
-                            console.log('🔍 Type de data.responses:', typeof data.responses);
-                            console.log('🔍 Est un tableau:', Array.isArray(data.responses));
-                            console.log('🔍 Longueur:', data.responses ? data.responses.length : 'N/A');
+                                const statusText = {
+                                    'nouveau': 'New',
+                                    'en_cours': 'In Progress',
+                                    'resolu': 'Resolved',
+                                    'pending': 'Pending' // Pour compatibilité
+                                };
 
-                            // S'assurer que data.responses est un tableau
-                            if (!data.responses) {
-                                data.responses = [];
-                                console.log('⚠️ data.responses était undefined/null, initialisé comme tableau vide');
-                            }
+                                let responsesHtml = '';
+                                console.log('🔍 Données reçues pour réclamation ID:', reclamationId);
+                                console.log('🔍 Objet data complet:', data);
+                                console.log('🔍 Réponses dans data:', data.responses);
+                                console.log('🔍 Type de data.responses:', typeof data.responses);
+                                console.log('🔍 Est un tableau:', Array.isArray(data.responses));
+                                console.log('🔍 Longueur:', data.responses ? data.responses.length : 'N/A');
 
-                            if (!Array.isArray(data.responses)) {
-                                console.log('⚠️ data.responses n\'est pas un tableau, conversion...');
-                                data.responses = [];
-                            }
+                                // S'assurer que data.responses est un tableau
+                                if (!data.responses) {
+                                    data.responses = [];
+                                    console.log('⚠️ data.responses était undefined/null, initialisé comme tableau vide');
+                                }
 
-                            if (data.responses && Array.isArray(data.responses) && data.responses.length > 0) {
-                                console.log('✅ Affichage de ' + data.responses.length + ' réponse(s)');
-                                responsesHtml = '<div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);"><h4 style="color: var(--primary-color); margin-bottom: 15px;"><i class="fas fa-reply"></i> Réponses (' + data.responses.length + ')</h4>';
-                                data.responses.forEach((response, index) => {
-                                    console.log('🔍 Affichage réponse #' + (index + 1) + ':', response);
-                                    const responseId = response.id_reponse || response.id_response || response.response_id || '';
-                                    const responseDate = response.date_reponse || response.response_date || response.date_creation || new Date().toISOString();
-                                    const responseMessage = response.message || response.response_text || response.texte || 'Aucun message';
+                                if (!Array.isArray(data.responses)) {
+                                    console.log('⚠️ data.responses n\'est pas un tableau, conversion...');
+                                    data.responses = [];
+                                }
 
-                                    responsesHtml += '<div style="background: rgba(255, 122, 0, 0.05); border-left: 3px solid var(--primary-color); padding: 15px; margin-bottom: 10px; border-radius: 8px;">';
-                                    responsesHtml += '<div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">';
-                                    responsesHtml += '<div><strong style="color: var(--primary-color);">Admin</strong>';
-                                    try {
-                                        const dateObj = new Date(responseDate);
-                                        responsesHtml += '<span style="color: var(--text-gray); font-size: 12px; margin-left: 10px;">' + dateObj.toLocaleString('fr-FR') + '</span>';
-                                    } catch (e) {
-                                        responsesHtml += '<span style="color: var(--text-gray); font-size: 12px; margin-left: 10px;">' + new Date().toLocaleString('fr-FR') + '</span>';
-                                    }
+                                if (data.responses && Array.isArray(data.responses) && data.responses.length > 0) {
+                                    console.log('✅ Affichage de ' + data.responses.length + ' réponse(s)');
+                                    responsesHtml = '<div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);"><h4 style="color: var(--primary-color); margin-bottom: 15px;"><i class="fas fa-reply"></i> Réponses (' + data.responses.length + ')</h4>';
+                                    data.responses.forEach((response, index) => {
+                                        console.log('🔍 Affichage réponse #' + (index + 1) + ':', response);
+                                        const responseId = response.id_reponse || response.id_response || response.response_id || '';
+                                        const responseDate = response.date_reponse || response.response_date || response.date_creation || new Date().toISOString();
+                                        const responseMessage = response.message || response.response_text || response.texte || 'Aucun message';
+
+                                        responsesHtml += '<div style="background: rgba(255, 122, 0, 0.05); border-left: 3px solid var(--primary-color); padding: 15px; margin-bottom: 10px; border-radius: 8px;">';
+                                        responsesHtml += '<div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">';
+                                        responsesHtml += '<div><strong style="color: var(--primary-color);">Admin</strong>';
+                                        try {
+                                            const dateObj = new Date(responseDate);
+                                            responsesHtml += '<span style="color: var(--text-gray); font-size: 12px; margin-left: 10px;">' + dateObj.toLocaleString('fr-FR') + '</span>';
+                                        } catch (e) {
+                                            responsesHtml += '<span style="color: var(--text-gray); font-size: 12px; margin-left: 10px;">' + new Date().toLocaleString('fr-FR') + '</span>';
+                                        }
+                                        responsesHtml += '</div>';
+                                        responsesHtml += '</div>';
+                                        responsesHtml += '<p style="color: var(--text-light); margin: 0; line-height: 1.6; white-space: pre-wrap;">' + escapeHtml(responseMessage) + '</p>';
+                                        responsesHtml += '</div>';
+                                    });
                                     responsesHtml += '</div>';
-                                    responsesHtml += '</div>';
-                                    responsesHtml += '<p style="color: var(--text-light); margin: 0; line-height: 1.6; white-space: pre-wrap;">' + escapeHtml(responseMessage) + '</p>';
-                                    responsesHtml += '</div>';
-                                });
-                                responsesHtml += '</div>';
-                            } else {
-                                console.log('⚠️ Aucune réponse à afficher');
-                                console.log('⚠️ data.responses:', data.responses);
-                                console.log('⚠️ Est vide:', !data.responses || data.responses.length === 0);
-                                // Afficher un message informatif même s'il n'y a pas de réponses
-                                responsesHtml = '<div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);"><p style="color: var(--text-gray); font-size: 12px;"><i class="fas fa-info-circle"></i> Aucune réponse pour le moment</p></div>';
-                            }
+                                } else {
+                                    console.log('⚠️ Aucune réponse à afficher');
+                                    console.log('⚠️ data.responses:', data.responses);
+                                    console.log('⚠️ Est vide:', !data.responses || data.responses.length === 0);
+                                    // Afficher un message informatif même s'il n'y a pas de réponses
+                                    responsesHtml = '<div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);"><p style="color: var(--text-gray); font-size: 12px;"><i class="fas fa-info-circle"></i> Aucune réponse pour le moment</p></div>';
+                                }
 
-                            // Afficher les évaluations existantes
-                            let satisfactionsHtml = '';
-                            if (data.satisfactions && Array.isArray(data.satisfactions) && data.satisfactions.length > 0) {
-                                console.log('✅ Affichage de ' + data.satisfactions.length + ' évaluation(s)');
-                                satisfactionsHtml = '<div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid var(--primary-color);"><h4 style="color: var(--primary-color); margin-bottom: 15px;"><i class="fas fa-star"></i> Évaluations (' + data.satisfactions.length + ')</h4>';
+                                // Afficher les évaluations existantes
+                                let satisfactionsHtml = '';
+                                if (data.satisfactions && Array.isArray(data.satisfactions) && data.satisfactions.length > 0) {
+                                    console.log('✅ Affichage de ' + data.satisfactions.length + ' évaluation(s)');
+                                    satisfactionsHtml = '<div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid var(--primary-color);"><h4 style="color: var(--primary-color); margin-bottom: 15px;"><i class="fas fa-star"></i> Évaluations (' + data.satisfactions.length + ')</h4>';
 
-                                data.satisfactions.forEach((satisfaction, index) => {
-                                    const satisfactionEmail = satisfaction.email || 'Utilisateur';
-                                    const satisfactionRating = satisfaction.rating || 0;
-                                    const satisfactionComment = satisfaction.commentaire || '';
-                                    const satisfactionDate = satisfaction.date_evaluation || new Date().toISOString();
+                                    data.satisfactions.forEach((satisfaction, index) => {
+                                        const satisfactionEmail = satisfaction.email || 'Utilisateur';
+                                        const satisfactionRating = satisfaction.rating || 0;
+                                        const satisfactionComment = satisfaction.commentaire || '';
+                                        const satisfactionDate = satisfaction.date_evaluation || new Date().toISOString();
 
-                                    // Masquer une partie de l'email pour la confidentialité
-                                    let displayEmail = satisfactionEmail;
-                                    if (satisfactionEmail.includes('@')) {
-                                        const emailParts = satisfactionEmail.split('@');
-                                        displayEmail = emailParts[0].substring(0, 3) + '***@' + emailParts[1];
-                                    }
+                                        // Masquer une partie de l'email pour la confidentialité
+                                        let displayEmail = satisfactionEmail;
+                                        if (satisfactionEmail.includes('@')) {
+                                            const emailParts = satisfactionEmail.split('@');
+                                            displayEmail = emailParts[0].substring(0, 3) + '***@' + emailParts[1];
+                                        }
 
-                                    satisfactionsHtml += '<div style="background: rgba(255, 193, 7, 0.1); border-left: 3px solid #ffc107; padding: 15px; margin-bottom: 15px; border-radius: 8px;">';
-                                    satisfactionsHtml += '<div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">';
-                                    satisfactionsHtml += '<div>';
-                                    satisfactionsHtml += '<strong style="color: #ffc107;">' + escapeHtml(displayEmail) + '</strong>';
-                                    satisfactionsHtml += '<span style="color: var(--text-gray); font-size: 12px; margin-left: 10px;">';
-                                    try {
-                                        const dateObj = new Date(satisfactionDate);
-                                        satisfactionsHtml += dateObj.toLocaleString('fr-FR');
-                                    } catch (e) {
-                                        satisfactionsHtml += new Date().toLocaleString('fr-FR');
-                                    }
-                                    satisfactionsHtml += '</span>';
-                                    satisfactionsHtml += '</div>';
-                                    satisfactionsHtml += '<div style="display: flex; gap: 3px;">';
-                                    for (let i = 1; i <= 5; i++) {
-                                        satisfactionsHtml += '<i class="fas fa-star" style="color: ' + (i <= satisfactionRating ? '#ffc107' : '#444') + '; font-size: 16px;"></i>';
-                                    }
-                                    satisfactionsHtml += '<span style="margin-left: 5px; color: var(--text-light); font-weight: 700;">(' + satisfactionRating + '/5)</span>';
-                                    satisfactionsHtml += '</div>';
-                                    satisfactionsHtml += '</div>';
+                                        satisfactionsHtml += '<div style="background: rgba(255, 193, 7, 0.1); border-left: 3px solid #ffc107; padding: 15px; margin-bottom: 15px; border-radius: 8px;">';
+                                        satisfactionsHtml += '<div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">';
+                                        satisfactionsHtml += '<div>';
+                                        satisfactionsHtml += '<strong style="color: #ffc107;">' + escapeHtml(displayEmail) + '</strong>';
+                                        satisfactionsHtml += '<span style="color: var(--text-gray); font-size: 12px; margin-left: 10px;">';
+                                        try {
+                                            const dateObj = new Date(satisfactionDate);
+                                            satisfactionsHtml += dateObj.toLocaleString('fr-FR');
+                                        } catch (e) {
+                                            satisfactionsHtml += new Date().toLocaleString('fr-FR');
+                                        }
+                                        satisfactionsHtml += '</span>';
+                                        satisfactionsHtml += '</div>';
+                                        satisfactionsHtml += '<div style="display: flex; gap: 3px;">';
+                                        for (let i = 1; i <= 5; i++) {
+                                            satisfactionsHtml += '<i class="fas fa-star" style="color: ' + (i <= satisfactionRating ? '#ffc107' : '#444') + '; font-size: 16px;"></i>';
+                                        }
+                                        satisfactionsHtml += '<span style="margin-left: 5px; color: var(--text-light); font-weight: 700;">(' + satisfactionRating + '/5)</span>';
+                                        satisfactionsHtml += '</div>';
+                                        satisfactionsHtml += '</div>';
 
-                                    if (satisfactionComment) {
-                                        satisfactionsHtml += '<p style="color: var(--text-light); margin: 0; line-height: 1.6; font-style: italic; white-space: pre-wrap;">"' + escapeHtml(satisfactionComment) + '"</p>';
-                                    }
+                                        if (satisfactionComment) {
+                                            satisfactionsHtml += '<p style="color: var(--text-light); margin: 0; line-height: 1.6; font-style: italic; white-space: pre-wrap;">"' + escapeHtml(satisfactionComment) + '"</p>';
+                                        }
+
+                                        satisfactionsHtml += '</div>';
+                                    });
 
                                     satisfactionsHtml += '</div>';
-                                });
+                                } else {
+                                    console.log('ℹ️ Aucune évaluation à afficher');
+                                }
 
-                                satisfactionsHtml += '</div>';
-                            } else {
-                                console.log('ℹ️ Aucune évaluation à afficher');
-                            }
-
-                            // Formulaire d'évaluation de satisfaction (seulement si résolu)
-                            let satisfactionFormHtml = '';
-                            if (data.statut === 'resolu') {
-                                satisfactionFormHtml = `
+                                // Formulaire d'évaluation de satisfaction (seulement si résolu)
+                                let satisfactionFormHtml = '';
+                                if (data.statut === 'resolu') {
+                                    satisfactionFormHtml = `
                                 <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid var(--primary-color);">
                                     <h4 style="color: var(--primary-color); margin-bottom: 15px;">
                                         <i class="fas fa-star"></i> Évaluer cette résolution
@@ -3254,9 +3227,9 @@ unset($reclamation);
                                     </form>
                                 </div>
                             `;
-                            }
+                                }
 
-                            modalBody.innerHTML = `
+                                modalBody.innerHTML = `
                             <div>
                                 <p><strong>Email:</strong> ${escapeHtml(data.email || '')}</p>
                                 <p><strong>Sujet:</strong> ${escapeHtml(data.sujet || '')}</p>
@@ -3270,575 +3243,575 @@ unset($reclamation);
                             </div>
                         `;
 
-                            // Ajouter le gestionnaire d'événement pour le formulaire d'évaluation
-                            if (data.statut === 'resolu') {
-                                const satisfactionForm = document.getElementById('satisfaction-form-' + data.id_reclamation);
-                                if (satisfactionForm) {
-                                    // Gestion des étoiles de notation
-                                    const stars = document.querySelectorAll('.rating-star-' + data.id_reclamation);
-                                    const ratingInput = document.getElementById('satisfaction-rating-' + data.id_reclamation);
+                                // Ajouter le gestionnaire d'événement pour le formulaire d'évaluation
+                                if (data.statut === 'resolu') {
+                                    const satisfactionForm = document.getElementById('satisfaction-form-' + data.id_reclamation);
+                                    if (satisfactionForm) {
+                                        // Gestion des étoiles de notation
+                                        const stars = document.querySelectorAll('.rating-star-' + data.id_reclamation);
+                                        const ratingInput = document.getElementById('satisfaction-rating-' + data.id_reclamation);
 
-                                    stars.forEach((star, index) => {
-                                        star.addEventListener('mouseenter', function () {
-                                            for (let i = 0; i <= index; i++) {
-                                                stars[i].style.color = '#ffc107';
-                                            }
-                                        });
+                                        stars.forEach((star, index) => {
+                                            star.addEventListener('mouseenter', function () {
+                                                for (let i = 0; i <= index; i++) {
+                                                    stars[i].style.color = '#ffc107';
+                                                }
+                                            });
 
-                                        star.addEventListener('mouseleave', function () {
-                                            const currentRating = parseInt(ratingInput.value) || 0;
-                                            stars.forEach((s, idx) => {
-                                                s.style.color = idx < currentRating ? '#ffc107' : '#444';
+                                            star.addEventListener('mouseleave', function () {
+                                                const currentRating = parseInt(ratingInput.value) || 0;
+                                                stars.forEach((s, idx) => {
+                                                    s.style.color = idx < currentRating ? '#ffc107' : '#444';
+                                                });
+                                            });
+
+                                            star.addEventListener('click', function () {
+                                                const rating = index + 1;
+                                                ratingInput.value = rating;
+                                                stars.forEach((s, idx) => {
+                                                    s.style.color = idx < rating ? '#ffc107' : '#444';
+                                                });
                                             });
                                         });
 
-                                        star.addEventListener('click', function () {
-                                            const rating = index + 1;
-                                            ratingInput.value = rating;
-                                            stars.forEach((s, idx) => {
-                                                s.style.color = idx < rating ? '#ffc107' : '#444';
-                                            });
-                                        });
-                                    });
+                                        satisfactionForm.addEventListener('submit', function (e) {
+                                            e.preventDefault();
 
-                                    satisfactionForm.addEventListener('submit', function (e) {
-                                        e.preventDefault();
+                                            const formData = new FormData(this);
+                                            const messageDiv = document.getElementById('satisfaction-message-' + data.id_reclamation);
+                                            const submitBtn = this.querySelector('button[type="submit"]');
 
-                                        const formData = new FormData(this);
-                                        const messageDiv = document.getElementById('satisfaction-message-' + data.id_reclamation);
-                                        const submitBtn = this.querySelector('button[type="submit"]');
+                                            // Réinitialiser le message
+                                            messageDiv.style.display = 'none';
+                                            messageDiv.innerHTML = '';
 
-                                        // Réinitialiser le message
-                                        messageDiv.style.display = 'none';
-                                        messageDiv.innerHTML = '';
+                                            // Validation
+                                            const rating = parseInt(formData.get('rating') || '0');
+                                            const email = formData.get('email') ? formData.get('email').trim() : '';
 
-                                        // Validation
-                                        const rating = parseInt(formData.get('rating') || '0');
-                                        const email = formData.get('email') ? formData.get('email').trim() : '';
-
-                                        // Valider la note
-                                        if (!rating || rating < 1 || rating > 5) {
-                                            messageDiv.style.display = 'block';
-                                            messageDiv.style.color = '#f44336';
-                                            messageDiv.style.background = 'rgba(244, 67, 54, 0.1)';
-                                            messageDiv.style.padding = '10px';
-                                            messageDiv.style.borderRadius = '6px';
-                                            messageDiv.style.marginBottom = '15px';
-                                            messageDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Veuillez sélectionner une note entre 1 et 5 étoiles.';
-                                            return;
-                                        }
-
-                                        // Valider l'email
-                                        if (!email || email === '') {
-                                            messageDiv.style.display = 'block';
-                                            messageDiv.style.color = '#f44336';
-                                            messageDiv.style.background = 'rgba(244, 67, 54, 0.1)';
-                                            messageDiv.style.padding = '10px';
-                                            messageDiv.style.borderRadius = '6px';
-                                            messageDiv.style.marginBottom = '15px';
-                                            messageDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Veuillez entrer votre email.';
-                                            return;
-                                        }
-
-                                        // Valider le format de l'email
-                                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                                        if (!emailRegex.test(email)) {
-                                            messageDiv.style.display = 'block';
-                                            messageDiv.style.color = '#f44336';
-                                            messageDiv.style.background = 'rgba(244, 67, 54, 0.1)';
-                                            messageDiv.style.padding = '10px';
-                                            messageDiv.style.borderRadius = '6px';
-                                            messageDiv.style.marginBottom = '15px';
-                                            messageDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Format d\'email invalide.';
-                                            return;
-                                        }
-
-                                        // Désactiver le bouton
-                                        const originalBtnText = submitBtn.innerHTML;
-                                        submitBtn.disabled = true;
-                                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi...';
-
-                                        // Ajouter le header pour la détection AJAX
-                                        formData.append('ajax', '1');
-
-                                        // Envoyer la requête AJAX
-                                        fetch('reclamback.php', {
-                                            method: 'POST',
-                                            body: formData,
-                                            headers: {
-                                                'X-Requested-With': 'XMLHttpRequest'
-                                            },
-                                            credentials: 'same-origin'
-                                        })
-                                            .then(response => {
-                                                const contentType = response.headers.get('content-type');
-                                                if (contentType && contentType.includes('application/json')) {
-                                                    return response.json();
-                                                } else {
-                                                    return response.text().then(text => {
-                                                        try {
-                                                            return JSON.parse(text);
-                                                        } catch {
-                                                            return { success: false, message: 'Réponse invalide du serveur' };
-                                                        }
-                                                    });
-                                                }
-                                            })
-                                            .then(result => {
-                                                if (result.success) {
-                                                    messageDiv.style.display = 'block';
-                                                    messageDiv.style.color = '#4caf50';
-                                                    messageDiv.style.background = 'rgba(76, 175, 80, 0.1)';
-                                                    messageDiv.style.padding = '10px';
-                                                    messageDiv.style.borderRadius = '6px';
-                                                    messageDiv.style.marginBottom = '15px';
-                                                    messageDiv.innerHTML = '<i class="fas fa-check-circle"></i> ' + (result.message || 'Merci pour votre évaluation !');
-
-                                                    // Réinitialiser le formulaire
-                                                    satisfactionForm.reset();
-                                                    stars.forEach(star => {
-                                                        star.style.color = '#444';
-                                                    });
-                                                    ratingInput.value = '0';
-
-                                                    // Recharger la modal après 1 seconde pour afficher la nouvelle évaluation
-                                                    setTimeout(() => {
-                                                        console.log('🔄 Rechargement de la modal pour afficher la nouvelle évaluation...');
-                                                        // Simuler un clic sur le bouton "View Details" pour recharger
-                                                        const viewBtn = document.querySelector(`.view-request[data-id="${data.id_reclamation}"]`);
-                                                        if (viewBtn) {
-                                                            viewBtn.click();
-                                                        } else {
-                                                            // Si le bouton n'est pas trouvé, recharger manuellement
-                                                            const modalBody = document.getElementById('view-modal-body');
-                                                            modalBody.innerHTML = '<p style="text-align: center; color: var(--primary-color);"><i class="fas fa-spinner fa-spin"></i> Chargement...</p>';
-
-                                                            fetch('reclamback.php?view_id=' + data.id_reclamation + '&ajax=1')
-                                                                .then(response => response.json())
-                                                                .then(updatedData => {
-                                                                    // Recharger en déclenchant l'événement view-request
-                                                                    const event = new Event('click');
-                                                                    viewBtn.dispatchEvent(event);
-                                                                })
-                                                                .catch(error => {
-                                                                    console.error('Erreur lors du rechargement:', error);
-                                                                });
-                                                        }
-                                                    }, 1500);
-                                                } else {
-                                                    messageDiv.style.display = 'block';
-                                                    messageDiv.style.color = '#f44336';
-                                                    messageDiv.style.background = 'rgba(244, 67, 54, 0.1)';
-                                                    messageDiv.style.padding = '10px';
-                                                    messageDiv.style.borderRadius = '6px';
-                                                    messageDiv.style.marginBottom = '15px';
-                                                    messageDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + (result.message || 'Erreur lors de l\'envoi de l\'évaluation.');
-                                                }
-                                                submitBtn.disabled = false;
-                                                submitBtn.innerHTML = originalBtnText;
-                                            })
-                                            .catch(error => {
-                                                console.error('Erreur:', error);
+                                            // Valider la note
+                                            if (!rating || rating < 1 || rating > 5) {
                                                 messageDiv.style.display = 'block';
                                                 messageDiv.style.color = '#f44336';
                                                 messageDiv.style.background = 'rgba(244, 67, 54, 0.1)';
                                                 messageDiv.style.padding = '10px';
                                                 messageDiv.style.borderRadius = '6px';
                                                 messageDiv.style.marginBottom = '15px';
-                                                messageDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Erreur lors de l\'envoi. Veuillez réessayer.';
-                                                submitBtn.disabled = false;
-                                                submitBtn.innerHTML = originalBtnText;
-                                            });
-                                    });
+                                                messageDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Veuillez sélectionner une note entre 1 et 5 étoiles.';
+                                                return;
+                                            }
+
+                                            // Valider l'email
+                                            if (!email || email === '') {
+                                                messageDiv.style.display = 'block';
+                                                messageDiv.style.color = '#f44336';
+                                                messageDiv.style.background = 'rgba(244, 67, 54, 0.1)';
+                                                messageDiv.style.padding = '10px';
+                                                messageDiv.style.borderRadius = '6px';
+                                                messageDiv.style.marginBottom = '15px';
+                                                messageDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Veuillez entrer votre email.';
+                                                return;
+                                            }
+
+                                            // Valider le format de l'email
+                                            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                                            if (!emailRegex.test(email)) {
+                                                messageDiv.style.display = 'block';
+                                                messageDiv.style.color = '#f44336';
+                                                messageDiv.style.background = 'rgba(244, 67, 54, 0.1)';
+                                                messageDiv.style.padding = '10px';
+                                                messageDiv.style.borderRadius = '6px';
+                                                messageDiv.style.marginBottom = '15px';
+                                                messageDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Format d\'email invalide.';
+                                                return;
+                                            }
+
+                                            // Désactiver le bouton
+                                            const originalBtnText = submitBtn.innerHTML;
+                                            submitBtn.disabled = true;
+                                            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi...';
+
+                                            // Ajouter le header pour la détection AJAX
+                                            formData.append('ajax', '1');
+
+                                            // Envoyer la requête AJAX
+                                            fetch('reclamback.php', {
+                                                method: 'POST',
+                                                body: formData,
+                                                headers: {
+                                                    'X-Requested-With': 'XMLHttpRequest'
+                                                },
+                                                credentials: 'same-origin'
+                                            })
+                                                .then(response => {
+                                                    const contentType = response.headers.get('content-type');
+                                                    if (contentType && contentType.includes('application/json')) {
+                                                        return response.json();
+                                                    } else {
+                                                        return response.text().then(text => {
+                                                            try {
+                                                                return JSON.parse(text);
+                                                            } catch {
+                                                                return { success: false, message: 'Réponse invalide du serveur' };
+                                                            }
+                                                        });
+                                                    }
+                                                })
+                                                .then(result => {
+                                                    if (result.success) {
+                                                        messageDiv.style.display = 'block';
+                                                        messageDiv.style.color = '#4caf50';
+                                                        messageDiv.style.background = 'rgba(76, 175, 80, 0.1)';
+                                                        messageDiv.style.padding = '10px';
+                                                        messageDiv.style.borderRadius = '6px';
+                                                        messageDiv.style.marginBottom = '15px';
+                                                        messageDiv.innerHTML = '<i class="fas fa-check-circle"></i> ' + (result.message || 'Merci pour votre évaluation !');
+
+                                                        // Réinitialiser le formulaire
+                                                        satisfactionForm.reset();
+                                                        stars.forEach(star => {
+                                                            star.style.color = '#444';
+                                                        });
+                                                        ratingInput.value = '0';
+
+                                                        // Recharger la modal après 1 seconde pour afficher la nouvelle évaluation
+                                                        setTimeout(() => {
+                                                            console.log('🔄 Rechargement de la modal pour afficher la nouvelle évaluation...');
+                                                            // Simuler un clic sur le bouton "View Details" pour recharger
+                                                            const viewBtn = document.querySelector(`.view-request[data-id="${data.id_reclamation}"]`);
+                                                            if (viewBtn) {
+                                                                viewBtn.click();
+                                                            } else {
+                                                                // Si le bouton n'est pas trouvé, recharger manuellement
+                                                                const modalBody = document.getElementById('view-modal-body');
+                                                                modalBody.innerHTML = '<p style="text-align: center; color: var(--primary-color);"><i class="fas fa-spinner fa-spin"></i> Chargement...</p>';
+
+                                                                fetch('reclamback.php?view_id=' + data.id_reclamation + '&ajax=1')
+                                                                    .then(response => response.json())
+                                                                    .then(updatedData => {
+                                                                        // Recharger en déclenchant l'événement view-request
+                                                                        const event = new Event('click');
+                                                                        viewBtn.dispatchEvent(event);
+                                                                    })
+                                                                    .catch(error => {
+                                                                        console.error('Erreur lors du rechargement:', error);
+                                                                    });
+                                                            }
+                                                        }, 1500);
+                                                    } else {
+                                                        messageDiv.style.display = 'block';
+                                                        messageDiv.style.color = '#f44336';
+                                                        messageDiv.style.background = 'rgba(244, 67, 54, 0.1)';
+                                                        messageDiv.style.padding = '10px';
+                                                        messageDiv.style.borderRadius = '6px';
+                                                        messageDiv.style.marginBottom = '15px';
+                                                        messageDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + (result.message || 'Erreur lors de l\'envoi de l\'évaluation.');
+                                                    }
+                                                    submitBtn.disabled = false;
+                                                    submitBtn.innerHTML = originalBtnText;
+                                                })
+                                                .catch(error => {
+                                                    console.error('Erreur:', error);
+                                                    messageDiv.style.display = 'block';
+                                                    messageDiv.style.color = '#f44336';
+                                                    messageDiv.style.background = 'rgba(244, 67, 54, 0.1)';
+                                                    messageDiv.style.padding = '10px';
+                                                    messageDiv.style.borderRadius = '6px';
+                                                    messageDiv.style.marginBottom = '15px';
+                                                    messageDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Erreur lors de l\'envoi. Veuillez réessayer.';
+                                                    submitBtn.disabled = false;
+                                                    submitBtn.innerHTML = originalBtnText;
+                                                });
+                                        });
+                                    }
                                 }
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            modalBody.innerHTML = '<p style="color: #f44336;">Error loading details. Please try again.</p>';
-                        });
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                modalBody.innerHTML = '<p style="color: #f44336;">Error loading details. Please try again.</p>';
+                            });
+                    });
                 });
-            });
 
-            // Update Status functionality
-            document.querySelectorAll('.edit-status').forEach(button => {
-                button.addEventListener('click', function () {
-                    const reclamationId = this.getAttribute('data-id');
-                    const currentStatus = this.getAttribute('data-status');
+                // Update Status functionality
+                document.querySelectorAll('.edit-status').forEach(button => {
+                    button.addEventListener('click', function () {
+                        const reclamationId = this.getAttribute('data-id');
+                        const currentStatus = this.getAttribute('data-status');
 
-                    document.getElementById('status-reclamation-id').value = reclamationId;
-                    document.getElementById('status-select').value = currentStatus;
-                    statusModal.classList.add('active');
+                        document.getElementById('status-reclamation-id').value = reclamationId;
+                        document.getElementById('status-select').value = currentStatus;
+                        statusModal.classList.add('active');
+                    });
                 });
-            });
 
-            function escapeHtml(text) {
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
-            }
-
-            // Close modals
-            function closeModals() {
-                responseModal.classList.remove('active');
-                viewModal.classList.remove('active');
-                statusModal.classList.remove('active');
-                deleteModal.classList.remove('active');
-            }
-
-            closeModalButtons.forEach(button => {
-                button.addEventListener('click', closeModals);
-            });
-
-            cancelResponse.addEventListener('click', closeModals);
-            cancelDelete.addEventListener('click', closeModals);
-            cancelStatus.addEventListener('click', closeModals);
-
-            // Handle status form submission
-            const statusForm = document.getElementById('status-form');
-            if (statusForm) {
-                statusForm.addEventListener('submit', function (e) {
-                    // Le formulaire se soumettra normalement via POST
-                    // Afficher un loader pendant la soumission
-                    const submitBtn = document.getElementById('submit-status');
-                    if (submitBtn) {
-                        submitBtn.disabled = true;
-                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mise à jour...';
-                    }
-                });
-            }
-
-            // Fonction pour afficher les erreurs
-            function showSuccessMessage(message) {
-                // Créer ou réutiliser un élément de notification
-                let notification = document.getElementById('success-notification');
-                if (!notification) {
-                    notification = document.createElement('div');
-                    notification.id = 'success-notification';
-                    notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #4caf50; color: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 10000; max-width: 400px; animation: slideIn 0.3s ease-out;';
-                    document.body.appendChild(notification);
+                function escapeHtml(text) {
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML;
                 }
 
-                notification.innerHTML = '<i class="fas fa-check-circle"></i> ' + message;
-                notification.style.display = 'block';
+                // Close modals
+                function closeModals() {
+                    responseModal.classList.remove('active');
+                    viewModal.classList.remove('active');
+                    statusModal.classList.remove('active');
+                    deleteModal.classList.remove('active');
+                }
 
-                // Masquer après 3 secondes
-                setTimeout(() => {
-                    notification.style.animation = 'slideOut 0.3s ease-out';
+                closeModalButtons.forEach(button => {
+                    button.addEventListener('click', closeModals);
+                });
+
+                cancelResponse.addEventListener('click', closeModals);
+                cancelDelete.addEventListener('click', closeModals);
+                cancelStatus.addEventListener('click', closeModals);
+
+                // Handle status form submission
+                const statusForm = document.getElementById('status-form');
+                if (statusForm) {
+                    statusForm.addEventListener('submit', function (e) {
+                        // Le formulaire se soumettra normalement via POST
+                        // Afficher un loader pendant la soumission
+                        const submitBtn = document.getElementById('submit-status');
+                        if (submitBtn) {
+                            submitBtn.disabled = true;
+                            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mise à jour...';
+                        }
+                    });
+                }
+
+                // Fonction pour afficher les erreurs
+                function showSuccessMessage(message) {
+                    // Créer ou réutiliser un élément de notification
+                    let notification = document.getElementById('success-notification');
+                    if (!notification) {
+                        notification = document.createElement('div');
+                        notification.id = 'success-notification';
+                        notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #4caf50; color: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 10000; max-width: 400px; animation: slideIn 0.3s ease-out;';
+                        document.body.appendChild(notification);
+                    }
+
+                    notification.innerHTML = '<i class="fas fa-check-circle"></i> ' + message;
+                    notification.style.display = 'block';
+
+                    // Masquer après 3 secondes
                     setTimeout(() => {
-                        notification.style.display = 'none';
-                    }, 300);
-                }, 3000);
-            }
+                        notification.style.animation = 'slideOut 0.3s ease-out';
+                        setTimeout(() => {
+                            notification.style.display = 'none';
+                        }, 300);
+                    }, 3000);
+                }
 
-            function showResponseError(message) {
-                const errorDiv = document.getElementById('response-error');
-                const errorText = document.getElementById('response-error-text');
-                const textarea = document.getElementById('response-text');
+                function showResponseError(message) {
+                    const errorDiv = document.getElementById('response-error');
+                    const errorText = document.getElementById('response-error-text');
+                    const textarea = document.getElementById('response-text');
 
-                errorText.textContent = message;
-                errorDiv.style.display = 'block';
-                textarea.classList.add('error');
-                textarea.classList.remove('valid');
-            }
-
-            function hideResponseError() {
-                const errorDiv = document.getElementById('response-error');
-                const textarea = document.getElementById('response-text');
-
-                errorDiv.style.display = 'none';
-                textarea.classList.remove('error');
-
-                // Ajouter la classe "valid" si le texte est valide
-                const validation = validateResponse(textarea.value);
-                if (validation.valid && textarea.value.trim().length >= 10) {
-                    textarea.classList.add('valid');
-                } else {
+                    errorText.textContent = message;
+                    errorDiv.style.display = 'block';
+                    textarea.classList.add('error');
                     textarea.classList.remove('valid');
                 }
-            }
 
-            // Fonction pour valider la réponse
-            function validateResponse(text) {
-                const trimmedText = text.trim();
+                function hideResponseError() {
+                    const errorDiv = document.getElementById('response-error');
+                    const textarea = document.getElementById('response-text');
 
-                // Vérifier si vide
-                if (!trimmedText) {
-                    return { valid: false, message: 'Veuillez entrer une réponse.' };
-                }
+                    errorDiv.style.display = 'none';
+                    textarea.classList.remove('error');
 
-                // Vérifier la longueur minimale
-                if (trimmedText.length < 10) {
-                    return { valid: false, message: 'La réponse doit contenir au moins 10 caractères.' };
-                }
-
-                // Vérifier la longueur maximale
-                if (trimmedText.length > 5000) {
-                    return { valid: false, message: 'La réponse ne doit pas dépasser 5000 caractères.' };
-                }
-
-                // Vérifier les caractères spéciaux dangereux (optionnel, pour sécurité)
-                const dangerousPatterns = [
-                    /<script/i,
-                    /javascript:/i,
-                    /on\w+\s*=/i
-                ];
-
-                for (let pattern of dangerousPatterns) {
-                    if (pattern.test(trimmedText)) {
-                        return { valid: false, message: 'La réponse contient des caractères non autorisés.' };
+                    // Ajouter la classe "valid" si le texte est valide
+                    const validation = validateResponse(textarea.value);
+                    if (validation.valid && textarea.value.trim().length >= 10) {
+                        textarea.classList.add('valid');
+                    } else {
+                        textarea.classList.remove('valid');
                     }
                 }
 
-                // Vérifier si ce n'est pas que des espaces
-                if (trimmedText.replace(/\s/g, '').length === 0) {
-                    return { valid: false, message: 'La réponse ne peut pas contenir uniquement des espaces.' };
-                }
+                // Fonction pour valider la réponse
+                function validateResponse(text) {
+                    const trimmedText = text.trim();
 
-                return { valid: true, message: '' };
-            }
+                    // Vérifier si vide
+                    if (!trimmedText) {
+                        return { valid: false, message: 'Veuillez entrer une réponse.' };
+                    }
 
-            // Compteur de caractères en temps réel
-            const responseTextarea = document.getElementById('response-text');
-            const charCountCurrent = document.getElementById('response-char-current');
-            const charCountMax = document.getElementById('response-char-max');
+                    // Vérifier la longueur minimale
+                    if (trimmedText.length < 10) {
+                        return { valid: false, message: 'La réponse doit contenir au moins 10 caractères.' };
+                    }
 
-            responseTextarea.addEventListener('input', function () {
-                const text = this.value;
-                const length = text.length;
-                const maxLength = parseInt(this.getAttribute('maxlength')) || 5000;
+                    // Vérifier la longueur maximale
+                    if (trimmedText.length > 5000) {
+                        return { valid: false, message: 'La réponse ne doit pas dépasser 5000 caractères.' };
+                    }
 
-                charCountCurrent.textContent = length;
+                    // Vérifier les caractères spéciaux dangereux (optionnel, pour sécurité)
+                    const dangerousPatterns = [
+                        /<script/i,
+                        /javascript:/i,
+                        /on\w+\s*=/i
+                    ];
 
-                // Changer la couleur selon la longueur
-                if (length > maxLength * 0.9) {
-                    charCountCurrent.style.color = '#f44336';
-                } else if (length > maxLength * 0.7) {
-                    charCountCurrent.style.color = '#ff9800';
-                } else {
-                    charCountCurrent.style.color = 'var(--text-gray)';
-                }
-
-                // Valider en temps réel
-                const validation = validateResponse(text);
-                if (!validation.valid && length > 0) {
-                    showResponseError(validation.message);
-                } else {
-                    hideResponseError();
-                }
-            });
-
-            // Validation au focus
-            responseTextarea.addEventListener('blur', function () {
-                const validation = validateResponse(this.value);
-                if (!validation.valid) {
-                    showResponseError(validation.message);
-                } else {
-                    hideResponseError();
-                }
-            });
-
-            // Validation au focus (cacher l'erreur si l'utilisateur commence à taper)
-            responseTextarea.addEventListener('focus', function () {
-                hideResponseError();
-            });
-
-            // Submit response - Version AJAX simplifiée
-            responseForm.addEventListener('submit', function (e) {
-                e.preventDefault();
-
-                const responseText = document.getElementById('response-text').value.trim();
-                const reclamationId = parseInt(document.getElementById('response-reclamation-id').value);
-                const isEditMode = document.getElementById('edit-response-flag').value === '1';
-                const isAddMode = document.getElementById('add-response-flag').value === '1';
-
-                // Valider la réponse
-                if (!responseText || responseText.length < 10) {
-                    showResponseError('La réponse doit contenir au moins 10 caractères.');
-                    return;
-                }
-
-                if (responseText.length > 5000) {
-                    showResponseError('La réponse ne doit pas dépasser 5000 caractères.');
-                    return;
-                }
-
-                // Valider l'ID de réclamation
-                if (!reclamationId || reclamationId <= 0 || isNaN(reclamationId)) {
-                    showResponseError('Erreur: ID de réclamation invalide.');
-                    return;
-                }
-
-                // S'assurer que les bons flags sont définis
-                if (isEditMode) {
-                    document.getElementById('add-response-flag').value = '0';
-                } else {
-                    document.getElementById('add-response-flag').value = '1';
-                    document.getElementById('edit-response-flag').value = '0';
-                }
-
-                // Désactiver le bouton pour éviter les doubles soumissions
-                const submitBtn = document.getElementById('submit-response');
-                const originalBtnText = submitBtn.innerHTML;
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi...';
-
-                // Préparer les données
-                const formData = new FormData(responseForm);
-                formData.append('ajax', '1');
-
-                // Envoyer via AJAX
-                fetch('reclamback.php', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    credentials: 'same-origin'
-                })
-                    .then(response => {
-                        const contentType = response.headers.get('content-type');
-                        if (contentType && contentType.includes('application/json')) {
-                            return response.json();
-                        } else {
-                            return response.text().then(text => {
-                                try {
-                                    return JSON.parse(text);
-                                } catch {
-                                    return { html: text };
-                                }
-                            });
+                    for (let pattern of dangerousPatterns) {
+                        if (pattern.test(trimmedText)) {
+                            return { valid: false, message: 'La réponse contient des caractères non autorisés.' };
                         }
+                    }
+
+                    // Vérifier si ce n'est pas que des espaces
+                    if (trimmedText.replace(/\s/g, '').length === 0) {
+                        return { valid: false, message: 'La réponse ne peut pas contenir uniquement des espaces.' };
+                    }
+
+                    return { valid: true, message: '' };
+                }
+
+                // Compteur de caractères en temps réel
+                const responseTextarea = document.getElementById('response-text');
+                const charCountCurrent = document.getElementById('response-char-current');
+                const charCountMax = document.getElementById('response-char-max');
+
+                responseTextarea.addEventListener('input', function () {
+                    const text = this.value;
+                    const length = text.length;
+                    const maxLength = parseInt(this.getAttribute('maxlength')) || 5000;
+
+                    charCountCurrent.textContent = length;
+
+                    // Changer la couleur selon la longueur
+                    if (length > maxLength * 0.9) {
+                        charCountCurrent.style.color = '#f44336';
+                    } else if (length > maxLength * 0.7) {
+                        charCountCurrent.style.color = '#ff9800';
+                    } else {
+                        charCountCurrent.style.color = 'var(--text-gray)';
+                    }
+
+                    // Valider en temps réel
+                    const validation = validateResponse(text);
+                    if (!validation.valid && length > 0) {
+                        showResponseError(validation.message);
+                    } else {
+                        hideResponseError();
+                    }
+                });
+
+                // Validation au focus
+                responseTextarea.addEventListener('blur', function () {
+                    const validation = validateResponse(this.value);
+                    if (!validation.valid) {
+                        showResponseError(validation.message);
+                    } else {
+                        hideResponseError();
+                    }
+                });
+
+                // Validation au focus (cacher l'erreur si l'utilisateur commence à taper)
+                responseTextarea.addEventListener('focus', function () {
+                    hideResponseError();
+                });
+
+                // Submit response - Version AJAX simplifiée
+                responseForm.addEventListener('submit', function (e) {
+                    e.preventDefault();
+
+                    const responseText = document.getElementById('response-text').value.trim();
+                    const reclamationId = parseInt(document.getElementById('response-reclamation-id').value);
+                    const isEditMode = document.getElementById('edit-response-flag').value === '1';
+                    const isAddMode = document.getElementById('add-response-flag').value === '1';
+
+                    // Valider la réponse
+                    if (!responseText || responseText.length < 10) {
+                        showResponseError('La réponse doit contenir au moins 10 caractères.');
+                        return;
+                    }
+
+                    if (responseText.length > 5000) {
+                        showResponseError('La réponse ne doit pas dépasser 5000 caractères.');
+                        return;
+                    }
+
+                    // Valider l'ID de réclamation
+                    if (!reclamationId || reclamationId <= 0 || isNaN(reclamationId)) {
+                        showResponseError('Erreur: ID de réclamation invalide.');
+                        return;
+                    }
+
+                    // S'assurer que les bons flags sont définis
+                    if (isEditMode) {
+                        document.getElementById('add-response-flag').value = '0';
+                    } else {
+                        document.getElementById('add-response-flag').value = '1';
+                        document.getElementById('edit-response-flag').value = '0';
+                    }
+
+                    // Désactiver le bouton pour éviter les doubles soumissions
+                    const submitBtn = document.getElementById('submit-response');
+                    const originalBtnText = submitBtn.innerHTML;
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi...';
+
+                    // Préparer les données
+                    const formData = new FormData(responseForm);
+                    formData.append('ajax', '1');
+
+                    // Envoyer via AJAX
+                    fetch('reclamback.php', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        credentials: 'same-origin'
                     })
-                    .then(data => {
-                        if (typeof data === 'object' && data !== null) {
-                            if (data.success === true) {
-                                // Fermer le modal
-                                closeModals();
-
-                                // Afficher un message de succès
-                                showSuccessMessage('Réponse ajoutée avec succès !');
-
-                                // Recharger la page avec l'ID de réclamation pour forcer le rechargement des réponses
-                                const reclamationId = data.reclamation_id || document.getElementById('response-reclamation-id').value;
-                                setTimeout(() => {
-                                    if (reclamationId) {
-                                        window.location.href = 'reclamback.php?response_added=1&reclamation_id=' + reclamationId;
-                                    } else {
-                                        window.location.reload();
-                                    }
-                                }, 500);
+                        .then(response => {
+                            const contentType = response.headers.get('content-type');
+                            if (contentType && contentType.includes('application/json')) {
+                                return response.json();
                             } else {
-                                // Erreur retournée par le serveur
-                                const errorMsg = data.message || 'Erreur lors de l\'ajout de la réponse';
-                                showResponseError(errorMsg);
+                                return response.text().then(text => {
+                                    try {
+                                        return JSON.parse(text);
+                                    } catch {
+                                        return { html: text };
+                                    }
+                                });
+                            }
+                        })
+                        .then(data => {
+                            if (typeof data === 'object' && data !== null) {
+                                if (data.success === true) {
+                                    // Fermer le modal
+                                    closeModals();
+
+                                    // Afficher un message de succès
+                                    showSuccessMessage('Réponse ajoutée avec succès !');
+
+                                    // Recharger la page avec l'ID de réclamation pour forcer le rechargement des réponses
+                                    const reclamationId = data.reclamation_id || document.getElementById('response-reclamation-id').value;
+                                    setTimeout(() => {
+                                        if (reclamationId) {
+                                            window.location.href = 'reclamback.php?response_added=1&reclamation_id=' + reclamationId;
+                                        } else {
+                                            window.location.reload();
+                                        }
+                                    }, 500);
+                                } else {
+                                    // Erreur retournée par le serveur
+                                    const errorMsg = data.message || 'Erreur lors de l\'ajout de la réponse';
+                                    showResponseError(errorMsg);
+                                    submitBtn.disabled = false;
+                                    submitBtn.innerHTML = originalBtnText;
+                                }
+                            } else {
+                                // Réponse HTML inattendue
+                                showResponseError('Erreur: Réponse inattendue du serveur.');
                                 submitBtn.disabled = false;
                                 submitBtn.innerHTML = originalBtnText;
                             }
-                        } else {
-                            // Réponse HTML inattendue
-                            showResponseError('Erreur: Réponse inattendue du serveur.');
+                        })
+                        .catch(error => {
+                            console.error('Erreur:', error);
+                            showResponseError('Erreur lors de l\'envoi de la réponse: ' + error.message);
                             submitBtn.disabled = false;
                             submitBtn.innerHTML = originalBtnText;
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Erreur:', error);
-                        showResponseError('Erreur lors de l\'envoi de la réponse: ' + error.message);
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = originalBtnText;
-                    });
-            });
+                        });
+                });
 
-            // Confirm delete
-            document.getElementById('confirm-delete').addEventListener('click', function () {
-                const requestId = deleteModal.getAttribute('data-id');
+                // Confirm delete
+                document.getElementById('confirm-delete').addEventListener('click', function () {
+                    const requestId = deleteModal.getAttribute('data-id');
 
-                if (requestId) {
-                    // Redirect to delete
-                    window.location.href = 'reclamback.php?delete_id=' + requestId;
-                } else {
-                    closeModals();
-                }
-            });
+                    if (requestId) {
+                        // Redirect to delete
+                        window.location.href = 'reclamback.php?delete_id=' + requestId;
+                    } else {
+                        closeModals();
+                    }
+                });
 
-            // Apply filters
-            document.getElementById('apply-filters').addEventListener('click', function () {
-                const statusFilter = document.getElementById('status-filter').value;
-                const dateFilter = document.getElementById('date-filter').value;
-                const categorieFilter = document.getElementById('categorie-filter').value;
+                // Apply filters
+                document.getElementById('apply-filters').addEventListener('click', function () {
+                    const statusFilter = document.getElementById('status-filter').value;
+                    const dateFilter = document.getElementById('date-filter').value;
+                    const categorieFilter = document.getElementById('categorie-filter').value;
 
-                // Construire l'URL avec les paramètres
-                const url = new URL(window.location.href);
-                url.searchParams.set('status_filter', statusFilter);
-                url.searchParams.set('date_filter', dateFilter);
-                url.searchParams.set('categorie_filter', categorieFilter);
-
-                // Recharger la page avec les nouveaux paramètres
-                window.location.href = url.toString();
-            });
-
-            // Reset filters
-            document.getElementById('reset-filters').addEventListener('click', function () {
-                // Reload page without parameters
-                window.location.href = window.location.pathname;
-            });
-
-            // Clickable stat cards to filter
-            document.querySelectorAll('.clickable-stat').forEach(card => {
-                card.addEventListener('click', function () {
-                    const statusFilter = this.getAttribute('data-status-filter');
+                    // Construire l'URL avec les paramètres
                     const url = new URL(window.location.href);
                     url.searchParams.set('status_filter', statusFilter);
-                    url.searchParams.delete('date_filter'); // Reset date filter when clicking stat
-                    url.searchParams.delete('categorie_filter'); // Reset category filter when clicking stat
+                    url.searchParams.set('date_filter', dateFilter);
+                    url.searchParams.set('categorie_filter', categorieFilter);
+
+                    // Recharger la page avec les nouveaux paramètres
                     window.location.href = url.toString();
                 });
-            });
 
-            // Attachment Modal Functions
-            function openAttachmentModal(element) {
-                const modal = document.getElementById('attachment-modal');
-                const modalContent = document.getElementById('attachment-modal-content');
-                const downloadLink = document.getElementById('attachment-download-link');
-                const fileSrc = element.getAttribute('data-src');
-                const fileType = element.getAttribute('data-type');
+                // Reset filters
+                document.getElementById('reset-filters').addEventListener('click', function () {
+                    // Reload page without parameters
+                    window.location.href = window.location.pathname;
+                });
 
-                if (!modal || !modalContent) {
-                    console.error('Attachment modal elements not found');
-                    return;
-                }
+                // Clickable stat cards to filter
+                document.querySelectorAll('.clickable-stat').forEach(card => {
+                    card.addEventListener('click', function () {
+                        const statusFilter = this.getAttribute('data-status-filter');
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('status_filter', statusFilter);
+                        url.searchParams.delete('date_filter'); // Reset date filter when clicking stat
+                        url.searchParams.delete('categorie_filter'); // Reset category filter when clicking stat
+                        window.location.href = url.toString();
+                    });
+                });
 
-                modal.style.display = 'flex';
-                if (downloadLink) {
-                    downloadLink.href = fileSrc;
-                }
+                // Attachment Modal Functions
+                function openAttachmentModal(element) {
+                    const modal = document.getElementById('attachment-modal');
+                    const modalContent = document.getElementById('attachment-modal-content');
+                    const downloadLink = document.getElementById('attachment-download-link');
+                    const fileSrc = element.getAttribute('data-src');
+                    const fileType = element.getAttribute('data-type');
 
-                if (fileType === 'image') {
-                    console.log('Opening image modal with src:', fileSrc);
+                    if (!modal || !modalContent) {
+                        console.error('Attachment modal elements not found');
+                        return;
+                    }
 
-                    // Afficher directement l'image avec gestion d'erreur
-                    modalContent.innerHTML = `
+                    modal.style.display = 'flex';
+                    if (downloadLink) {
+                        downloadLink.href = fileSrc;
+                    }
+
+                    if (fileType === 'image') {
+                        console.log('Opening image modal with src:', fileSrc);
+
+                        // Afficher directement l'image avec gestion d'erreur
+                        modalContent.innerHTML = `
                     <img src="${fileSrc}" 
                          alt="Full size attachment" 
                          style="max-width: 100%; max-height: 85vh; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: block; margin: 0 auto;"
                          onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\\'text-align: center; padding: 40px; color: #ff7a00;\\'><i class=\\'fas fa-exclamation-triangle\\' style=\\'font-size: 48px; margin-bottom: 20px; display: block;\\'></i><p style=\\'font-size: 18px; margin-bottom: 10px;\\'>Impossible de charger l\\'image</p><p style=\\'font-size: 14px; color: #aaa; word-break: break-all;\\'>Chemin: ${fileSrc}</p><a href=\\'${fileSrc}\\' target=\\'_blank\\' style=\\'color: #ff7a00; text-decoration: none; margin-top: 20px; display: inline-block;\\'><i class=\\'fas fa-external-link-alt\\'></i> Ouvrir dans un nouvel onglet</a></div>';">
                 `;
-                } else if (fileType === 'video') {
-                    const videoExt = fileSrc.split('.').pop();
-                    const video = document.createElement('video');
-                    video.controls = true;
-                    video.autoplay = true;
-                    video.style.cssText = 'max-width: 100%; max-height: 85vh; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: block; margin: 0 auto;';
+                    } else if (fileType === 'video') {
+                        const videoExt = fileSrc.split('.').pop();
+                        const video = document.createElement('video');
+                        video.controls = true;
+                        video.autoplay = true;
+                        video.style.cssText = 'max-width: 100%; max-height: 85vh; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: block; margin: 0 auto;';
 
-                    const source = document.createElement('source');
-                    source.src = fileSrc;
-                    source.type = `video/${videoExt}`;
-                    video.appendChild(source);
+                        const source = document.createElement('source');
+                        source.src = fileSrc;
+                        source.type = `video/${videoExt}`;
+                        video.appendChild(source);
 
-                    video.onerror = function () {
-                        console.error('Erreur de chargement de la vidéo:', fileSrc);
-                        modalContent.innerHTML = `
+                        video.onerror = function () {
+                            console.error('Erreur de chargement de la vidéo:', fileSrc);
+                            modalContent.innerHTML = `
                         <div style="text-align: center; padding: 40px; color: #ff7a00;">
                             <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 20px; display: block;"></i>
                             <p style="font-size: 18px; margin-bottom: 10px;">Impossible de charger la vidéo</p>
@@ -3848,956 +3821,956 @@ unset($reclamation);
                             </a>
                         </div>
                     `;
-                    };
-
-                    modalContent.innerHTML = '';
-                    modalContent.appendChild(video);
-                }
-
-                // Prevent body scroll when modal is open
-                document.body.style.overflow = 'hidden';
-            }
-
-            function closeAttachmentModal() {
-                const modal = document.getElementById('attachment-modal');
-                const modalContent = document.getElementById('attachment-modal-content');
-
-                if (!modal) return;
-
-                modal.style.display = 'none';
-                if (modalContent) {
-                    modalContent.innerHTML = '';
-                }
-
-                // Restore body scroll
-                document.body.style.overflow = '';
-            }
-
-            // Close modal when clicking outside (only if modal exists)
-            const attachmentModal = document.getElementById('attachment-modal');
-            if (attachmentModal) {
-                attachmentModal.addEventListener('click', function (e) {
-                    if (e.target === this) {
-                        closeAttachmentModal();
-                    }
-                });
-            }
-
-            // Close modal with Escape key
-            document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape') {
-                    const modal = document.getElementById('attachment-modal');
-                    if (modal.style.display === 'flex') {
-                        closeAttachmentModal();
-                    }
-                }
-            });
-
-            // Simple sidebar navigation
-            document.querySelectorAll('.sidebar a').forEach(item => {
-                item.addEventListener('click', function () {
-                    document.querySelectorAll('.sidebar a').forEach(nav => {
-                        nav.classList.remove('active');
-                    });
-                    this.classList.add('active');
-                });
-            });
-
-            // Protéger les images contre la disparition - Fonction robuste
-            const protectImages = function () {
-                // Forcer l'affichage de toutes les images
-                document.querySelectorAll('.attachment-thumbnail, .persistent-image').forEach(img => {
-                    // Vérifier si l'image existe toujours dans le DOM
-                    if (!img.isConnected) {
-                        console.warn('Image retirée du DOM, tentative de restauration...');
-                        // L'image a été retirée du DOM, on ne peut pas la restaurer facilement
-                        return;
-                    }
-
-                    // Vérifier si l'image a un src valide et le restaurer si nécessaire
-                    const originalSrc = img.getAttribute('data-original-src') || img.getAttribute('data-src');
-                    const fallbackSrc = img.getAttribute('data-src-fallback');
-
-                    if (originalSrc) {
-                        // Si le src a été modifié, supprimé ou vidé, le restaurer
-                        if (!img.src || img.src === '' || img.src === window.location.href ||
-                            (!img.src.includes('uploads') && !img.src.includes('reclamations'))) {
-                            console.log('Restauration du src de l\'image:', originalSrc);
-                            img.src = originalSrc;
-                            // Forcer le rechargement
-                            img.load();
-                        }
-                    }
-
-                    // Vérifier si l'image est visible dans le viewport
-                    const rect = img.getBoundingClientRect();
-                    const isVisible = rect.width > 0 && rect.height > 0 &&
-                        window.getComputedStyle(img).display !== 'none' &&
-                        window.getComputedStyle(img).visibility !== 'hidden' &&
-                        window.getComputedStyle(img).opacity !== '0';
-
-                    if (!isVisible) {
-                        console.log('Image non visible, restauration forcée');
-                    }
-
-                    // Forcer l'affichage avec important - utiliser cssText pour tout remplacer
-                    img.style.cssText = 'max-width: 300px !important; max-height: 200px !important; border-radius: 8px !important; cursor: pointer !important; border: 2px solid rgba(255,122,0,0.3) !important; transition: transform 0.3s ease !important; display: block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; width: auto !important; height: auto !important; min-width: 50px !important; min-height: 50px !important;';
-
-                    // S'assurer que le parent est aussi visible
-                    let parent = img.parentElement;
-                    while (parent) {
-                        if (parent && parent.style) {
-                            parent.style.cssText = parent.style.cssText.replace(/display\s*:\s*none[^;]*;?/gi, '') + ' display: block !important; visibility: visible !important;';
-                        }
-                        if (parent && parent.classList && parent.classList.contains('attachment-preview')) {
-                            break;
-                        }
-                        parent = parent ? parent.parentElement : null;
-                    }
-                });
-
-                // Forcer l'affichage de tous les conteneurs avec cssText
-                document.querySelectorAll('.attachment-preview, .image-container').forEach(div => {
-                    if (div && div.isConnected) {
-                        const currentStyle = div.style.cssText || '';
-                        div.style.cssText = currentStyle.replace(/display\s*:\s*none[^;]*;?/gi, '').replace(/visibility\s*:\s*hidden[^;]*;?/gi, '') + ' display: block !important; visibility: visible !important; position: relative !important;';
-                    }
-                });
-            };
-
-            // Intercepter les tentatives de suppression des images
-            const originalRemoveChild = Node.prototype.removeChild;
-            Node.prototype.removeChild = function (child) {
-                if (child && (child.classList || child.tagName === 'IMG')) {
-                    const isImage = (child.classList && (
-                        child.classList.contains('attachment-thumbnail') ||
-                        child.classList.contains('attachment-preview') ||
-                        child.classList.contains('image-container') ||
-                        child.classList.contains('persistent-image')
-                    )) || (child.tagName === 'IMG' && child.src && child.src.includes('uploads'));
-
-                    if (isImage) {
-                        console.warn('Tentative de suppression d\'une image bloquée:', child);
-                        return child; // Ne pas supprimer
-                    }
-                }
-                return originalRemoveChild.call(this, child);
-            };
-
-            const originalRemove = Element.prototype.remove;
-            Element.prototype.remove = function () {
-                if (this && (this.classList || this.tagName === 'IMG')) {
-                    const isImage = (this.classList && (
-                        this.classList.contains('attachment-thumbnail') ||
-                        this.classList.contains('attachment-preview') ||
-                        this.classList.contains('image-container') ||
-                        this.classList.contains('persistent-image')
-                    )) || (this.tagName === 'IMG' && this.src && this.src.includes('uploads'));
-
-                    if (isImage) {
-                        console.warn('Tentative de suppression d\'une image bloquée:', this);
-                        return; // Ne pas supprimer
-                    }
-                }
-                return originalRemove.call(this);
-            };
-
-            // Intercepter les modifications de style.style.display, .style.visibility, etc.
-            const protectStyleProperty = function (element, property, value) {
-                if (!element || !element.classList) return false;
-
-                const isImage = element.classList.contains('attachment-thumbnail') ||
-                    element.classList.contains('persistent-image') ||
-                    element.classList.contains('image-container') ||
-                    element.classList.contains('attachment-preview');
-
-                if (isImage && (property === 'display' || property === 'visibility' || property === 'opacity')) {
-                    if (value === 'none' || value === 'hidden' || (property === 'opacity' && parseFloat(value) === 0)) {
-                        console.warn('Tentative de masquer une image bloquée:', property, value);
-                        return true; // Bloquer
-                    }
-                }
-                return false;
-            };
-
-            // Intercepter style.display, style.visibility directement
-            ['display', 'visibility', 'opacity'].forEach(prop => {
-                Object.defineProperty(HTMLElement.prototype, prop, {
-                    set: function (value) {
-                        if (protectStyleProperty(this, prop, value)) {
-                            return; // Ne pas appliquer
-                        }
-                        this.style[prop] = value;
-                    },
-                    get: function () {
-                        return this.style[prop];
-                    }
-                });
-            });
-
-            // Précharger toutes les images pour garantir leur disponibilité
-            const preloadImages = function () {
-                document.querySelectorAll('.persistent-image').forEach(img => {
-                    const src = img.getAttribute('data-original-src') || img.getAttribute('data-src');
-                    if (src) {
-                        const preloadImg = new Image();
-                        preloadImg.src = src;
-                        preloadImg.onload = function () {
-                            // Une fois préchargée, s'assurer que l'image principale est visible
-                            if (img.src !== src) {
-                                img.src = src;
-                            }
-                            img.style.setProperty('display', 'block', 'important');
-                            img.style.setProperty('visibility', 'visible', 'important');
-                            img.style.setProperty('opacity', '1', 'important');
                         };
-                    }
-                });
-            };
 
-            // Exécuter immédiatement
-            protectImages();
-            preloadImages();
-
-            // Exécuter après le chargement complet
-            window.addEventListener('load', function () {
-                protectImages();
-                preloadImages();
-                // Re-vérifier après un court délai
-                setTimeout(function () { protectImages(); preloadImages(); }, 100);
-                setTimeout(function () { protectImages(); preloadImages(); }, 500);
-                setTimeout(function () { protectImages(); preloadImages(); }, 1000);
-            });
-
-            // Vérifier périodiquement que les images sont visibles (toutes les 100ms pour être très réactif)
-            setInterval(function () {
-                protectImages();
-                // Recharger les images qui ont disparu
-                document.querySelectorAll('.persistent-image, .attachment-thumbnail').forEach(img => {
-                    // Vérifier si l'image est toujours dans le DOM
-                    if (!img.isConnected) {
-                        console.warn('Image retirée du DOM, recréation...');
-                        // L'image a été retirée, essayer de la recréer
-                        const container = document.querySelector(`[data-image-id="${img.getAttribute('data-reclamation-id')}"]`);
-                        if (container && container.isConnected) {
-                            const newImg = img.cloneNode(true);
-                            newImg.src = img.getAttribute('data-original-src') + '?reload=' + Date.now();
-                            container.appendChild(newImg);
-                        }
-                        return;
+                        modalContent.innerHTML = '';
+                        modalContent.appendChild(video);
                     }
 
-                    // Vérifier si l'image est chargée
-                    if (!img.complete || img.naturalWidth === 0) {
-                        const src = img.getAttribute('data-original-src') || img.getAttribute('data-src');
-                        if (src && (!img.src || img.src !== src)) {
-                            console.log('Rechargement de l\'image:', src);
-                            img.src = src + '?reload=' + Date.now();
-                        }
-                    }
-
-                    // Forcer l'affichage à chaque vérification
-                    img.style.cssText = 'max-width: 300px !important; max-height: 200px !important; border-radius: 8px !important; cursor: pointer !important; border: 2px solid rgba(255,122,0,0.3) !important; display: block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; width: auto !important; height: auto !important;';
-                });
-            }, 100);
-
-            // Observer les changements dans le DOM pour protéger les images
-            const observer = new MutationObserver(function (mutations) {
-                let shouldProtect = false;
-
-                mutations.forEach(function (mutation) {
-                    if (mutation.type === 'attributes') {
-                        const target = mutation.target;
-                        if (target.classList && (target.classList.contains('attachment-thumbnail') || target.classList.contains('attachment-preview') || target.classList.contains('image-container'))) {
-                            shouldProtect = true;
-                            // Forcer immédiatement l'affichage
-                            if (target.classList.contains('attachment-thumbnail')) {
-                                target.style.setProperty('display', 'block', 'important');
-                                target.style.setProperty('visibility', 'visible', 'important');
-                                target.style.setProperty('opacity', '1', 'important');
-                                // Restaurer le src si modifié
-                                const originalSrc = target.getAttribute('data-original-src') || target.getAttribute('data-src');
-                                if (originalSrc && target.src !== originalSrc) {
-                                    target.src = originalSrc;
-                                }
-                            } else {
-                                target.style.setProperty('display', 'block', 'important');
-                                target.style.setProperty('visibility', 'visible', 'important');
-                            }
-                        }
-                    }
-
-                    // Si des nœuds sont supprimés, vérifier s'il s'agit d'images
-                    if (mutation.removedNodes) {
-                        mutation.removedNodes.forEach(node => {
-                            if (node.nodeType === 1 && node.classList &&
-                                (node.classList.contains('attachment-thumbnail') ||
-                                    node.classList.contains('attachment-preview') ||
-                                    node.classList.contains('image-container'))) {
-                                console.warn('Image supprimée du DOM, tentative de restauration...');
-                                shouldProtect = true;
-                            }
-                        });
-                    }
-
-                    // Si des nœuds sont ajoutés, protéger les nouvelles images
-                    if (mutation.addedNodes) {
-                        mutation.addedNodes.forEach(node => {
-                            if (node.nodeType === 1) { // Element node
-                                if (node.classList) {
-                                    if (node.classList.contains('attachment-thumbnail')) {
-                                        node.style.setProperty('display', 'block', 'important');
-                                        node.style.setProperty('visibility', 'visible', 'important');
-                                        node.style.setProperty('opacity', '1', 'important');
-                                    }
-                                    if (node.classList.contains('attachment-preview') || node.classList.contains('image-container')) {
-                                        node.style.setProperty('display', 'block', 'important');
-                                        node.style.setProperty('visibility', 'visible', 'important');
-                                    }
-                                }
-                                // Vérifier aussi les enfants
-                                if (node.querySelectorAll) {
-                                    node.querySelectorAll('.attachment-thumbnail, .attachment-preview, .image-container').forEach(el => {
-                                        if (el.classList.contains('attachment-thumbnail')) {
-                                            el.style.setProperty('display', 'block', 'important');
-                                            el.style.setProperty('visibility', 'visible', 'important');
-                                            el.style.setProperty('opacity', '1', 'important');
-                                        } else {
-                                            el.style.setProperty('display', 'block', 'important');
-                                            el.style.setProperty('visibility', 'visible', 'important');
-                                        }
-                                    });
-                                }
-                            }
-                        });
-                    }
-                });
-
-                // Si des changements ont été détectés, protéger immédiatement
-                if (shouldProtect) {
-                    setTimeout(protectImages, 0);
+                    // Prevent body scroll when modal is open
+                    document.body.style.overflow = 'hidden';
                 }
-            });
 
-            // Observer tous les éléments avec la classe attachment et le body entier
-            document.querySelectorAll('.attachment-thumbnail, .attachment-preview, .image-container').forEach(el => {
-                observer.observe(el, {
-                    attributes: true,
-                    attributeFilter: ['style', 'class', 'src'],
-                    childList: true,
-                    subtree: true
-                });
-            });
+                function closeAttachmentModal() {
+                    const modal = document.getElementById('attachment-modal');
+                    const modalContent = document.getElementById('attachment-modal-content');
 
-            // Observer aussi le body pour détecter les nouveaux éléments ajoutés ou supprimés
-            if (document.body) {
-                observer.observe(document.body, {
-                    childList: true,
-                    subtree: true,
-                    attributes: false
-                });
-            }
+                    if (!modal) return;
 
-            // Observer aussi le conteneur des reviews
-            const reviewsList = document.querySelector('.reviews-list');
-            if (reviewsList) {
-                observer.observe(reviewsList, {
-                    childList: true,
-                    subtree: true,
-                    attributes: false
-                });
-            }
-
-            // Stocker les informations des images pour pouvoir les recréer si nécessaire
-            const imageRegistry = new Map();
-            document.querySelectorAll('.persistent-image').forEach(img => {
-                const id = img.getAttribute('data-reclamation-id') + '_' + Math.random().toString(36).substr(2, 9);
-                img.setAttribute('data-image-id', id);
-                imageRegistry.set(id, {
-                    src: img.getAttribute('data-original-src'),
-                    fallback: img.getAttribute('data-src-fallback'),
-                    container: img.closest('.image-container'),
-                    parent: img.parentElement
-                });
-            });
-
-            // Fonction pour recréer une image si elle a été supprimée
-            const recreateImageIfNeeded = function () {
-                imageRegistry.forEach((data, id) => {
-                    const existingImg = document.querySelector(`[data-image-id="${id}"]`);
-                    if (!existingImg || !existingImg.isConnected) {
-                        // L'image a été supprimée, la recréer
-                        console.log('Recréation de l\'image supprimée:', id);
-                        if (data.container && data.container.isConnected) {
-                            const newImg = document.createElement('img');
-                            newImg.src = data.src;
-                            newImg.className = 'attachment-thumbnail persistent-image';
-                            newImg.setAttribute('data-image-id', id);
-                            newImg.setAttribute('data-type', 'image');
-                            newImg.setAttribute('data-src', data.src);
-                            newImg.setAttribute('data-src-fallback', data.fallback);
-                            newImg.setAttribute('data-original-src', data.src);
-                            newImg.setAttribute('data-reclamation-id', id.split('_')[0]);
-                            newImg.style.cssText = 'max-width: 300px; max-height: 200px; border-radius: 8px; cursor: pointer; border: 2px solid rgba(255,122,0,0.3); transition: transform 0.3s ease; display: block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; width: auto !important; height: auto !important;';
-                            newImg.onclick = function () { openAttachmentModal(this); };
-                            newImg.onload = function () {
-                                this.style.setProperty('display', 'block', 'important');
-                                this.style.setProperty('visibility', 'visible', 'important');
-                                this.style.setProperty('opacity', '1', 'important');
-                            };
-                            newImg.onerror = function () {
-                                if (data.fallback && this.src !== data.fallback) {
-                                    this.src = data.fallback;
-                                }
-                            };
-                            data.container.appendChild(newImg);
-                        }
+                    modal.style.display = 'none';
+                    if (modalContent) {
+                        modalContent.innerHTML = '';
                     }
-                });
-            };
 
-            // Vérifier périodiquement si des images doivent être recréées
-            setInterval(recreateImageIfNeeded, 500);
+                    // Restore body scroll
+                    document.body.style.overflow = '';
+                }
 
-        }); // Fin de DOMContentLoaded
-
-        // Intercepter getComputedStyle pour forcer l'affichage
-        const originalGetComputedStyle = window.getComputedStyle;
-        window.getComputedStyle = function (element, pseudoElement) {
-            const result = originalGetComputedStyle.call(this, element, pseudoElement);
-            if (element && element.classList) {
-                const isImage = element.classList.contains('attachment-thumbnail') ||
-                    element.classList.contains('persistent-image') ||
-                    element.classList.contains('image-container') ||
-                    element.classList.contains('attachment-preview');
-                if (isImage) {
-                    // Créer un proxy qui force les valeurs d'affichage
-                    return new Proxy(result, {
-                        get: function (target, prop) {
-                            if (prop === 'display') return 'block';
-                            if (prop === 'visibility') return 'visible';
-                            if (prop === 'opacity') return '1';
-                            return target[prop];
+                // Close modal when clicking outside (only if modal exists)
+                const attachmentModal = document.getElementById('attachment-modal');
+                if (attachmentModal) {
+                    attachmentModal.addEventListener('click', function (e) {
+                        if (e.target === this) {
+                            closeAttachmentModal();
                         }
                     });
                 }
-            }
-            return result;
-        };
 
-        // Fonction pour protéger une image
-        const protectImageSrc = function (img) {
-            if (!img || img.tagName !== 'IMG') return;
+                // Close modal with Escape key
+                document.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape') {
+                        const modal = document.getElementById('attachment-modal');
+                        if (modal.style.display === 'flex') {
+                            closeAttachmentModal();
+                        }
+                    }
+                });
 
-            const originalSrc = img.getAttribute('data-original-src') || img.src;
-            if (!originalSrc || !originalSrc.includes('uploads')) return;
+                // Simple sidebar navigation
+                document.querySelectorAll('.sidebar a').forEach(item => {
+                    item.addEventListener('click', function () {
+                        document.querySelectorAll('.sidebar a').forEach(nav => {
+                            nav.classList.remove('active');
+                        });
+                        this.classList.add('active');
+                    });
+                });
 
-            // Sauvegarder le src original
-            img.setAttribute('data-original-src', originalSrc);
-
-            // Intercepter les modifications du src
-            try {
-                Object.defineProperty(img, 'src', {
-                    get: function () {
-                        const currentSrc = this.getAttribute('src');
-                        return currentSrc && currentSrc.includes('uploads') ? currentSrc : originalSrc;
-                    },
-                    set: function (value) {
-                        // Si on essaie de vider le src ou de le changer pour autre chose que uploads, bloquer
-                        if (!value || value === '' || value === window.location.href || (!value.includes('uploads') && value !== originalSrc)) {
-                            console.warn('Tentative de modifier le src de l\'image bloquée:', value);
-                            this.setAttribute('src', originalSrc);
+                // Protéger les images contre la disparition - Fonction robuste
+                const protectImages = function () {
+                    // Forcer l'affichage de toutes les images
+                    document.querySelectorAll('.attachment-thumbnail, .persistent-image').forEach(img => {
+                        // Vérifier si l'image existe toujours dans le DOM
+                        if (!img.isConnected) {
+                            console.warn('Image retirée du DOM, tentative de restauration...');
+                            // L'image a été retirée du DOM, on ne peut pas la restaurer facilement
                             return;
                         }
-                        // Si c'est un nouveau chemin valide vers uploads, autoriser
-                        if (value.includes('uploads')) {
-                            this.setAttribute('src', value);
-                            this.setAttribute('data-original-src', value); // Mettre à jour le src original
-                        } else {
-                            // Sinon, restaurer le src original
-                            this.setAttribute('src', originalSrc);
-                        }
-                    },
-                    configurable: false
-                });
-            } catch (e) {
-                // Si on ne peut pas définir la propriété, utiliser un setter alternatif
-                console.warn('Impossible de protéger le src de l\'image:', e);
-            }
-        };
 
-        // Protéger toutes les images existantes
-        document.querySelectorAll('img.attachment-thumbnail, img.persistent-image').forEach(protectImageSrc);
+                        // Vérifier si l'image a un src valide et le restaurer si nécessaire
+                        const originalSrc = img.getAttribute('data-original-src') || img.getAttribute('data-src');
+                        const fallbackSrc = img.getAttribute('data-src-fallback');
 
-        // Protéger les nouvelles images ajoutées dynamiquement
-        const imageObserver = new MutationObserver(function (mutations) {
-            mutations.forEach(function (mutation) {
-                mutation.addedNodes.forEach(function (node) {
-                    if (node.nodeType === 1) {
-                        if (node.tagName === 'IMG' && (node.classList.contains('attachment-thumbnail') || node.classList.contains('persistent-image'))) {
-                            protectImageSrc(node);
-                        }
-                        // Vérifier aussi les images dans les nœuds ajoutés
-                        node.querySelectorAll && node.querySelectorAll('img.attachment-thumbnail, img.persistent-image').forEach(protectImageSrc);
-                    }
-                });
-            });
-        });
-
-        imageObserver.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
-
-        // Protection finale - s'exécuter en dernier pour garantir l'affichage
-        // Cette fonction doit s'exécuter APRÈS tous les autres scripts
-        (function () {
-            'use strict';
-
-            const forceShowImages = function () {
-                try {
-                    // Forcer l'affichage de toutes les images avec la méthode la plus agressive
-                    const images = document.querySelectorAll('img.attachment-thumbnail, img.persistent-image, .attachment-thumbnail, .persistent-image');
-                    images.forEach(img => {
-                        if (img && img.isConnected && img.tagName === 'IMG') {
-                            // Sauvegarder le src original si nécessaire
-                            const originalSrc = img.getAttribute('data-original-src') || img.getAttribute('data-src');
-                            if (originalSrc && (!img.src || !img.src.includes('uploads'))) {
+                        if (originalSrc) {
+                            // Si le src a été modifié, supprimé ou vidé, le restaurer
+                            if (!img.src || img.src === '' || img.src === window.location.href ||
+                                (!img.src.includes('uploads') && !img.src.includes('reclamations'))) {
+                                console.log('Restauration du src de l\'image:', originalSrc);
                                 img.src = originalSrc;
+                                // Forcer le rechargement
+                                img.load();
                             }
+                        }
 
-                            // Remplacer complètement le style - méthode la plus agressive
-                            const computedStyle = window.getComputedStyle(img);
-                            if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden' || parseFloat(computedStyle.opacity) === 0) {
-                                // L'image est cachée, forcer l'affichage
-                                img.style.cssText = 'max-width: 300px !important; max-height: 200px !important; border-radius: 8px !important; cursor: pointer !important; border: 2px solid rgba(255,122,0,0.3) !important; display: block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; width: auto !important; height: auto !important;';
+                        // Vérifier si l'image est visible dans le viewport
+                        const rect = img.getBoundingClientRect();
+                        const isVisible = rect.width > 0 && rect.height > 0 &&
+                            window.getComputedStyle(img).display !== 'none' &&
+                            window.getComputedStyle(img).visibility !== 'hidden' &&
+                            window.getComputedStyle(img).opacity !== '0';
 
-                                // Forcer aussi via setAttribute pour être sûr
-                                img.setAttribute('style', 'max-width: 300px !important; max-height: 200px !important; border-radius: 8px !important; cursor: pointer !important; border: 2px solid rgba(255,122,0,0.3) !important; display: block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; width: auto !important; height: auto !important;');
-                            } else {
-                                // Même si visible, s'assurer que le style est correct
+                        if (!isVisible) {
+                            console.log('Image non visible, restauration forcée');
+                        }
+
+                        // Forcer l'affichage avec important - utiliser cssText pour tout remplacer
+                        img.style.cssText = 'max-width: 300px !important; max-height: 200px !important; border-radius: 8px !important; cursor: pointer !important; border: 2px solid rgba(255,122,0,0.3) !important; transition: transform 0.3s ease !important; display: block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; width: auto !important; height: auto !important; min-width: 50px !important; min-height: 50px !important;';
+
+                        // S'assurer que le parent est aussi visible
+                        let parent = img.parentElement;
+                        while (parent) {
+                            if (parent && parent.style) {
+                                parent.style.cssText = parent.style.cssText.replace(/display\s*:\s*none[^;]*;?/gi, '') + ' display: block !important; visibility: visible !important;';
+                            }
+                            if (parent && parent.classList && parent.classList.contains('attachment-preview')) {
+                                break;
+                            }
+                            parent = parent ? parent.parentElement : null;
+                        }
+                    });
+
+                    // Forcer l'affichage de tous les conteneurs avec cssText
+                    document.querySelectorAll('.attachment-preview, .image-container').forEach(div => {
+                        if (div && div.isConnected) {
+                            const currentStyle = div.style.cssText || '';
+                            div.style.cssText = currentStyle.replace(/display\s*:\s*none[^;]*;?/gi, '').replace(/visibility\s*:\s*hidden[^;]*;?/gi, '') + ' display: block !important; visibility: visible !important; position: relative !important;';
+                        }
+                    });
+                };
+
+                // Intercepter les tentatives de suppression des images
+                const originalRemoveChild = Node.prototype.removeChild;
+                Node.prototype.removeChild = function (child) {
+                    if (child && (child.classList || child.tagName === 'IMG')) {
+                        const isImage = (child.classList && (
+                            child.classList.contains('attachment-thumbnail') ||
+                            child.classList.contains('attachment-preview') ||
+                            child.classList.contains('image-container') ||
+                            child.classList.contains('persistent-image')
+                        )) || (child.tagName === 'IMG' && child.src && child.src.includes('uploads'));
+
+                        if (isImage) {
+                            console.warn('Tentative de suppression d\'une image bloquée:', child);
+                            return child; // Ne pas supprimer
+                        }
+                    }
+                    return originalRemoveChild.call(this, child);
+                };
+
+                const originalRemove = Element.prototype.remove;
+                Element.prototype.remove = function () {
+                    if (this && (this.classList || this.tagName === 'IMG')) {
+                        const isImage = (this.classList && (
+                            this.classList.contains('attachment-thumbnail') ||
+                            this.classList.contains('attachment-preview') ||
+                            this.classList.contains('image-container') ||
+                            this.classList.contains('persistent-image')
+                        )) || (this.tagName === 'IMG' && this.src && this.src.includes('uploads'));
+
+                        if (isImage) {
+                            console.warn('Tentative de suppression d\'une image bloquée:', this);
+                            return; // Ne pas supprimer
+                        }
+                    }
+                    return originalRemove.call(this);
+                };
+
+                // Intercepter les modifications de style.style.display, .style.visibility, etc.
+                const protectStyleProperty = function (element, property, value) {
+                    if (!element || !element.classList) return false;
+
+                    const isImage = element.classList.contains('attachment-thumbnail') ||
+                        element.classList.contains('persistent-image') ||
+                        element.classList.contains('image-container') ||
+                        element.classList.contains('attachment-preview');
+
+                    if (isImage && (property === 'display' || property === 'visibility' || property === 'opacity')) {
+                        if (value === 'none' || value === 'hidden' || (property === 'opacity' && parseFloat(value) === 0)) {
+                            console.warn('Tentative de masquer une image bloquée:', property, value);
+                            return true; // Bloquer
+                        }
+                    }
+                    return false;
+                };
+
+                // Intercepter style.display, style.visibility directement
+                ['display', 'visibility', 'opacity'].forEach(prop => {
+                    Object.defineProperty(HTMLElement.prototype, prop, {
+                        set: function (value) {
+                            if (protectStyleProperty(this, prop, value)) {
+                                return; // Ne pas appliquer
+                            }
+                            this.style[prop] = value;
+                        },
+                        get: function () {
+                            return this.style[prop];
+                        }
+                    });
+                });
+
+                // Précharger toutes les images pour garantir leur disponibilité
+                const preloadImages = function () {
+                    document.querySelectorAll('.persistent-image').forEach(img => {
+                        const src = img.getAttribute('data-original-src') || img.getAttribute('data-src');
+                        if (src) {
+                            const preloadImg = new Image();
+                            preloadImg.src = src;
+                            preloadImg.onload = function () {
+                                // Une fois préchargée, s'assurer que l'image principale est visible
+                                if (img.src !== src) {
+                                    img.src = src;
+                                }
                                 img.style.setProperty('display', 'block', 'important');
                                 img.style.setProperty('visibility', 'visible', 'important');
                                 img.style.setProperty('opacity', '1', 'important');
+                            };
+                        }
+                    });
+                };
+
+                // Exécuter immédiatement
+                protectImages();
+                preloadImages();
+
+                // Exécuter après le chargement complet
+                window.addEventListener('load', function () {
+                    protectImages();
+                    preloadImages();
+                    // Re-vérifier après un court délai
+                    setTimeout(function () { protectImages(); preloadImages(); }, 100);
+                    setTimeout(function () { protectImages(); preloadImages(); }, 500);
+                    setTimeout(function () { protectImages(); preloadImages(); }, 1000);
+                });
+
+                // Vérifier périodiquement que les images sont visibles (toutes les 100ms pour être très réactif)
+                setInterval(function () {
+                    protectImages();
+                    // Recharger les images qui ont disparu
+                    document.querySelectorAll('.persistent-image, .attachment-thumbnail').forEach(img => {
+                        // Vérifier si l'image est toujours dans le DOM
+                        if (!img.isConnected) {
+                            console.warn('Image retirée du DOM, recréation...');
+                            // L'image a été retirée, essayer de la recréer
+                            const container = document.querySelector(`[data-image-id="${img.getAttribute('data-reclamation-id')}"]`);
+                            if (container && container.isConnected) {
+                                const newImg = img.cloneNode(true);
+                                newImg.src = img.getAttribute('data-original-src') + '?reload=' + Date.now();
+                                container.appendChild(newImg);
                             }
+                            return;
+                        }
+
+                        // Vérifier si l'image est chargée
+                        if (!img.complete || img.naturalWidth === 0) {
+                            const src = img.getAttribute('data-original-src') || img.getAttribute('data-src');
+                            if (src && (!img.src || img.src !== src)) {
+                                console.log('Rechargement de l\'image:', src);
+                                img.src = src + '?reload=' + Date.now();
+                            }
+                        }
+
+                        // Forcer l'affichage à chaque vérification
+                        img.style.cssText = 'max-width: 300px !important; max-height: 200px !important; border-radius: 8px !important; cursor: pointer !important; border: 2px solid rgba(255,122,0,0.3) !important; display: block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; width: auto !important; height: auto !important;';
+                    });
+                }, 100);
+
+                // Observer les changements dans le DOM pour protéger les images
+                const observer = new MutationObserver(function (mutations) {
+                    let shouldProtect = false;
+
+                    mutations.forEach(function (mutation) {
+                        if (mutation.type === 'attributes') {
+                            const target = mutation.target;
+                            if (target.classList && (target.classList.contains('attachment-thumbnail') || target.classList.contains('attachment-preview') || target.classList.contains('image-container'))) {
+                                shouldProtect = true;
+                                // Forcer immédiatement l'affichage
+                                if (target.classList.contains('attachment-thumbnail')) {
+                                    target.style.setProperty('display', 'block', 'important');
+                                    target.style.setProperty('visibility', 'visible', 'important');
+                                    target.style.setProperty('opacity', '1', 'important');
+                                    // Restaurer le src si modifié
+                                    const originalSrc = target.getAttribute('data-original-src') || target.getAttribute('data-src');
+                                    if (originalSrc && target.src !== originalSrc) {
+                                        target.src = originalSrc;
+                                    }
+                                } else {
+                                    target.style.setProperty('display', 'block', 'important');
+                                    target.style.setProperty('visibility', 'visible', 'important');
+                                }
+                            }
+                        }
+
+                        // Si des nœuds sont supprimés, vérifier s'il s'agit d'images
+                        if (mutation.removedNodes) {
+                            mutation.removedNodes.forEach(node => {
+                                if (node.nodeType === 1 && node.classList &&
+                                    (node.classList.contains('attachment-thumbnail') ||
+                                        node.classList.contains('attachment-preview') ||
+                                        node.classList.contains('image-container'))) {
+                                    console.warn('Image supprimée du DOM, tentative de restauration...');
+                                    shouldProtect = true;
+                                }
+                            });
+                        }
+
+                        // Si des nœuds sont ajoutés, protéger les nouvelles images
+                        if (mutation.addedNodes) {
+                            mutation.addedNodes.forEach(node => {
+                                if (node.nodeType === 1) { // Element node
+                                    if (node.classList) {
+                                        if (node.classList.contains('attachment-thumbnail')) {
+                                            node.style.setProperty('display', 'block', 'important');
+                                            node.style.setProperty('visibility', 'visible', 'important');
+                                            node.style.setProperty('opacity', '1', 'important');
+                                        }
+                                        if (node.classList.contains('attachment-preview') || node.classList.contains('image-container')) {
+                                            node.style.setProperty('display', 'block', 'important');
+                                            node.style.setProperty('visibility', 'visible', 'important');
+                                        }
+                                    }
+                                    // Vérifier aussi les enfants
+                                    if (node.querySelectorAll) {
+                                        node.querySelectorAll('.attachment-thumbnail, .attachment-preview, .image-container').forEach(el => {
+                                            if (el.classList.contains('attachment-thumbnail')) {
+                                                el.style.setProperty('display', 'block', 'important');
+                                                el.style.setProperty('visibility', 'visible', 'important');
+                                                el.style.setProperty('opacity', '1', 'important');
+                                            } else {
+                                                el.style.setProperty('display', 'block', 'important');
+                                                el.style.setProperty('visibility', 'visible', 'important');
+                                            }
+                                        });
+                                    }
+                                }
+                            });
                         }
                     });
 
-                    // Forcer l'affichage des conteneurs
-                    const containers = document.querySelectorAll('.attachment-preview, .image-container');
-                    containers.forEach(div => {
-                        if (div && div.isConnected) {
-                            const computedStyle = window.getComputedStyle(div);
-                            if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') {
-                                div.style.cssText = (div.style.cssText || '') + ' display: block !important; visibility: visible !important; position: relative !important;';
-                                div.setAttribute('style', (div.getAttribute('style') || '') + ' display: block !important; visibility: visible !important; position: relative !important;');
+                    // Si des changements ont été détectés, protéger immédiatement
+                    if (shouldProtect) {
+                        setTimeout(protectImages, 0);
+                    }
+                });
+
+                // Observer tous les éléments avec la classe attachment et le body entier
+                document.querySelectorAll('.attachment-thumbnail, .attachment-preview, .image-container').forEach(el => {
+                    observer.observe(el, {
+                        attributes: true,
+                        attributeFilter: ['style', 'class', 'src'],
+                        childList: true,
+                        subtree: true
+                    });
+                });
+
+                // Observer aussi le body pour détecter les nouveaux éléments ajoutés ou supprimés
+                if (document.body) {
+                    observer.observe(document.body, {
+                        childList: true,
+                        subtree: true,
+                        attributes: false
+                    });
+                }
+
+                // Observer aussi le conteneur des reviews
+                const reviewsList = document.querySelector('.reviews-list');
+                if (reviewsList) {
+                    observer.observe(reviewsList, {
+                        childList: true,
+                        subtree: true,
+                        attributes: false
+                    });
+                }
+
+                // Stocker les informations des images pour pouvoir les recréer si nécessaire
+                const imageRegistry = new Map();
+                document.querySelectorAll('.persistent-image').forEach(img => {
+                    const id = img.getAttribute('data-reclamation-id') + '_' + Math.random().toString(36).substr(2, 9);
+                    img.setAttribute('data-image-id', id);
+                    imageRegistry.set(id, {
+                        src: img.getAttribute('data-original-src'),
+                        fallback: img.getAttribute('data-src-fallback'),
+                        container: img.closest('.image-container'),
+                        parent: img.parentElement
+                    });
+                });
+
+                // Fonction pour recréer une image si elle a été supprimée
+                const recreateImageIfNeeded = function () {
+                    imageRegistry.forEach((data, id) => {
+                        const existingImg = document.querySelector(`[data-image-id="${id}"]`);
+                        if (!existingImg || !existingImg.isConnected) {
+                            // L'image a été supprimée, la recréer
+                            console.log('Recréation de l\'image supprimée:', id);
+                            if (data.container && data.container.isConnected) {
+                                const newImg = document.createElement('img');
+                                newImg.src = data.src;
+                                newImg.className = 'attachment-thumbnail persistent-image';
+                                newImg.setAttribute('data-image-id', id);
+                                newImg.setAttribute('data-type', 'image');
+                                newImg.setAttribute('data-src', data.src);
+                                newImg.setAttribute('data-src-fallback', data.fallback);
+                                newImg.setAttribute('data-original-src', data.src);
+                                newImg.setAttribute('data-reclamation-id', id.split('_')[0]);
+                                newImg.style.cssText = 'max-width: 300px; max-height: 200px; border-radius: 8px; cursor: pointer; border: 2px solid rgba(255,122,0,0.3); transition: transform 0.3s ease; display: block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; width: auto !important; height: auto !important;';
+                                newImg.onclick = function () { openAttachmentModal(this); };
+                                newImg.onload = function () {
+                                    this.style.setProperty('display', 'block', 'important');
+                                    this.style.setProperty('visibility', 'visible', 'important');
+                                    this.style.setProperty('opacity', '1', 'important');
+                                };
+                                newImg.onerror = function () {
+                                    if (data.fallback && this.src !== data.fallback) {
+                                        this.src = data.fallback;
+                                    }
+                                };
+                                data.container.appendChild(newImg);
                             }
                         }
                     });
+                };
+
+                // Vérifier périodiquement si des images doivent être recréées
+                setInterval(recreateImageIfNeeded, 500);
+
+            }); // Fin de DOMContentLoaded
+
+            // Intercepter getComputedStyle pour forcer l'affichage
+            const originalGetComputedStyle = window.getComputedStyle;
+            window.getComputedStyle = function (element, pseudoElement) {
+                const result = originalGetComputedStyle.call(this, element, pseudoElement);
+                if (element && element.classList) {
+                    const isImage = element.classList.contains('attachment-thumbnail') ||
+                        element.classList.contains('persistent-image') ||
+                        element.classList.contains('image-container') ||
+                        element.classList.contains('attachment-preview');
+                    if (isImage) {
+                        // Créer un proxy qui force les valeurs d'affichage
+                        return new Proxy(result, {
+                            get: function (target, prop) {
+                                if (prop === 'display') return 'block';
+                                if (prop === 'visibility') return 'visible';
+                                if (prop === 'opacity') return '1';
+                                return target[prop];
+                            }
+                        });
+                    }
+                }
+                return result;
+            };
+
+            // Fonction pour protéger une image
+            const protectImageSrc = function (img) {
+                if (!img || img.tagName !== 'IMG') return;
+
+                const originalSrc = img.getAttribute('data-original-src') || img.src;
+                if (!originalSrc || !originalSrc.includes('uploads')) return;
+
+                // Sauvegarder le src original
+                img.setAttribute('data-original-src', originalSrc);
+
+                // Intercepter les modifications du src
+                try {
+                    Object.defineProperty(img, 'src', {
+                        get: function () {
+                            const currentSrc = this.getAttribute('src');
+                            return currentSrc && currentSrc.includes('uploads') ? currentSrc : originalSrc;
+                        },
+                        set: function (value) {
+                            // Si on essaie de vider le src ou de le changer pour autre chose que uploads, bloquer
+                            if (!value || value === '' || value === window.location.href || (!value.includes('uploads') && value !== originalSrc)) {
+                                console.warn('Tentative de modifier le src de l\'image bloquée:', value);
+                                this.setAttribute('src', originalSrc);
+                                return;
+                            }
+                            // Si c'est un nouveau chemin valide vers uploads, autoriser
+                            if (value.includes('uploads')) {
+                                this.setAttribute('src', value);
+                                this.setAttribute('data-original-src', value); // Mettre à jour le src original
+                            } else {
+                                // Sinon, restaurer le src original
+                                this.setAttribute('src', originalSrc);
+                            }
+                        },
+                        configurable: false
+                    });
                 } catch (e) {
-                    console.error('Erreur dans forceShowImages:', e);
+                    // Si on ne peut pas définir la propriété, utiliser un setter alternatif
+                    console.warn('Impossible de protéger le src de l\'image:', e);
                 }
             };
 
-            // Exécuter immédiatement
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', forceShowImages);
-            } else {
-                forceShowImages();
-            }
+            // Protéger toutes les images existantes
+            document.querySelectorAll('img.attachment-thumbnail, img.persistent-image').forEach(protectImageSrc);
 
-            // Exécuter après tous les autres scripts possibles
-            setTimeout(forceShowImages, 0);
-            setTimeout(forceShowImages, 10);
-            setTimeout(forceShowImages, 50);
-            setTimeout(forceShowImages, 100);
-            setTimeout(forceShowImages, 200);
-            setTimeout(forceShowImages, 500);
-            setTimeout(forceShowImages, 1000);
-            setTimeout(forceShowImages, 2000);
+            // Protéger les nouvelles images ajoutées dynamiquement
+            const imageObserver = new MutationObserver(function (mutations) {
+                mutations.forEach(function (mutation) {
+                    mutation.addedNodes.forEach(function (node) {
+                        if (node.nodeType === 1) {
+                            if (node.tagName === 'IMG' && (node.classList.contains('attachment-thumbnail') || node.classList.contains('persistent-image'))) {
+                                protectImageSrc(node);
+                            }
+                            // Vérifier aussi les images dans les nœuds ajoutés
+                            node.querySelectorAll && node.querySelectorAll('img.attachment-thumbnail, img.persistent-image').forEach(protectImageSrc);
+                        }
+                    });
+                });
+            });
 
-            // Exécuter après le chargement complet
-            window.addEventListener('load', function () {
+            imageObserver.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+
+            // Protection finale - s'exécuter en dernier pour garantir l'affichage
+            // Cette fonction doit s'exécuter APRÈS tous les autres scripts
+            (function () {
+                'use strict';
+
+                const forceShowImages = function () {
+                    try {
+                        // Forcer l'affichage de toutes les images avec la méthode la plus agressive
+                        const images = document.querySelectorAll('img.attachment-thumbnail, img.persistent-image, .attachment-thumbnail, .persistent-image');
+                        images.forEach(img => {
+                            if (img && img.isConnected && img.tagName === 'IMG') {
+                                // Sauvegarder le src original si nécessaire
+                                const originalSrc = img.getAttribute('data-original-src') || img.getAttribute('data-src');
+                                if (originalSrc && (!img.src || !img.src.includes('uploads'))) {
+                                    img.src = originalSrc;
+                                }
+
+                                // Remplacer complètement le style - méthode la plus agressive
+                                const computedStyle = window.getComputedStyle(img);
+                                if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden' || parseFloat(computedStyle.opacity) === 0) {
+                                    // L'image est cachée, forcer l'affichage
+                                    img.style.cssText = 'max-width: 300px !important; max-height: 200px !important; border-radius: 8px !important; cursor: pointer !important; border: 2px solid rgba(255,122,0,0.3) !important; display: block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; width: auto !important; height: auto !important;';
+
+                                    // Forcer aussi via setAttribute pour être sûr
+                                    img.setAttribute('style', 'max-width: 300px !important; max-height: 200px !important; border-radius: 8px !important; cursor: pointer !important; border: 2px solid rgba(255,122,0,0.3) !important; display: block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; width: auto !important; height: auto !important;');
+                                } else {
+                                    // Même si visible, s'assurer que le style est correct
+                                    img.style.setProperty('display', 'block', 'important');
+                                    img.style.setProperty('visibility', 'visible', 'important');
+                                    img.style.setProperty('opacity', '1', 'important');
+                                }
+                            }
+                        });
+
+                        // Forcer l'affichage des conteneurs
+                        const containers = document.querySelectorAll('.attachment-preview, .image-container');
+                        containers.forEach(div => {
+                            if (div && div.isConnected) {
+                                const computedStyle = window.getComputedStyle(div);
+                                if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') {
+                                    div.style.cssText = (div.style.cssText || '') + ' display: block !important; visibility: visible !important; position: relative !important;';
+                                    div.setAttribute('style', (div.getAttribute('style') || '') + ' display: block !important; visibility: visible !important; position: relative !important;');
+                                }
+                            }
+                        });
+                    } catch (e) {
+                        console.error('Erreur dans forceShowImages:', e);
+                    }
+                };
+
+                // Exécuter immédiatement
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', forceShowImages);
+                } else {
+                    forceShowImages();
+                }
+
+                // Exécuter après tous les autres scripts possibles
                 setTimeout(forceShowImages, 0);
                 setTimeout(forceShowImages, 10);
                 setTimeout(forceShowImages, 50);
                 setTimeout(forceShowImages, 100);
+                setTimeout(forceShowImages, 200);
                 setTimeout(forceShowImages, 500);
-            });
+                setTimeout(forceShowImages, 1000);
+                setTimeout(forceShowImages, 2000);
 
-            // Exécuter très fréquemment pour contrer tout script qui cache (toutes les 50ms)
-            setInterval(function () {
-                forceShowImages();
-
-                // Diagnostic : vérifier si des images ont disparu
-                const images = document.querySelectorAll('img.attachment-thumbnail, img.persistent-image');
-                images.forEach(img => {
-                    const computedStyle = window.getComputedStyle(img);
-                    if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden' || parseFloat(computedStyle.opacity) === 0) {
-                        console.warn('Image cachée détectée:', img.src, 'Display:', computedStyle.display, 'Visibility:', computedStyle.visibility, 'Opacity:', computedStyle.opacity);
-                        // Stack trace pour identifier le script qui cache
-                        console.trace('Stack trace de l\'image cachée');
-                    }
-                    if (!img.src || !img.src.includes('uploads')) {
-                        console.warn('Image avec src invalide:', img, 'Src actuel:', img.src);
-                    }
+                // Exécuter après le chargement complet
+                window.addEventListener('load', function () {
+                    setTimeout(forceShowImages, 0);
+                    setTimeout(forceShowImages, 10);
+                    setTimeout(forceShowImages, 50);
+                    setTimeout(forceShowImages, 100);
+                    setTimeout(forceShowImages, 500);
                 });
-            }, 50);
 
-            // Observer les changements de style en temps réel
-            const styleObserver = new MutationObserver(function (mutations) {
-                mutations.forEach(function (mutation) {
-                    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
-                        const target = mutation.target;
-                        if (target && (target.classList.contains('attachment-thumbnail') ||
-                            target.classList.contains('persistent-image') ||
-                            target.classList.contains('attachment-preview') ||
-                            target.classList.contains('image-container'))) {
-                            // Un style a été modifié, forcer immédiatement l'affichage
-                            setTimeout(forceShowImages, 0);
+                // Exécuter très fréquemment pour contrer tout script qui cache (toutes les 50ms)
+                setInterval(function () {
+                    forceShowImages();
+
+                    // Diagnostic : vérifier si des images ont disparu
+                    const images = document.querySelectorAll('img.attachment-thumbnail, img.persistent-image');
+                    images.forEach(img => {
+                        const computedStyle = window.getComputedStyle(img);
+                        if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden' || parseFloat(computedStyle.opacity) === 0) {
+                            console.warn('Image cachée détectée:', img.src, 'Display:', computedStyle.display, 'Visibility:', computedStyle.visibility, 'Opacity:', computedStyle.opacity);
+                            // Stack trace pour identifier le script qui cache
+                            console.trace('Stack trace de l\'image cachée');
                         }
-                    }
+                        if (!img.src || !img.src.includes('uploads')) {
+                            console.warn('Image avec src invalide:', img, 'Src actuel:', img.src);
+                        }
+                    });
+                }, 50);
+
+                // Observer les changements de style en temps réel
+                const styleObserver = new MutationObserver(function (mutations) {
+                    mutations.forEach(function (mutation) {
+                        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                            const target = mutation.target;
+                            if (target && (target.classList.contains('attachment-thumbnail') ||
+                                target.classList.contains('persistent-image') ||
+                                target.classList.contains('attachment-preview') ||
+                                target.classList.contains('image-container'))) {
+                                // Un style a été modifié, forcer immédiatement l'affichage
+                                setTimeout(forceShowImages, 0);
+                            }
+                        }
+                    });
                 });
+
+                // Observer tous les éléments d'images
+                document.querySelectorAll('.attachment-thumbnail, .persistent-image, .attachment-preview, .image-container').forEach(el => {
+                    styleObserver.observe(el, {
+                        attributes: true,
+                        attributeFilter: ['style', 'class']
+                    });
+                });
+            })();
+
+            // ========== SYSTÈME DE THÈME SOMBRE/CLAIR ==========
+            const themeToggle = document.getElementById('theme-toggle');
+            const themeIcon = document.getElementById('theme-icon');
+            const html = document.documentElement;
+
+            // Charger le thème sauvegardé
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            html.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+
+            // Toggle du thème
+            themeToggle.addEventListener('click', function () {
+                const currentTheme = html.getAttribute('data-theme') || 'dark';
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                html.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                updateThemeIcon(newTheme);
             });
 
-            // Observer tous les éléments d'images
-            document.querySelectorAll('.attachment-thumbnail, .persistent-image, .attachment-preview, .image-container').forEach(el => {
-                styleObserver.observe(el, {
-                    attributes: true,
-                    attributeFilter: ['style', 'class']
-                });
-            });
-        })();
-
-        // ========== SYSTÈME DE THÈME SOMBRE/CLAIR ==========
-        const themeToggle = document.getElementById('theme-toggle');
-        const themeIcon = document.getElementById('theme-icon');
-        const html = document.documentElement;
-
-        // Charger le thème sauvegardé
-        const savedTheme = localStorage.getItem('theme') || 'dark';
-        html.setAttribute('data-theme', savedTheme);
-        updateThemeIcon(savedTheme);
-
-        // Toggle du thème
-        themeToggle.addEventListener('click', function () {
-            const currentTheme = html.getAttribute('data-theme') || 'dark';
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            html.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeIcon(newTheme);
-        });
-
-        function updateThemeIcon(theme) {
-            if (theme === 'light') {
-                themeIcon.classList.remove('fa-moon');
-                themeIcon.classList.add('fa-sun');
-            } else {
-                themeIcon.classList.remove('fa-sun');
-                themeIcon.classList.add('fa-moon');
+            function updateThemeIcon(theme) {
+                if (theme === 'light') {
+                    themeIcon.classList.remove('fa-moon');
+                    themeIcon.classList.add('fa-sun');
+                } else {
+                    themeIcon.classList.remove('fa-sun');
+                    themeIcon.classList.add('fa-moon');
+                }
             }
-        }
 
-        // ========== SYSTÈME DE NOTIFICATIONS ==========
-        const notificationBtn = document.getElementById('notification-btn');
-        const notificationDropdown = document.getElementById('notification-dropdown');
-        const notificationBadge = document.getElementById('notification-badge');
-        const notificationList = document.getElementById('notification-list');
-        const markAllReadBtn = document.getElementById('mark-all-read');
+            // ========== SYSTÈME DE NOTIFICATIONS ==========
+            const notificationBtn = document.getElementById('notification-btn');
+            const notificationDropdown = document.getElementById('notification-dropdown');
+            const notificationBadge = document.getElementById('notification-badge');
+            const notificationList = document.getElementById('notification-list');
+            const markAllReadBtn = document.getElementById('mark-all-read');
 
-        let unreadCount = 0;
-        let lastCheckTime = 0; // Commencer à 0 pour détecter le chargement initial
-        let notificationSound = null;
-        let isInitialLoad = true; // Flag pour détecter le premier chargement
+            let unreadCount = 0;
+            let lastCheckTime = 0; // Commencer à 0 pour détecter le chargement initial
+            let notificationSound = null;
+            let isInitialLoad = true; // Flag pour détecter le premier chargement
 
-        // Variable globale pour le contexte audio
-        let globalAudioContext = null;
-        let audioEnabled = false;
+            // Variable globale pour le contexte audio
+            let globalAudioContext = null;
+            let audioEnabled = false;
 
-        // Activer l'audio automatiquement au chargement de la page
-        function enableAudio() {
-            if (!audioEnabled && (typeof AudioContext !== 'undefined' || typeof webkitAudioContext !== 'undefined')) {
-                try {
-                    globalAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+            // Activer l'audio automatiquement au chargement de la page
+            function enableAudio() {
+                if (!audioEnabled && (typeof AudioContext !== 'undefined' || typeof webkitAudioContext !== 'undefined')) {
+                    try {
+                        globalAudioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-                    // Essayer de réactiver immédiatement si suspendu
-                    if (globalAudioContext.state === 'suspended') {
-                        globalAudioContext.resume().then(() => {
+                        // Essayer de réactiver immédiatement si suspendu
+                        if (globalAudioContext.state === 'suspended') {
+                            globalAudioContext.resume().then(() => {
+                                audioEnabled = true;
+                                console.log('✅ Audio activé automatiquement au chargement (prêt pour les notifications)');
+                                // Ne pas jouer de son de test - le son ne se jouera que pour les vraies notifications
+                            }).catch(e => {
+                                console.log('⚠️ Audio suspendu, sera activé au prochain clic');
+                                // Activer quand même pour les prochaines fois
+                                audioEnabled = true;
+                            });
+                        } else {
                             audioEnabled = true;
                             console.log('✅ Audio activé automatiquement au chargement (prêt pour les notifications)');
                             // Ne pas jouer de son de test - le son ne se jouera que pour les vraies notifications
-                        }).catch(e => {
-                            console.log('⚠️ Audio suspendu, sera activé au prochain clic');
-                            // Activer quand même pour les prochaines fois
-                            audioEnabled = true;
-                        });
-                    } else {
-                        audioEnabled = true;
-                        console.log('✅ Audio activé automatiquement au chargement (prêt pour les notifications)');
-                        // Ne pas jouer de son de test - le son ne se jouera que pour les vraies notifications
+                        }
+                    } catch (e) {
+                        console.log('Erreur activation audio:', e);
                     }
-                } catch (e) {
-                    console.log('Erreur activation audio:', e);
                 }
             }
-        }
 
-        // Fonction pour tester l'audio silencieusement (très court et très faible)
-        function testAudioSilently() {
-            try {
-                if (!globalAudioContext || globalAudioContext.state === 'suspended') return;
+            // Fonction pour tester l'audio silencieusement (très court et très faible)
+            function testAudioSilently() {
+                try {
+                    if (!globalAudioContext || globalAudioContext.state === 'suspended') return;
 
-                const oscillator = globalAudioContext.createOscillator();
-                const gainNode = globalAudioContext.createGain();
+                    const oscillator = globalAudioContext.createOscillator();
+                    const gainNode = globalAudioContext.createGain();
 
-                oscillator.connect(gainNode);
-                gainNode.connect(globalAudioContext.destination);
+                    oscillator.connect(gainNode);
+                    gainNode.connect(globalAudioContext.destination);
 
-                // Utiliser la même note que le son de notification mais très faible
-                oscillator.frequency.value = 523.25; // Do
-                oscillator.type = 'sine';
+                    // Utiliser la même note que le son de notification mais très faible
+                    oscillator.frequency.value = 523.25; // Do
+                    oscillator.type = 'sine';
 
-                // Son très court et très faible (presque inaudible)
-                gainNode.gain.setValueAtTime(0, globalAudioContext.currentTime);
-                gainNode.gain.linearRampToValueAtTime(0.03, globalAudioContext.currentTime + 0.01);
-                gainNode.gain.linearRampToValueAtTime(0, globalAudioContext.currentTime + 0.05);
+                    // Son très court et très faible (presque inaudible)
+                    gainNode.gain.setValueAtTime(0, globalAudioContext.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(0.03, globalAudioContext.currentTime + 0.01);
+                    gainNode.gain.linearRampToValueAtTime(0, globalAudioContext.currentTime + 0.05);
 
-                oscillator.start(globalAudioContext.currentTime);
-                oscillator.stop(globalAudioContext.currentTime + 0.05);
-            } catch (e) {
-                // Ignorer les erreurs de test
+                    oscillator.start(globalAudioContext.currentTime);
+                    oscillator.stop(globalAudioContext.currentTime + 0.05);
+                } catch (e) {
+                    // Ignorer les erreurs de test
+                }
             }
-        }
 
-        // Activer l'audio automatiquement au chargement de la page
-        // Essayer plusieurs méthodes pour contourner les restrictions
-        window.addEventListener('load', function () {
-            setTimeout(enableAudio, 100);
-        });
-
-        // Activer aussi dès que le DOM est prêt
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function () {
+            // Activer l'audio automatiquement au chargement de la page
+            // Essayer plusieurs méthodes pour contourner les restrictions
+            window.addEventListener('load', function () {
                 setTimeout(enableAudio, 100);
             });
-        } else {
-            // DOM déjà chargé
-            setTimeout(enableAudio, 100);
-        }
 
-        // Activer aussi au premier clic (fallback si l'activation automatique échoue)
-        document.addEventListener('click', function () {
-            if (!audioEnabled) {
-                enableAudio();
+            // Activer aussi dès que le DOM est prêt
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function () {
+                    setTimeout(enableAudio, 100);
+                });
+            } else {
+                // DOM déjà chargé
+                setTimeout(enableAudio, 100);
             }
-        }, { once: true });
 
-        // Activer aussi au premier appui sur une touche du clavier
-        document.addEventListener('keydown', function () {
-            if (!audioEnabled) {
-                enableAudio();
-            }
-        }, { once: true });
-
-        // Fonction pour jouer le son de notification
-        function playNotificationSound() {
-            console.log('🔊 Tentative de lecture du son...');
-            console.log('Audio activé:', audioEnabled);
-            console.log('Contexte audio:', globalAudioContext ? globalAudioContext.state : 'null');
-
-            try {
-                // S'assurer que l'audio est activé
+            // Activer aussi au premier clic (fallback si l'activation automatique échoue)
+            document.addEventListener('click', function () {
                 if (!audioEnabled) {
-                    console.log('⚠️ Audio pas encore activé, activation...');
                     enableAudio();
                 }
+            }, { once: true });
 
-                if (!globalAudioContext) {
-                    console.log('⚠️ Création du contexte audio...');
-                    globalAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+            // Activer aussi au premier appui sur une touche du clavier
+            document.addEventListener('keydown', function () {
+                if (!audioEnabled) {
+                    enableAudio();
                 }
+            }, { once: true });
 
-                // Réactiver le contexte s'il est suspendu
-                if (globalAudioContext.state === 'suspended') {
-                    console.log('⚠️ Contexte suspendu, réactivation...');
-                    globalAudioContext.resume().then(() => {
-                        console.log('✅ Contexte réactivé, lecture du son...');
-                        playBeep();
-                    }).catch(e => {
-                        console.error('❌ Impossible de réactiver le contexte audio:', e);
-                        // Essayer quand même
-                        playBeep();
-                    });
-                } else {
-                    console.log('✅ Contexte actif, lecture du son...');
-                    playBeep();
-                }
-            } catch (e) {
-                console.error('❌ Erreur lecture son:', e);
-            }
-        }
+            // Fonction pour jouer le son de notification
+            function playNotificationSound() {
+                console.log('🔊 Tentative de lecture du son...');
+                console.log('Audio activé:', audioEnabled);
+                console.log('Contexte audio:', globalAudioContext ? globalAudioContext.state : 'null');
 
-        // Fonction pour jouer un son de notification moderne et agréable
-        function playBeep() {
-            try {
-                if (!globalAudioContext) {
-                    console.error('❌ Pas de contexte audio disponible');
-                    return;
-                }
-
-                console.log('🔊 Lecture du son de notification, état:', globalAudioContext.state);
-
-                const now = globalAudioContext.currentTime;
-
-                // Créer un son de notification plus moderne (triple bip ascendant)
-                // Premier bip - Note basse (Do - 523 Hz)
-                const osc1 = globalAudioContext.createOscillator();
-                const gain1 = globalAudioContext.createGain();
-                osc1.connect(gain1);
-                gain1.connect(globalAudioContext.destination);
-                osc1.frequency.value = 523.25; // Do
-                osc1.type = 'sine';
-                gain1.gain.setValueAtTime(0, now);
-                gain1.gain.linearRampToValueAtTime(0.4, now + 0.05);
-                gain1.gain.linearRampToValueAtTime(0, now + 0.2);
-                osc1.start(now);
-                osc1.stop(now + 0.2);
-
-                // Deuxième bip - Note moyenne (Mi - 659 Hz) après 150ms
-                setTimeout(() => {
-                    try {
-                        if (!globalAudioContext || globalAudioContext.state === 'closed') return;
-                        const now2 = globalAudioContext.currentTime;
-                        const osc2 = globalAudioContext.createOscillator();
-                        const gain2 = globalAudioContext.createGain();
-                        osc2.connect(gain2);
-                        gain2.connect(globalAudioContext.destination);
-                        osc2.frequency.value = 659.25; // Mi
-                        osc2.type = 'sine';
-                        gain2.gain.setValueAtTime(0, now2);
-                        gain2.gain.linearRampToValueAtTime(0.4, now2 + 0.05);
-                        gain2.gain.linearRampToValueAtTime(0, now2 + 0.2);
-                        osc2.start(now2);
-                        osc2.stop(now2 + 0.2);
-                    } catch (e) {
-                        console.error('❌ Erreur deuxième note:', e);
+                try {
+                    // S'assurer que l'audio est activé
+                    if (!audioEnabled) {
+                        console.log('⚠️ Audio pas encore activé, activation...');
+                        enableAudio();
                     }
-                }, 150);
 
-                // Troisième bip - Note haute (Sol - 784 Hz) après 300ms
-                setTimeout(() => {
-                    try {
-                        if (!globalAudioContext || globalAudioContext.state === 'closed') return;
-                        const now3 = globalAudioContext.currentTime;
-                        const osc3 = globalAudioContext.createOscillator();
-                        const gain3 = globalAudioContext.createGain();
-                        osc3.connect(gain3);
-                        gain3.connect(globalAudioContext.destination);
-                        osc3.frequency.value = 783.99; // Sol
-                        osc3.type = 'sine';
-                        gain3.gain.setValueAtTime(0, now3);
-                        gain3.gain.linearRampToValueAtTime(0.5, now3 + 0.05);
-                        gain3.gain.linearRampToValueAtTime(0.3, now3 + 0.15);
-                        gain3.gain.linearRampToValueAtTime(0, now3 + 0.3);
-                        osc3.start(now3);
-                        osc3.stop(now3 + 0.3);
-                        console.log('✅ Son de notification joué (Do-Mi-Sol)');
-                    } catch (e) {
-                        console.error('❌ Erreur troisième note:', e);
+                    if (!globalAudioContext) {
+                        console.log('⚠️ Création du contexte audio...');
+                        globalAudioContext = new (window.AudioContext || window.webkitAudioContext)();
                     }
-                }, 300);
 
-            } catch (e) {
-                console.error('❌ Erreur playBeep:', e);
-            }
-        }
-
-        // Fonction de test pour vérifier le son (accessible depuis la console)
-        window.testNotificationSound = function () {
-            console.log('🧪 Test du son de notification...');
-            playNotificationSound();
-        };
-
-        // Fonction pour vérifier les nouvelles réclamations
-        async function checkNewReclamations() {
-            try {
-                const response = await fetch('reclamback.php?check_notifications=1&last_check=' + lastCheckTime);
-                const data = await response.json();
-
-                // Vérifier s'il y a des réclamations
-                if (data.success && data.new_count > 0) {
-                    // Vérifier que c'est le chargement initial (première fois qu'on entre dans le dashboard)
-                    if (lastCheckTime === 0 || isInitialLoad) {
-                        // C'est l'entrée dans le dashboard - JOUER LE SON UNE SEULE FOIS
-                        console.log('🔔 Entrée dans le dashboard - lecture du son de notification');
-
-                        if (data.notifications && data.notifications.length > 0) {
-                            data.notifications.forEach(notif => {
-                                addNotification(notif, false);
-                            });
-                        }
-                        unreadCount = data.new_count;
-                        updateNotificationBadge();
-
-                        // Jouer le son UNIQUEMENT à l'entrée dans le dashboard
-                        playNotificationSound();
+                    // Réactiver le contexte s'il est suspendu
+                    if (globalAudioContext.state === 'suspended') {
+                        console.log('⚠️ Contexte suspendu, réactivation...');
+                        globalAudioContext.resume().then(() => {
+                            console.log('✅ Contexte réactivé, lecture du son...');
+                            playBeep();
+                        }).catch(e => {
+                            console.error('❌ Impossible de réactiver le contexte audio:', e);
+                            // Essayer quand même
+                            playBeep();
+                        });
                     } else {
-                        // C'est une nouvelle notification arrivée après l'entrée - PAS DE SON
-                        console.log('📋 Nouvelle notification détectée (après entrée) - pas de son');
-                        unreadCount += data.new_count;
-                        updateNotificationBadge();
-
-                        // Ajouter les nouvelles notifications
-                        if (data.notifications && data.notifications.length > 0) {
-                            data.notifications.forEach(notif => {
-                                addNotification(notif);
-                            });
-                        }
-
-                        // Notification browser si autorisée (mais pas de son)
-                        if (Notification.permission === 'granted') {
-                            new Notification('Nouvelle réclamation', {
-                                body: `${data.new_count} nouvelle(s) réclamation(s) en attente`,
-                                icon: '../images/Nine__1_-removebg-preview.png',
-                                tag: 'new-reclamation',
-                                silent: true // Pas de son pour les notifications browser non plus
-                            });
-                        }
+                        console.log('✅ Contexte actif, lecture du son...');
+                        playBeep();
                     }
-                } else if (data.success) {
-                    // Pas de nouvelles notifications
-                    console.log('✅ Aucune nouvelle notification');
+                } catch (e) {
+                    console.error('❌ Erreur lecture son:', e);
                 }
+            }
 
-                // Mettre à jour le temps de dernière vérification
-                if (lastCheckTime === 0) {
-                    // Première vérification, initialiser le temps
-                    lastCheckTime = Date.now();
+            // Fonction pour jouer un son de notification moderne et agréable
+            function playBeep() {
+                try {
+                    if (!globalAudioContext) {
+                        console.error('❌ Pas de contexte audio disponible');
+                        return;
+                    }
+
+                    console.log('🔊 Lecture du son de notification, état:', globalAudioContext.state);
+
+                    const now = globalAudioContext.currentTime;
+
+                    // Créer un son de notification plus moderne (triple bip ascendant)
+                    // Premier bip - Note basse (Do - 523 Hz)
+                    const osc1 = globalAudioContext.createOscillator();
+                    const gain1 = globalAudioContext.createGain();
+                    osc1.connect(gain1);
+                    gain1.connect(globalAudioContext.destination);
+                    osc1.frequency.value = 523.25; // Do
+                    osc1.type = 'sine';
+                    gain1.gain.setValueAtTime(0, now);
+                    gain1.gain.linearRampToValueAtTime(0.4, now + 0.05);
+                    gain1.gain.linearRampToValueAtTime(0, now + 0.2);
+                    osc1.start(now);
+                    osc1.stop(now + 0.2);
+
+                    // Deuxième bip - Note moyenne (Mi - 659 Hz) après 150ms
+                    setTimeout(() => {
+                        try {
+                            if (!globalAudioContext || globalAudioContext.state === 'closed') return;
+                            const now2 = globalAudioContext.currentTime;
+                            const osc2 = globalAudioContext.createOscillator();
+                            const gain2 = globalAudioContext.createGain();
+                            osc2.connect(gain2);
+                            gain2.connect(globalAudioContext.destination);
+                            osc2.frequency.value = 659.25; // Mi
+                            osc2.type = 'sine';
+                            gain2.gain.setValueAtTime(0, now2);
+                            gain2.gain.linearRampToValueAtTime(0.4, now2 + 0.05);
+                            gain2.gain.linearRampToValueAtTime(0, now2 + 0.2);
+                            osc2.start(now2);
+                            osc2.stop(now2 + 0.2);
+                        } catch (e) {
+                            console.error('❌ Erreur deuxième note:', e);
+                        }
+                    }, 150);
+
+                    // Troisième bip - Note haute (Sol - 784 Hz) après 300ms
+                    setTimeout(() => {
+                        try {
+                            if (!globalAudioContext || globalAudioContext.state === 'closed') return;
+                            const now3 = globalAudioContext.currentTime;
+                            const osc3 = globalAudioContext.createOscillator();
+                            const gain3 = globalAudioContext.createGain();
+                            osc3.connect(gain3);
+                            gain3.connect(globalAudioContext.destination);
+                            osc3.frequency.value = 783.99; // Sol
+                            osc3.type = 'sine';
+                            gain3.gain.setValueAtTime(0, now3);
+                            gain3.gain.linearRampToValueAtTime(0.5, now3 + 0.05);
+                            gain3.gain.linearRampToValueAtTime(0.3, now3 + 0.15);
+                            gain3.gain.linearRampToValueAtTime(0, now3 + 0.3);
+                            osc3.start(now3);
+                            osc3.stop(now3 + 0.3);
+                            console.log('✅ Son de notification joué (Do-Mi-Sol)');
+                        } catch (e) {
+                            console.error('❌ Erreur troisième note:', e);
+                        }
+                    }, 300);
+
+                } catch (e) {
+                    console.error('❌ Erreur playBeep:', e);
+                }
+            }
+
+            // Fonction de test pour vérifier le son (accessible depuis la console)
+            window.testNotificationSound = function () {
+                console.log('🧪 Test du son de notification...');
+                playNotificationSound();
+            };
+
+            // Fonction pour vérifier les nouvelles réclamations
+            async function checkNewReclamations() {
+                try {
+                    const response = await fetch('reclamback.php?check_notifications=1&last_check=' + lastCheckTime);
+                    const data = await response.json();
+
+                    // Vérifier s'il y a des réclamations
+                    if (data.success && data.new_count > 0) {
+                        // Vérifier que c'est le chargement initial (première fois qu'on entre dans le dashboard)
+                        if (lastCheckTime === 0 || isInitialLoad) {
+                            // C'est l'entrée dans le dashboard - JOUER LE SON UNE SEULE FOIS
+                            console.log('🔔 Entrée dans le dashboard - lecture du son de notification');
+
+                            if (data.notifications && data.notifications.length > 0) {
+                                data.notifications.forEach(notif => {
+                                    addNotification(notif, false);
+                                });
+                            }
+                            unreadCount = data.new_count;
+                            updateNotificationBadge();
+
+                            // Jouer le son UNIQUEMENT à l'entrée dans le dashboard
+                            playNotificationSound();
+                        } else {
+                            // C'est une nouvelle notification arrivée après l'entrée - PAS DE SON
+                            console.log('📋 Nouvelle notification détectée (après entrée) - pas de son');
+                            unreadCount += data.new_count;
+                            updateNotificationBadge();
+
+                            // Ajouter les nouvelles notifications
+                            if (data.notifications && data.notifications.length > 0) {
+                                data.notifications.forEach(notif => {
+                                    addNotification(notif);
+                                });
+                            }
+
+                            // Notification browser si autorisée (mais pas de son)
+                            if (Notification.permission === 'granted') {
+                                new Notification('Nouvelle réclamation', {
+                                    body: `${data.new_count} nouvelle(s) réclamation(s) en attente`,
+                                    icon: '../images/Nine__1_-removebg-preview.png',
+                                    tag: 'new-reclamation',
+                                    silent: true // Pas de son pour les notifications browser non plus
+                                });
+                            }
+                        }
+                    } else if (data.success) {
+                        // Pas de nouvelles notifications
+                        console.log('✅ Aucune nouvelle notification');
+                    }
+
+                    // Mettre à jour le temps de dernière vérification
+                    if (lastCheckTime === 0) {
+                        // Première vérification, initialiser le temps
+                        lastCheckTime = Date.now();
+                    } else {
+                        // Mises à jour suivantes
+                        lastCheckTime = Date.now();
+                    }
+                } catch (error) {
+                    console.error('Erreur lors de la vérification des notifications:', error);
+                }
+            }
+
+            // Fonction pour mettre à jour le badge
+            function updateNotificationBadge() {
+                if (unreadCount > 0) {
+                    notificationBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+                    notificationBadge.classList.remove('hidden');
                 } else {
-                    // Mises à jour suivantes
-                    lastCheckTime = Date.now();
+                    notificationBadge.classList.add('hidden');
                 }
-            } catch (error) {
-                console.error('Erreur lors de la vérification des notifications:', error);
             }
-        }
 
-        // Fonction pour mettre à jour le badge
-        function updateNotificationBadge() {
-            if (unreadCount > 0) {
-                notificationBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
-                notificationBadge.classList.remove('hidden');
-            } else {
-                notificationBadge.classList.add('hidden');
-            }
-        }
-
-        // Fonction pour ajouter une notification
-        function addNotification(notif, prepend = true) {
-            const notificationItem = document.createElement('div');
-            notificationItem.className = 'notification-item unread';
-            notificationItem.setAttribute('data-notification-id', notif.id || '');
-            notificationItem.innerHTML = `
+            // Fonction pour ajouter une notification
+            function addNotification(notif, prepend = true) {
+                const notificationItem = document.createElement('div');
+                notificationItem.className = 'notification-item unread';
+                notificationItem.setAttribute('data-notification-id', notif.id || '');
+                notificationItem.innerHTML = `
                 <div class="notification-icon">
                     <i class="fas fa-headset"></i>
                 </div>
@@ -4808,208 +4781,208 @@ unset($reclamation);
                 </div>
             `;
 
-            notificationItem.addEventListener('click', function () {
-                // Marquer comme lu
-                this.classList.remove('unread');
-                unreadCount = Math.max(0, unreadCount - 1);
-                updateNotificationBadge();
-
-                // Rediriger vers la réclamation
-                if (notif.id) {
-                    window.location.href = 'reclamback.php#reclamation-' + notif.id;
-                }
-            });
-
-            const emptyMsg = notificationList.querySelector('.notification-empty');
-            if (emptyMsg) {
-                emptyMsg.remove();
-            }
-
-            if (prepend) {
-                notificationList.insertBefore(notificationItem, notificationList.firstChild);
-            } else {
-                notificationList.appendChild(notificationItem);
-            }
-        }
-
-        // Fonction pour charger les notifications existantes au démarrage
-        async function loadExistingNotifications() {
-            try {
-                // Récupérer toutes les réclamations non résolues
-                const response = await fetch('reclamback.php?get_pending_notifications=1');
-                const data = await response.json();
-
-                if (data.success && data.notifications && data.notifications.length > 0) {
-                    // Vider la liste
-                    notificationList.innerHTML = '';
-
-                    // Ajouter toutes les notifications
-                    data.notifications.forEach(notif => {
-                        addNotification(notif, false);
-                    });
-
-                    // Mettre à jour le compteur
-                    unreadCount = data.notifications.length;
+                notificationItem.addEventListener('click', function () {
+                    // Marquer comme lu
+                    this.classList.remove('unread');
+                    unreadCount = Math.max(0, unreadCount - 1);
                     updateNotificationBadge();
-                } else {
-                    // Afficher le message vide
-                    notificationList.innerHTML = '<div class="notification-empty">Aucune nouvelle réclamation</div>';
+
+                    // Rediriger vers la réclamation
+                    if (notif.id) {
+                        window.location.href = 'reclamback.php#reclamation-' + notif.id;
+                    }
+                });
+
+                const emptyMsg = notificationList.querySelector('.notification-empty');
+                if (emptyMsg) {
+                    emptyMsg.remove();
                 }
-            } catch (error) {
-                console.error('Erreur lors du chargement des notifications:', error);
+
+                if (prepend) {
+                    notificationList.insertBefore(notificationItem, notificationList.firstChild);
+                } else {
+                    notificationList.appendChild(notificationItem);
+                }
             }
-        }
 
-        // Toggle du dropdown de notifications
-        notificationBtn.addEventListener('click', function (e) {
-            e.stopPropagation();
-            notificationDropdown.classList.toggle('active');
-        });
+            // Fonction pour charger les notifications existantes au démarrage
+            async function loadExistingNotifications() {
+                try {
+                    // Récupérer toutes les réclamations non résolues
+                    const response = await fetch('reclamback.php?get_pending_notifications=1');
+                    const data = await response.json();
 
-        // Fermer le dropdown en cliquant ailleurs
-        document.addEventListener('click', function (e) {
-            if (!notificationDropdown.contains(e.target) && !notificationBtn.contains(e.target)) {
-                notificationDropdown.classList.remove('active');
+                    if (data.success && data.notifications && data.notifications.length > 0) {
+                        // Vider la liste
+                        notificationList.innerHTML = '';
+
+                        // Ajouter toutes les notifications
+                        data.notifications.forEach(notif => {
+                            addNotification(notif, false);
+                        });
+
+                        // Mettre à jour le compteur
+                        unreadCount = data.notifications.length;
+                        updateNotificationBadge();
+                    } else {
+                        // Afficher le message vide
+                        notificationList.innerHTML = '<div class="notification-empty">Aucune nouvelle réclamation</div>';
+                    }
+                } catch (error) {
+                    console.error('Erreur lors du chargement des notifications:', error);
+                }
             }
-        });
 
-        // Marquer toutes les notifications comme lues
-        markAllReadBtn.addEventListener('click', function () {
-            unreadCount = 0;
-            updateNotificationBadge();
-            document.querySelectorAll('.notification-item.unread').forEach(item => {
-                item.classList.remove('unread');
+            // Toggle du dropdown de notifications
+            notificationBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                notificationDropdown.classList.toggle('active');
             });
-        });
 
-        // Bouton de test du son
-        const testSoundBtn = document.getElementById('test-sound-btn');
-        if (testSoundBtn) {
-            testSoundBtn.addEventListener('click', function () {
-                console.log('🧪 Test du son demandé par l\'utilisateur');
-                if (!audioEnabled) {
-                    enableAudio();
-                    setTimeout(() => {
+            // Fermer le dropdown en cliquant ailleurs
+            document.addEventListener('click', function (e) {
+                if (!notificationDropdown.contains(e.target) && !notificationBtn.contains(e.target)) {
+                    notificationDropdown.classList.remove('active');
+                }
+            });
+
+            // Marquer toutes les notifications comme lues
+            markAllReadBtn.addEventListener('click', function () {
+                unreadCount = 0;
+                updateNotificationBadge();
+                document.querySelectorAll('.notification-item.unread').forEach(item => {
+                    item.classList.remove('unread');
+                });
+            });
+
+            // Bouton de test du son
+            const testSoundBtn = document.getElementById('test-sound-btn');
+            if (testSoundBtn) {
+                testSoundBtn.addEventListener('click', function () {
+                    console.log('🧪 Test du son demandé par l\'utilisateur');
+                    if (!audioEnabled) {
+                        enableAudio();
+                        setTimeout(() => {
+                            playNotificationSound();
+                        }, 100);
+                    } else {
                         playNotificationSound();
-                    }, 100);
-                } else {
-                    playNotificationSound();
-                }
-            });
-        }
+                    }
+                });
+            }
 
-        // Demander la permission pour les notifications browser
-        if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission();
-        }
+            // Demander la permission pour les notifications browser
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
 
-        // Charger les notifications existantes au démarrage
-        loadExistingNotifications();
+            // Charger les notifications existantes au démarrage
+            loadExistingNotifications();
 
-        // Vérifier les nouvelles réclamations toutes les 30 secondes
-        setInterval(checkNewReclamations, 30000);
+            // Vérifier les nouvelles réclamations toutes les 30 secondes
+            setInterval(checkNewReclamations, 30000);
 
-        // Faire une première vérification après 2 secondes pour jouer le son à l'entrée
-        // Le son se jouera UNIQUEMENT à cette première vérification (entrée dans le dashboard)
-        setTimeout(function () {
-            checkNewReclamations();
-            // Après cette première vérification, marquer que l'entrée est terminée
+            // Faire une première vérification après 2 secondes pour jouer le son à l'entrée
+            // Le son se jouera UNIQUEMENT à cette première vérification (entrée dans le dashboard)
             setTimeout(function () {
-                isInitialLoad = false;
-                console.log('✅ Entrée dans le dashboard terminée - le son ne se jouera plus pour les nouvelles notifications');
-            }, 1000);
-        }, 2000);
+                checkNewReclamations();
+                // Après cette première vérification, marquer que l'entrée est terminée
+                setTimeout(function () {
+                    isInitialLoad = false;
+                    console.log('✅ Entrée dans le dashboard terminée - le son ne se jouera plus pour les nouvelles notifications');
+                }, 1000);
+            }, 2000);
 
-        // Initialiser le badge avec le nombre actuel
-        const pendingCount = <?php echo $nouveauCount + $enCoursCount; ?>;
-        if (pendingCount > 0) {
-            unreadCount = pendingCount;
-            updateNotificationBadge();
-        }
+            // Initialiser le badge avec le nombre actuel
+            const pendingCount = <?php echo $nouveauCount + $enCoursCount; ?>;
+            if (pendingCount > 0) {
+                unreadCount = pendingCount;
+                updateNotificationBadge();
+            }
 
-        // ========== VUE KANBAN ==========
-        const listViewBtn = document.getElementById('list-view-btn');
-        const kanbanViewBtn = document.getElementById('kanban-view-btn');
-        const reviewsList = document.getElementById('reviews-list');
-        const kanbanBoard = document.getElementById('kanban-board');
+            // ========== VUE KANBAN ==========
+            const listViewBtn = document.getElementById('list-view-btn');
+            const kanbanViewBtn = document.getElementById('kanban-view-btn');
+            const reviewsList = document.getElementById('reviews-list');
+            const kanbanBoard = document.getElementById('kanban-board');
 
-        // Données des réclamations pour le Kanban
-        <?php
-        if (!isset($allReclamations) || !is_array($allReclamations)) {
-            $allReclamations = [];
-        }
-        ?>
-        const reclamationsData = <?php
-        if (!isset($allReclamations) || !is_array($allReclamations)) {
-            $allReclamations = [];
-        }
-        $kanbanData = array_map(function ($r) {
-            return [
-                'id_reclamation' => isset($r['id_reclamation']) ? intval($r['id_reclamation']) : 0,
-                'sujet' => isset($r['sujet']) ? $r['sujet'] : '',
-                'description' => isset($r['description']) ? $r['description'] : '',
-                'email' => isset($r['email']) ? $r['email'] : '',
-                'statut' => isset($r['statut']) ? $r['statut'] : 'nouveau',
-                'date_creation' => isset($r['date_creation']) ? $r['date_creation'] : date('Y-m-d H:i:s'),
-                'categorie' => isset($r['categorie']) ? $r['categorie'] : 'Other',
-                // Ces deux champs viennent de la jointure LEFT JOIN satisfactions dans le contrôleur (si présents)
-                'average_rating' => isset($r['average_rating']) ? (float) $r['average_rating'] : null,
-                'rating_count' => isset($r['rating_count']) ? intval($r['rating_count']) : 0,
-            ];
-        }, $allReclamations);
-        echo json_encode($kanbanData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
-        ?>;
+            // Données des réclamations pour le Kanban
+            <?php
+            if (!isset($allReclamations) || !is_array($allReclamations)) {
+                $allReclamations = [];
+            }
+            ?>
+            const reclamationsData = <?php
+            if (!isset($allReclamations) || !is_array($allReclamations)) {
+                $allReclamations = [];
+            }
+            $kanbanData = array_map(function ($r) {
+                return [
+                    'id_reclamation' => isset($r['id_reclamation']) ? intval($r['id_reclamation']) : 0,
+                    'sujet' => isset($r['sujet']) ? $r['sujet'] : '',
+                    'description' => isset($r['description']) ? $r['description'] : '',
+                    'email' => isset($r['email']) ? $r['email'] : '',
+                    'statut' => isset($r['statut']) ? $r['statut'] : 'nouveau',
+                    'date_creation' => isset($r['date_creation']) ? $r['date_creation'] : date('Y-m-d H:i:s'),
+                    'categorie' => isset($r['categorie']) ? $r['categorie'] : 'Other',
+                    // Ces deux champs viennent de la jointure LEFT JOIN satisfactions dans le contrôleur (si présents)
+                    'average_rating' => isset($r['average_rating']) ? (float) $r['average_rating'] : null,
+                    'rating_count' => isset($r['rating_count']) ? intval($r['rating_count']) : 0,
+                ];
+            }, $allReclamations);
+            echo json_encode($kanbanData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+            ?>;
 
-        // Vérifier que escapeHtml est défini
-        if (typeof escapeHtml === 'undefined') {
-            window.escapeHtml = function (text) {
-                if (!text) return '';
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
-            };
-        }
+            // Vérifier que escapeHtml est défini
+            if (typeof escapeHtml === 'undefined') {
+                window.escapeHtml = function (text) {
+                    if (!text) return '';
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML;
+                };
+            }
 
-        console.log('📊 Données Kanban chargées:', reclamationsData ? reclamationsData.length : 0, 'réclamations');
+            console.log('📊 Données Kanban chargées:', reclamationsData ? reclamationsData.length : 0, 'réclamations');
 
-        // Fonction pour créer une carte Kanban
-        function createKanbanCard(reclamation) {
-            const card = document.createElement('div');
-            card.className = 'kanban-card';
-            card.draggable = true;
-            card.setAttribute('data-id', reclamation.id_reclamation);
-            card.setAttribute('data-status', reclamation.statut || 'nouveau');
+            // Fonction pour créer une carte Kanban
+            function createKanbanCard(reclamation) {
+                const card = document.createElement('div');
+                card.className = 'kanban-card';
+                card.draggable = true;
+                card.setAttribute('data-id', reclamation.id_reclamation);
+                card.setAttribute('data-status', reclamation.statut || 'nouveau');
 
-            const description = (reclamation.description || '').substring(0, 100);
-            const avgRating = (typeof reclamation.average_rating !== 'undefined' && reclamation.average_rating !== null)
-                ? parseFloat(reclamation.average_rating)
-                : null;
-            const ratingCount = reclamation.rating_count ? parseInt(reclamation.rating_count) : 0;
-            const date = new Date(reclamation.date_creation || Date.now());
-            const dateStr = date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+                const description = (reclamation.description || '').substring(0, 100);
+                const avgRating = (typeof reclamation.average_rating !== 'undefined' && reclamation.average_rating !== null)
+                    ? parseFloat(reclamation.average_rating)
+                    : null;
+                const ratingCount = reclamation.rating_count ? parseInt(reclamation.rating_count) : 0;
+                const date = new Date(reclamation.date_creation || Date.now());
+                const dateStr = date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 
-            let ratingHtml = '';
-            if (avgRating !== null && !isNaN(avgRating) && ratingCount > 0) {
-                const fullStars = Math.round(avgRating);
-                let stars = '';
-                for (let i = 1; i <= 5; i++) {
-                    stars += `<i class="fas fa-star" style="color:${i <= fullStars ? '#ffb400' : '#444'}; font-size: 12px; margin-right:1px;"></i>`;
-                }
-                ratingHtml = `
+                let ratingHtml = '';
+                if (avgRating !== null && !isNaN(avgRating) && ratingCount > 0) {
+                    const fullStars = Math.round(avgRating);
+                    let stars = '';
+                    for (let i = 1; i <= 5; i++) {
+                        stars += `<i class="fas fa-star" style="color:${i <= fullStars ? '#ffb400' : '#444'}; font-size: 12px; margin-right:1px;"></i>`;
+                    }
+                    ratingHtml = `
                     <div class="kanban-card-rating" title="Average rating ${avgRating}/5 (${ratingCount} evaluation${ratingCount > 1 ? 's' : ''})">
                         <span class="kanban-card-rating-value">${avgRating.toFixed(1)}/5</span>
                         <span class="kanban-card-rating-stars">${stars}</span>
                     </div>
                 `;
-            } else {
-                ratingHtml = `
+                } else {
+                    ratingHtml = `
                     <div class="kanban-card-rating kanban-card-rating-empty" title="No evaluations yet">
                         <span class="kanban-card-rating-value">No rating</span>
                     </div>
                 `;
-            }
+                }
 
-            card.innerHTML = `
+                card.innerHTML = `
                 <div class="kanban-card-header">
                     <div>
                         <div class="kanban-card-title">${escapeHtml(reclamation.sujet || 'Sans titre')}</div>
@@ -5033,313 +5006,314 @@ unset($reclamation);
                 </div>
             `;
 
-            return card;
-        }
-
-        // Fonction pour remplir le Kanban avec les réclamations
-        function populateKanban() {
-            console.log('🔄 populateKanban() appelée');
-            const kanbanNouveau = document.getElementById('kanban-nouveau');
-            const kanbanEnCours = document.getElementById('kanban-en_cours');
-            const kanbanResolu = document.getElementById('kanban-resolu');
-
-            console.log('🔍 Éléments trouvés:', {
-                nouveau: !!kanbanNouveau,
-                en_cours: !!kanbanEnCours,
-                resolu: !!kanbanResolu
-            });
-
-            if (!kanbanNouveau || !kanbanEnCours || !kanbanResolu) {
-                console.warn('⚠️ Éléments non trouvés, réessai dans 100ms...');
-                setTimeout(populateKanban, 100);
-                return;
+                return card;
             }
 
-            console.log('📊 Données:', reclamationsData ? reclamationsData.length : 0, 'réclamations');
+            // Fonction pour remplir le Kanban avec les réclamations
+            function populateKanban() {
+                console.log('🔄 populateKanban() appelée');
+                const kanbanNouveau = document.getElementById('kanban-nouveau');
+                const kanbanEnCours = document.getElementById('kanban-en_cours');
+                const kanbanResolu = document.getElementById('kanban-resolu');
 
-            if (!reclamationsData || !Array.isArray(reclamationsData)) {
-                console.error('❌ reclamationsData n\'est pas un tableau:', typeof reclamationsData);
-                return;
-            }
+                console.log('🔍 Éléments trouvés:', {
+                    nouveau: !!kanbanNouveau,
+                    en_cours: !!kanbanEnCours,
+                    resolu: !!kanbanResolu
+                });
 
-            if (reclamationsData.length === 0) {
-                console.warn('⚠️ Aucune réclamation à afficher');
-                return;
-            }
-
-            // Vider toutes les colonnes
-            kanbanNouveau.innerHTML = '';
-            kanbanEnCours.innerHTML = '';
-            kanbanResolu.innerHTML = '';
-
-            const counts = { nouveau: 0, en_cours: 0, resolu: 0 };
-
-            // Ajouter les cartes dans les bonnes colonnes selon leur statut
-            reclamationsData.forEach((reclamation, index) => {
-                if (!reclamation || !reclamation.id_reclamation) {
-                    console.warn('⚠️ Réclamation invalide à l\'index', index);
+                if (!kanbanNouveau || !kanbanEnCours || !kanbanResolu) {
+                    console.warn('⚠️ Éléments non trouvés, réessai dans 100ms...');
+                    setTimeout(populateKanban, 100);
                     return;
                 }
 
-                // Normaliser le statut
-                let status = (reclamation.statut || 'nouveau').toLowerCase().trim();
-                console.log(`📝 Réclamation ${index + 1}: ID=${reclamation.id_reclamation}, Statut="${status}"`);
+                console.log('📊 Données:', reclamationsData ? reclamationsData.length : 0, 'réclamations');
 
-                try {
-                    // Créer la carte
-                    const card = createKanbanCard(reclamation);
-
-                    // Placer dans la bonne colonne selon le statut
-                    if (status === 'nouveau' || status === 'new') {
-                        kanbanNouveau.appendChild(card);
-                        counts.nouveau++;
-                        console.log('  ✅ Ajoutée à "Nouveau"');
-                    } else if (status === 'en_cours' || status === 'en cours' || status === 'in_progress' || status === 'in progress') {
-                        kanbanEnCours.appendChild(card);
-                        counts.en_cours++;
-                        console.log('  ✅ Ajoutée à "En cours"');
-                    } else if (status === 'resolu' || status === 'resolved') {
-                        kanbanResolu.appendChild(card);
-                        counts.resolu++;
-                        console.log('  ✅ Ajoutée à "Résolu"');
-                    } else {
-                        // Par défaut, mettre dans "nouveau"
-                        console.warn('  ⚠️ Statut inconnu, mise dans "Nouveau"');
-                        kanbanNouveau.appendChild(card);
-                        counts.nouveau++;
-                    }
-                } catch (e) {
-                    console.error('❌ Erreur création carte:', e, reclamation);
+                if (!reclamationsData || !Array.isArray(reclamationsData)) {
+                    console.error('❌ reclamationsData n\'est pas un tableau:', typeof reclamationsData);
+                    return;
                 }
-            });
 
-            console.log('✅ Kanban rempli:', counts);
+                if (reclamationsData.length === 0) {
+                    console.warn('⚠️ Aucune réclamation à afficher');
+                    return;
+                }
 
-            // Mettre à jour les compteurs
-            const countNouveau = document.getElementById('kanban-count-nouveau');
-            const countEnCours = document.getElementById('kanban-count-en_cours');
-            const countResolu = document.getElementById('kanban-count-resolu');
+                // Vider toutes les colonnes
+                kanbanNouveau.innerHTML = '';
+                kanbanEnCours.innerHTML = '';
+                kanbanResolu.innerHTML = '';
 
-            if (countNouveau) countNouveau.textContent = counts.nouveau;
-            if (countEnCours) countEnCours.textContent = counts.en_cours;
-            if (countResolu) countResolu.textContent = counts.resolu;
+                const counts = { nouveau: 0, en_cours: 0, resolu: 0 };
 
-            // Initialiser le drag & drop
-            initKanbanDragDrop();
-        }
+                // Ajouter les cartes dans les bonnes colonnes selon leur statut
+                reclamationsData.forEach((reclamation, index) => {
+                    if (!reclamation || !reclamation.id_reclamation) {
+                        console.warn('⚠️ Réclamation invalide à l\'index', index);
+                        return;
+                    }
 
-        // Appeler populateKanban() automatiquement au chargement
-        // Attendre que le DOM soit prêt
-        function initKanbanAuto() {
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', function () {
+                    // Normaliser le statut
+                    let status = (reclamation.statut || 'nouveau').toLowerCase().trim();
+                    console.log(`📝 Réclamation ${index + 1}: ID=${reclamation.id_reclamation}, Statut="${status}"`);
+
+                    try {
+                        // Créer la carte
+                        const card = createKanbanCard(reclamation);
+
+                        // Placer dans la bonne colonne selon le statut
+                        if (status === 'nouveau' || status === 'new') {
+                            kanbanNouveau.appendChild(card);
+                            counts.nouveau++;
+                            console.log('  ✅ Ajoutée à "Nouveau"');
+                        } else if (status === 'en_cours' || status === 'en cours' || status === 'in_progress' || status === 'in progress') {
+                            kanbanEnCours.appendChild(card);
+                            counts.en_cours++;
+                            console.log('  ✅ Ajoutée à "En cours"');
+                        } else if (status === 'resolu' || status === 'resolved') {
+                            kanbanResolu.appendChild(card);
+                            counts.resolu++;
+                            console.log('  ✅ Ajoutée à "Résolu"');
+                        } else {
+                            // Par défaut, mettre dans "nouveau"
+                            console.warn('  ⚠️ Statut inconnu, mise dans "Nouveau"');
+                            kanbanNouveau.appendChild(card);
+                            counts.nouveau++;
+                        }
+                    } catch (e) {
+                        console.error('❌ Erreur création carte:', e, reclamation);
+                    }
+                });
+
+                console.log('✅ Kanban rempli:', counts);
+
+                // Mettre à jour les compteurs
+                const countNouveau = document.getElementById('kanban-count-nouveau');
+                const countEnCours = document.getElementById('kanban-count-en_cours');
+                const countResolu = document.getElementById('kanban-count-resolu');
+
+                if (countNouveau) countNouveau.textContent = counts.nouveau;
+                if (countEnCours) countEnCours.textContent = counts.en_cours;
+                if (countResolu) countResolu.textContent = counts.resolu;
+
+                // Initialiser le drag & drop
+                initKanbanDragDrop();
+            }
+
+            // Appeler populateKanban() automatiquement au chargement
+            // Attendre que le DOM soit prêt
+            function initKanbanAuto() {
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', function () {
+                        populateKanban();
+                        setTimeout(populateKanban, 500);
+                    });
+                } else {
                     populateKanban();
                     setTimeout(populateKanban, 500);
-                });
-            } else {
-                populateKanban();
-                setTimeout(populateKanban, 500);
+                }
             }
-        }
 
-        // Initialiser immédiatement
-        initKanbanAuto();
+            // Initialiser immédiatement
+            initKanbanAuto();
 
-        // Fonction pour initialiser le drag & drop
-        function initKanbanDragDrop() {
-            const cards = document.querySelectorAll('.kanban-card');
-            const columns = document.querySelectorAll('.kanban-column-content');
+            // Fonction pour initialiser le drag & drop
+            function initKanbanDragDrop() {
+                const cards = document.querySelectorAll('.kanban-card');
+                const columns = document.querySelectorAll('.kanban-column-content');
 
-            cards.forEach(card => {
-                card.addEventListener('dragstart', function (e) {
-                    e.dataTransfer.setData('text/plain', this.getAttribute('data-id'));
-                    this.classList.add('dragging');
-                });
+                cards.forEach(card => {
+                    card.addEventListener('dragstart', function (e) {
+                        e.dataTransfer.setData('text/plain', this.getAttribute('data-id'));
+                        this.classList.add('dragging');
+                    });
 
-                card.addEventListener('dragend', function (e) {
-                    this.classList.remove('dragging');
-                    document.querySelectorAll('.kanban-column').forEach(col => {
-                        col.classList.remove('drag-over');
+                    card.addEventListener('dragend', function (e) {
+                        this.classList.remove('dragging');
+                        document.querySelectorAll('.kanban-column').forEach(col => {
+                            col.classList.remove('drag-over');
+                        });
                     });
                 });
-            });
 
-            columns.forEach(column => {
-                column.addEventListener('dragover', function (e) {
-                    e.preventDefault();
-                    this.closest('.kanban-column').classList.add('drag-over');
+                columns.forEach(column => {
+                    column.addEventListener('dragover', function (e) {
+                        e.preventDefault();
+                        this.closest('.kanban-column').classList.add('drag-over');
+                    });
+
+                    column.addEventListener('dragleave', function (e) {
+                        this.closest('.kanban-column').classList.remove('drag-over');
+                    });
+
+                    column.addEventListener('drop', function (e) {
+                        e.preventDefault();
+                        this.closest('.kanban-column').classList.remove('drag-over');
+
+                        const cardId = e.dataTransfer.getData('text/plain');
+                        const newStatus = this.closest('.kanban-column').getAttribute('data-status');
+                        const card = document.querySelector(`.kanban-card[data-id="${cardId}"]`);
+
+                        if (card && card.getAttribute('data-status') !== newStatus) {
+                            // Mettre à jour le statut via AJAX
+                            updateReclamationStatus(cardId, newStatus, card);
+                        }
+                    });
                 });
+            }
 
-                column.addEventListener('dragleave', function (e) {
-                    this.closest('.kanban-column').classList.remove('drag-over');
-                });
+            // Fonction pour mettre à jour le statut d'une réclamation
+            async function updateReclamationStatus(id, newStatus, cardElement) {
+                try {
+                    const formData = new FormData();
+                    formData.append('update_status', '1');
+                    formData.append('id_reclamation', id);
+                    formData.append('statut', newStatus);
 
-                column.addEventListener('drop', function (e) {
-                    e.preventDefault();
-                    this.closest('.kanban-column').classList.remove('drag-over');
+                    const response = await fetch('reclamback.php', {
+                        method: 'POST',
+                        body: formData
+                    });
 
-                    const cardId = e.dataTransfer.getData('text/plain');
-                    const newStatus = this.closest('.kanban-column').getAttribute('data-status');
-                    const card = document.querySelector(`.kanban-card[data-id="${cardId}"]`);
+                    if (response.ok) {
+                        // Déplacer la carte vers la nouvelle colonne
+                        const targetColumn = document.getElementById(`kanban-${newStatus}`);
+                        cardElement.setAttribute('data-status', newStatus);
+                        targetColumn.appendChild(cardElement);
 
-                    if (card && card.getAttribute('data-status') !== newStatus) {
-                        // Mettre à jour le statut via AJAX
-                        updateReclamationStatus(cardId, newStatus, card);
+                        // Mettre à jour les compteurs
+                        populateKanban();
+
+                        // Recharger la page pour synchroniser
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 500);
+                    } else {
+                        console.error('❌ Erreur lors de la mise à jour du statut');
+                        alert('Erreur lors de la mise à jour du statut');
                     }
-                });
-            });
-        }
+                } catch (error) {
+                    console.error('❌ Erreur:', error);
+                    alert('Erreur: ' + error.message);
+                }
+            }
 
-        // Fonction pour mettre à jour le statut d'une réclamation
-        async function updateReclamationStatus(id, newStatus, cardElement) {
-            try {
-                const formData = new FormData();
-                formData.append('update_status', '1');
-                formData.append('id_reclamation', id);
-                formData.append('statut', newStatus);
-
-                const response = await fetch('reclamback.php', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (response.ok) {
-                    // Déplacer la carte vers la nouvelle colonne
-                    const targetColumn = document.getElementById(`kanban-${newStatus}`);
-                    cardElement.setAttribute('data-status', newStatus);
-                    targetColumn.appendChild(cardElement);
-
-                    // Mettre à jour les compteurs
-                    populateKanban();
-
-                    // Recharger la page pour synchroniser
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 500);
+            // Fonctions helper pour les boutons des cartes Kanban
+            window.viewRequestKanban = function (id) {
+                const btn = document.querySelector(`.view-request[data-id="${id}"]`);
+                if (btn) {
+                    btn.click();
                 } else {
-                    console.error('❌ Erreur lors de la mise à jour du statut');
-                    alert('Erreur lors de la mise à jour du statut');
+                    window.location.href = 'reclamback.php?view_id=' + id;
                 }
-            } catch (error) {
-                console.error('❌ Erreur:', error);
-                alert('Erreur: ' + error.message);
-            }
-        }
+            };
 
-        // Fonctions helper pour les boutons des cartes Kanban
-        window.viewRequestKanban = function (id) {
-            const btn = document.querySelector(`.view-request[data-id="${id}"]`);
-            if (btn) {
-                btn.click();
-            } else {
-                window.location.href = 'reclamback.php?view_id=' + id;
-            }
-        };
+            window.addResponseKanban = function (id) {
+                const btn = document.querySelector(`.add-response-btn[data-id="${id}"]`);
+                if (btn) {
+                    btn.click();
+                }
+            };
 
-        window.addResponseKanban = function (id) {
-            const btn = document.querySelector(`.add-response-btn[data-id="${id}"]`);
-            if (btn) {
-                btn.click();
-            }
-        };
+            // Toggle entre vue Liste et Kanban
+            if (listViewBtn && kanbanViewBtn) {
+                listViewBtn.addEventListener('click', function () {
+                    this.classList.add('active');
+                    kanbanViewBtn.classList.remove('active');
+                    reviewsList.style.display = 'flex';
+                    kanbanBoard.style.display = 'none';
+                    localStorage.setItem('view-mode', 'list');
+                });
 
-        // Toggle entre vue Liste et Kanban
-        if (listViewBtn && kanbanViewBtn) {
-            listViewBtn.addEventListener('click', function () {
-                this.classList.add('active');
-                kanbanViewBtn.classList.remove('active');
-                reviewsList.style.display = 'flex';
-                kanbanBoard.style.display = 'none';
-                localStorage.setItem('view-mode', 'list');
-            });
+                kanbanViewBtn.addEventListener('click', function () {
+                    this.classList.add('active');
+                    listViewBtn.classList.remove('active');
+                    reviewsList.style.display = 'none';
+                    kanbanBoard.style.display = 'grid';
 
-            kanbanViewBtn.addEventListener('click', function () {
-                this.classList.add('active');
-                listViewBtn.classList.remove('active');
-                reviewsList.style.display = 'none';
-                kanbanBoard.style.display = 'grid';
+                    // Toujours remplir le Kanban quand on clique sur le bouton
+                    console.log('🖱️ Bouton Kanban cliqué, remplissage...');
+                    setTimeout(function () {
+                        populateKanban();
+                    }, 100);
 
-                // Toujours remplir le Kanban quand on clique sur le bouton
-                console.log('🖱️ Bouton Kanban cliqué, remplissage...');
-                setTimeout(function () {
-                    populateKanban();
-                }, 100);
+                    localStorage.setItem('view-mode', 'kanban');
+                });
 
-                localStorage.setItem('view-mode', 'kanban');
-            });
+                // Initialiser le Kanban automatiquement au chargement
+                function initKanbanView() {
+                    console.log('🔄 initKanbanView() appelée');
+                    console.log('📊 Données disponibles:', reclamationsData ? reclamationsData.length : 0, 'réclamations');
+                    console.log('📊 État du DOM:', document.readyState);
 
-            // Initialiser le Kanban automatiquement au chargement
-            function initKanbanView() {
-                console.log('🔄 initKanbanView() appelée');
-                console.log('📊 Données disponibles:', reclamationsData ? reclamationsData.length : 0, 'réclamations');
-                console.log('📊 État du DOM:', document.readyState);
-
-                // Appeler immédiatement
-                populateKanban();
-
-                // Attendre que le DOM soit complètement chargé
-                setTimeout(function () {
-                    console.log('⏰ Réessai après 100ms...');
+                    // Appeler immédiatement
                     populateKanban();
 
-                    // Restaurer la vue sauvegardée après avoir rempli le Kanban
-                    const savedView = localStorage.getItem('view-mode') || 'list';
-                    console.log('💾 Vue sauvegardée:', savedView);
-                    if (savedView === 'kanban') {
-                        // Activer la vue Kanban
-                        kanbanViewBtn.classList.add('active');
-                        listViewBtn.classList.remove('active');
-                        reviewsList.style.display = 'none';
-                        kanbanBoard.style.display = 'grid';
-                        console.log('✅ Vue Kanban activée');
+                    // Attendre que le DOM soit complètement chargé
+                    setTimeout(function () {
+                        console.log('⏰ Réessai après 100ms...');
+                        populateKanban();
+
+                        // Restaurer la vue sauvegardée après avoir rempli le Kanban
+                        const savedView = localStorage.getItem('view-mode') || 'list';
+                        console.log('💾 Vue sauvegardée:', savedView);
+                        if (savedView === 'kanban') {
+                            // Activer la vue Kanban
+                            kanbanViewBtn.classList.add('active');
+                            listViewBtn.classList.remove('active');
+                            reviewsList.style.display = 'none';
+                            kanbanBoard.style.display = 'grid';
+                            console.log('✅ Vue Kanban activée');
+                        }
+                    }, 100);
+
+                    // Réessayer après 500ms au cas où
+                    setTimeout(function () {
+                        console.log('⏰ Réessai après 500ms...');
+                        populateKanban();
+                    }, 500);
+                }
+
+                // Initialiser au chargement de la page
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initKanbanView);
+                } else {
+                    initKanbanView();
+                }
+
+                // Réessayer après un court délai pour être sûr
+                setTimeout(populateKanban, 200);
+            }
+
+            // Toujours essayer de remplir le Kanban au chargement
+            setTimeout(populateKanban, 300);
+            setTimeout(populateKanban, 1000);
+            // Admin Dropdown Logic
+            const adminDropdown = document.getElementById('adminDropdown');
+            if (adminDropdown) {
+                const adminUser = adminDropdown.querySelector('.admin-user');
+                if (adminUser) {
+                    adminUser.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        adminDropdown.classList.toggle('active');
+                    });
+                }
+
+                document.addEventListener('click', function (e) {
+                    if (!adminDropdown.contains(e.target)) {
+                        adminDropdown.classList.remove('active');
                     }
-                }, 100);
+                });
 
-                // Réessayer après 500ms au cas où
-                setTimeout(function () {
-                    console.log('⏰ Réessai après 500ms...');
-                    populateKanban();
-                }, 500);
-            }
-
-            // Initialiser au chargement de la page
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initKanbanView);
-            } else {
-                initKanbanView();
-            }
-
-            // Réessayer après un court délai pour être sûr
-            setTimeout(populateKanban, 200);
-        }
-
-        // Toujours essayer de remplir le Kanban au chargement
-        setTimeout(populateKanban, 300);
-        setTimeout(populateKanban, 1000);
-        // Admin Dropdown Logic
-        const adminDropdown = document.getElementById('adminDropdown');
-        if (adminDropdown) {
-            const adminUser = adminDropdown.querySelector('.admin-user');
-            if (adminUser) {
-                adminUser.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    adminDropdown.classList.toggle('active');
+                document.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape') {
+                        adminDropdown.classList.remove('active');
+                    }
                 });
             }
+        </script>
 
-            document.addEventListener('click', function (e) {
-                if (!adminDropdown.contains(e.target)) {
-                    adminDropdown.classList.remove('active');
-                }
-            });
-
-            document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape') {
-                    adminDropdown.classList.remove('active');
-                }
-            });
-        }
-    </script>
 </body>
 
 </html>

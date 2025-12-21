@@ -38,7 +38,7 @@ $activePublicEval = (isset($activeNav) && $activeNav === 'public-eval') ? 'activ
             <nav class="site-nav">
                 <a href="indexf.html">Home</a>
                 <a href="events.html">Events</a>
-                <a href="shop.html">Shop</a>
+                <a href="shop.php">Shop</a>
                 <a href="trading.html">Trading</a>
                 <a href="news.html">News</a>
                 <a href="reclamation.php" class="<?php echo $activeSupport; ?>">Support</a>

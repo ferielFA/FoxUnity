@@ -118,9 +118,11 @@ class TradeHistoryController {
             $sql = "DELETE FROM trade_history WHERE user_id = :user_id";
             
             if ($type === 'negotiations') {
-                $sql .= " AND action IN ('negotiation_refused', 'trade')";
+                $sql .= " AND action = 'negotiation_refused'";
+            } elseif ($type === 'accepted') {
+                $sql .= " AND action IN ('trade', 'bought', 'sold')";
             } elseif ($type === 'standard') {
-                $sql .= " AND action != 'negotiation_refused'";
+                $sql .= " AND action NOT IN ('negotiation_refused', 'trade', 'bought', 'sold')";
             }
             
             $stmt = $this->db->prepare($sql);

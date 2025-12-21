@@ -65,6 +65,7 @@ foreach ($evenements as $item) {
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
   <style>
     .events-management {
       padding: 24px;
@@ -677,6 +678,116 @@ foreach ($evenements as $item) {
     .events-table::-webkit-scrollbar-thumb:hover {
       background: rgba(245, 194, 66, 0.5);
     }
+
+    /* Admin Dropdown Styles */
+    .admin-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .admin-user {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.3s ease;
+      padding: 8px 15px;
+      border-radius: 10px;
+    }
+
+    .admin-user:hover {
+      background: rgba(255, 122, 0, 0.15);
+    }
+
+    .admin-user img {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #ff7a00;
+    }
+
+    .admin-user i.fa-user-circle {
+      font-size: 35px;
+      color: #fff;
+    }
+
+    .admin-user span {
+      color: #fff;
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .admin-user i.fa-chevron-down {
+      font-size: 12px;
+      color: #fff;
+      transition: transform 0.3s ease;
+    }
+
+    .admin-dropdown.active .admin-user i.fa-chevron-down {
+      transform: rotate(180deg);
+    }
+
+    .admin-dropdown-menu {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 10px;
+      background: rgba(15, 15, 35, 0.98);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 122, 0, 0.4);
+      border-radius: 12px;
+      min-width: 220px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: all 0.3s ease;
+      z-index: 1000;
+      overflow: hidden;
+    }
+
+    .admin-dropdown.active .admin-dropdown-menu {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .dropdown-item {
+      padding: 14px 20px;
+      color: #fff;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s ease;
+      font-size: 14px;
+    }
+
+    .dropdown-item:hover {
+      background: rgba(255, 122, 0, 0.25);
+      padding-left: 25px;
+    }
+
+    .dropdown-item i {
+      font-size: 16px;
+      color: #ff7a00;
+      width: 20px;
+    }
+
+    .dropdown-divider {
+      height: 1px;
+      background: rgba(255, 122, 0, 0.3);
+      margin: 5px 15px;
+    }
+
+    .dropdown-item.logout:hover {
+      background: rgba(239, 68, 68, 0.25);
+    }
+
+    .dropdown-item.logout i {
+      color: #ef4444;
+    }
   </style>
 </head>
 
@@ -692,15 +803,15 @@ foreach ($evenements as $item) {
     <h2>Dashboard</h2>
     <a href="dashboard.php">Overview</a>
     <a href="users.php">Users</a>
-    <a href="#">Shop</a>
+    <a href="shopb.php">Shop</a>
     <a href="tradingb.php">Trade History</a>
     <a href="eventsb.php" class="active">Events</a>
     <a href="news_admin.php">News</a>
-    <a href="news_history.php" id="news-history-link">News History</a>
-    <a href="categories.php" id="categories-link">Categories</a>
-    <a href="newsletter_admin.php" id="newsletter-link">Newsletter</a>
+    <a href="news_history.php">News History</a>
+    <a href="categories.php">Categories</a>
+    <a href="newsletter_admin.php">Newsletter</a>
     <a href="reclamback.php">Support</a>
-    <a href="evaluations_publiques.php">Évaluations Publiques</a>
+    <a href="evaluations_publiques.php">Public Evaluations</a>
     <a href="../front/index.php">← Return Homepage</a>
   </div>
 
@@ -709,10 +820,9 @@ foreach ($evenements as $item) {
     <div class="topbar">
       <h1 data-lang-en="Events Management" data-lang-fr="Gestion des Événements">Events Management</h1>
       <div style="display: flex; align-items: center; gap: 20px;">
-        <button id="langToggle" class="lang-toggle" onclick="toggleLanguage()">
-          <i class="fas fa-language"></i>
-          <span id="currentLang">FR</span>
-        </button>
+        <!-- Système de Notifications Tout-en-un -->
+        <?php include __DIR__ . '/includes/notifications.php'; ?>
+
         <div class="admin-dropdown" id="adminDropdown">
           <div class="user admin-user">
             <?php if ($userImage): ?>
@@ -1412,19 +1522,19 @@ foreach ($evenements as $item) {
     if (adminDropdown) {
       const adminUser = adminDropdown.querySelector('.admin-user');
       if (adminUser) {
-        adminUser.addEventListener('click', function(e) {
+        adminUser.addEventListener('click', function (e) {
           e.stopPropagation();
           adminDropdown.classList.toggle('active');
         });
       }
-      
-      document.addEventListener('click', function(e) {
+
+      document.addEventListener('click', function (e) {
         if (!adminDropdown.contains(e.target)) {
           adminDropdown.classList.remove('active');
         }
       });
-      
-      document.addEventListener('keydown', function(e) {
+
+      document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
           adminDropdown.classList.remove('active');
         }
