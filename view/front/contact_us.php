@@ -144,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
             <span class="site-name">FoxUnity</span>
         </div>
         <nav class="site-nav">
-            <a href="indexf.php">Home</a>
+            <a href="index.php">Home</a>
             <a href="events.php">Events</a>
             <a href="shop.php">Shop</a>
             <a href="trading.php">Trading</a>

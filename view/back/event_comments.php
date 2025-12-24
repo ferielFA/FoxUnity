@@ -51,7 +51,7 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Event Comments & Ratings - Dashboard</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=<?php echo time(); ?>">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -740,7 +740,7 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
   </div>
 
   <!-- ===== PAGE TRANSITION OVERLAY ===== -->
-  <div class="transition-screen"></div>
+  <?php include __DIR__ . '/includes/transition.php'; ?>
 
   <script>
     // Language Management
@@ -795,40 +795,16 @@ $reportedComments = array_filter($comments, fn($c) => $c->getIsReported());
       return confirm(message);
     }
 
-    // Initialize language on page load
-    window.addEventListener('DOMContentLoaded', () => {
-      updateLanguage();
-    });
-
-    // Page transition
-    window.addEventListener("load", () => {
-      document.querySelector(".transition-screen").classList.add("hidden");
-    });
-
-    document.querySelectorAll("a").forEach(link => {
-      link.addEventListener("click", e => {
-        const href = link.getAttribute("href");
-        if (href && !href.startsWith("#") && href !== "") {
-          e.preventDefault();
-          const transition = document.querySelector(".transition-screen");
-          transition.classList.remove("hidden");
-          setTimeout(() => {
-            window.location.href = href;
-          }, 700);
-        }
-      });
-    });
-
-    // Filter comments
-    function filterComments(filter) {
-      const cards = document.querySelectorAll('.comment-card');
-      const tabs = document.querySelectorAll('.filter-tab');
-
       // Update active tab
       tabs.forEach(tab => tab.classList.remove('active'));
       event.target.classList.add('active');
 
-      // Filter cards
+      // Initialize language on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      updateLanguage();
+    });
+
+    // Filter comments
       cards.forEach(card => {
         const rating = parseInt(card.getAttribute('data-rating'));
         const isReported = card.getAttribute('data-reported') === 'true';

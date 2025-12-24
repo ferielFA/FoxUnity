@@ -872,7 +872,7 @@ unset($reclamation);
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@700&display=swap"
         rel="stylesheet">
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=<?php echo time(); ?>">
     <style>
         :root {
             --primary-color: #ff7a00;
@@ -2194,11 +2194,12 @@ unset($reclamation);
             .chart-section canvas {
                 max-height: 250px !important;
             }
-        }
     </style>
 </head>
 
 <body class="dashboard-body">
+    <div class="stars"></div>
+    <?php include __DIR__ . '/includes/transition.php'; ?>
 
     <!-- Sidebar Identique au Dashboard -->
     <!-- Sidebar identique à dashboard.php -->

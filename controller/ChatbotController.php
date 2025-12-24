@@ -183,12 +183,31 @@ class ChatbotController {
             
             // Check for trading queries
             if (self::containsKeywords($message, ['trade', 'trading', 'skin', 'sell', 'negotiate'])) {
-                $stmt = $pdo->query("SELECT COUNT(*) as count FROM trade WHERE status = 'active'");
-                $tradeCount = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
-                $context['active_trades'] = $tradeCount;
+                // Get negotiated skin IDs to exclude them
+                $negotiatedSkinIds = [];
+                try {
+                    $negStmt = $pdo->query("SELECT DISTINCT skin_id FROM trade_conversations WHERE is_deleted = 0");
+                    $negotiatedSkinIds = $negStmt->fetchAll(PDO::FETCH_COLUMN);
+                } catch (PDOException $e) {
+                    error_log("Negotation check error in chatbot: " . $e->getMessage());
+                }
+
+                $excludeCount = count($negotiatedSkinIds);
+                $excludeClause = $excludeCount > 0 ? "AND s.skin_id NOT IN (" . implode(',', array_map('intval', $negotiatedSkinIds)) . ")" : "";
+
+                $stmt = $pdo->query("SELECT COUNT(*) as count FROM skins s WHERE s.is_listed = 1 AND s.is_deleted = 0 $excludeClause");
+                $skinCount = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+                $context['active_trades'] = $skinCount;
+                $context['negotiated_skins_excluded'] = $excludeCount;
                 
-                // Get recent trades
-                $stmt = $pdo->query("SELECT id, title, game, price, status FROM trade WHERE status = 'active' LIMIT 5");
+                // Get available skins for recommendation context
+                $stmt = $pdo->query("
+                    SELECT s.skin_id as id, s.name as title, s.category as game, s.price, 'active' as status 
+                    FROM skins s 
+                    WHERE s.is_listed = 1 AND s.is_deleted = 0 
+                    $excludeClause
+                    LIMIT 5
+                ");
                 $context['trade_samples'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
             

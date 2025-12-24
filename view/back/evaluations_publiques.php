@@ -42,7 +42,7 @@ $allSatisfactions = $satisfactionController->getAllSatisfactions();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=<?php echo time(); ?>">
 
     <style>
         :root {
@@ -528,7 +528,8 @@ $allSatisfactions = $satisfactionController->getAllSatisfactions();
 </head>
 
 <body class="dashboard-body">
-
+    <div class="stars"></div>
+    <?php include __DIR__ . '/includes/transition.php'; ?>
     <!-- Sidebar -->
     <div class="sidebar">
         <img src="../images/Nine__1_-removebg-preview.png" alt="Nine Tailed Fox Logo" class="dashboard-logo">

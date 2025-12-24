@@ -85,7 +85,7 @@ foreach ($allEvents as $evtData) {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Nine Tailed Fox - Admin Dashboard</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=<?php echo time(); ?>">
   <link
     href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Poppins:wght@300;400;600;700&display=swap"
     rel="stylesheet">
@@ -291,6 +291,8 @@ foreach ($allEvents as $evtData) {
 
 <body class="dashboard-body">
   <div class="stars"></div>
+
+  <?php include __DIR__ . '/includes/transition.php'; ?>
 
   <!-- ===== SIDEBAR ===== -->
   <div class="sidebar">
@@ -566,6 +568,8 @@ foreach ($allEvents as $evtData) {
         }
       }
     });
+  </script>
+
   </script>
 </body>
 

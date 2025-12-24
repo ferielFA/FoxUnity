@@ -123,18 +123,24 @@ class TradingController
                 ? strtolower($analytics['favorite_game'])
                 : null;
 
-            // 2. Get All Available Skins (EXCLUDING user's own skins)
+            // 2. Get All Available Skins (EXCLUDING user's own skins AND skins currently being negotiated)
             $allSkins = $this->skinModel->getAllSkins();
-            // Filter out current user's own skins
-            $availableSkins = array_filter($allSkins, function ($skin) use ($userId) {
-                return isset($skin['owner_id']) && $skin['owner_id'] != $userId;
+            
+            // Get IDs of skins with active negotiations
+            $negotiatedSkinIds = $this->conversationModel->getSkinsWithActiveConversations();
+            
+            // Filter out current user's own skins AND skins under negotiation
+            $availableSkins = array_filter($allSkins, function ($skin) use ($userId, $negotiatedSkinIds) {
+                $isOwner = isset($skin['owner_id']) && $skin['owner_id'] == $userId;
+                $isNegotiated = in_array($skin['skin_id'], $negotiatedSkinIds);
+                return !$isOwner && !$isNegotiated;
             });
+            
             // Re-index array after filtering
             $availableSkins = array_values($availableSkins);
 
-
             if (empty($availableSkins)) {
-                return ['success' => false, 'error' => 'No skins available in the market.'];
+                return ['success' => false, 'error' => 'The Trade Master sees no available skins in the market right now (all are either yours or being negotiated).'];
             }
 
             // 3. Logic: Smart Recommendation vs Fallback
@@ -190,6 +196,14 @@ class TradingController
         if ((empty($skinIds) || !is_array($skinIds)) && (empty($productIds) || !is_array($productIds))) {
             return ['success' => false, 'error' => 'No items selected'];
         }
+
+        // --- STRIPE PAYMENT VERIFICATION ---
+        // Verify payment intent exists before processing the order
+        $paymentIntentId = $_POST['payment_intent_id'] ?? null;
+        if (!$paymentIntentId) {
+            return ['success' => false, 'error' => 'Payment required to complete this order'];
+        }
+        // ------------------------------------
 
         $buyer = User::getByUsername($this->currentUser);
         $buyerId = $buyer ? $buyer->getId() : null;

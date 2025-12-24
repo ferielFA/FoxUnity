@@ -26,6 +26,7 @@ if ($currentUser && $currentUser->getImage()) {
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Orbitron:wght@700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://js.stripe.com/v3/"></script>
     <style>
         /* User Dropdown Menu Styles */
         .user-dropdown {
@@ -813,6 +814,97 @@ if ($currentUser && $currentUser->getImage()) {
                 width: 100%;
             }
         }
+
+        /* Stripe Modal Styles */
+        .stripe-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 5000;
+            backdrop-filter: blur(5px);
+        }
+
+        .stripe-modal.active {
+            display: flex;
+        }
+
+        .stripe-card-container {
+            background: #111;
+            padding: 40px;
+            border-radius: 20px;
+            border: 2px solid #ff7a00;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 0 30px rgba(255, 122, 0, 0.3);
+            position: relative;
+        }
+
+        .stripe-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .stripe-header h2 {
+            color: #ff7a00;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        #card-element {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 122, 0, 0.3);
+            margin-bottom: 20px;
+        }
+
+        #card-errors {
+            color: #ff4757;
+            font-size: 14px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .stripe-submit-btn {
+            background: linear-gradient(135deg, #2ed573, #26af61);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            width: 100%;
+            font-weight: 700;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .stripe-submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(46, 213, 115, 0.4);
+        }
+
+        .stripe-submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .stripe-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            color: #ff7a00;
+            font-size: 24px;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -1080,6 +1172,9 @@ if ($currentUser && $currentUser->getImage()) {
             // Initialize cart
             updateCartCount();
             renderCart();
+
+            // Initialize Stripe
+            initStripe();
         });
 
         // ============================================
@@ -1391,64 +1486,165 @@ if ($currentUser && $currentUser->getImage()) {
         }
 
         // ============================================
-        // CHECKOUT WITH COUPON SUPPORT
+        // STRIPE INITIALIZATION
         // ============================================
-        const checkoutBtn = document.getElementById('checkoutBtn');
-        if (checkoutBtn) {
-            checkoutBtn.addEventListener('click', function () {
-                if (cart.length === 0) return;
+        let stripe, elements, card;
+        
+        function initStripe() {
+            stripe = Stripe('pk_test_TYooMQauvdEDq54NiTphI7jx');
+            elements = stripe.elements();
+            card = elements.create('card', {
+                style: {
+                    base: {
+                        color: '#fff',
+                        fontFamily: 'Poppins, sans-serif',
+                        fontSmoothing: 'antialiased',
+                        fontSize: '16px',
+                        '::placeholder': {
+                            color: '#888'
+                        }
+                    },
+                    invalid: {
+                        color: '#ff4757',
+                        iconColor: '#ff4757'
+                    }
+                }
+            });
 
-                // Get coupon data if applied
-                const couponData = getAppliedCouponData();
+            const cardElement = document.getElementById('card-element');
+            if (cardElement) {
+                card.mount('#card-element');
+            }
 
-                const productsData = cart.filter(item => item.type === 'product').map(item => ({
-                    id: item.id,
-                    quantity: item.quantity || 1
-                }));
+            const checkoutBtn = document.getElementById('checkoutBtn');
+            if (checkoutBtn) {
+                checkoutBtn.addEventListener('click', function () {
+                    if (cart.length === 0) return;
+                    document.getElementById('stripeModal').classList.add('active');
+                });
+            }
+        }
 
-                const skinsData = cart.filter(item => !item.type || item.type === 'skin').map(item => ({
-                    id: item.id,
-                    quantity: item.quantity || 1
-                }));
+        async function processStripePayment() {
+            const submitBtn = document.getElementById('payNowBtn');
+            const totalAmount = getCartTotalForStripe();
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
 
-                const formData = new FormData();
-                formData.append('buy_skins', '1');
-                formData.append('skin_ids', JSON.stringify(skinsData.map(s => s.id)));
-                formData.append('product_ids', JSON.stringify(productsData.map(p => p.id)));
-                formData.append('quantities', JSON.stringify({
-                    products: productsData,
-                    skins: skinsData
-                }));
-
-                // ADD COUPON DATA
-                if (couponData) {
-                    formData.append('coupon_id', couponData.id);
-                    formData.append('coupon_code', couponData.code);
-                    formData.append('discount_amount', couponData.discount_amount);
-                    formData.append('final_amount', couponData.final_amount);
+            try {
+                // 1. Create Payment Intent on backend
+                const response = await fetch('api/create_payment_intent.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: totalAmount })
+                });
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to initialize payment');
                 }
 
-                fetch('trading.php', {
-                    method: 'POST',
-                    body: formData
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            showToast('Purchase successful! Redirecting...', 'success');
-                            localStorage.removeItem('cart');
-                            setTimeout(() => {
-                                window.location.href = 'trading.php';
-                            }, 2000);
-                        } else {
-                            showToast('Purchase failed: ' + (data.error || 'Unknown error'), 'error');
+                // 2. DETECT DEMO MODE
+                if (data.demo_mode || data.clientSecret.startsWith('mock_')) {
+                    showToast('Demo Mode: Simulating secure payment...', 'success');
+                    setTimeout(() => {
+                        completeOrder('pi_mock_' + Math.random().toString(36).substr(2, 9));
+                    }, 1500);
+                    return;
+                }
+
+                // 3. Confirm payment with Stripe (Real Mode)
+                const result = await stripe.confirmCardPayment(data.clientSecret, {
+                    payment_method: {
+                        card: card,
+                        billing_details: {
+                            name: 'FoxUnity Customer'
                         }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        showToast('An error occurred during checkout.', 'error');
-                    });
+                    }
+                });
+
+                if (result.error) {
+                    throw new Error(result.error.message);
+                }
+
+                if (result.paymentIntent.status === 'succeeded') {
+                    // 3. Payment successful! Complete the order
+                    completeOrder(result.paymentIntent.id);
+                }
+
+            } catch (error) {
+                document.getElementById('card-errors').textContent = error.message;
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
+                showToast(error.message, 'error');
+            }
+        }
+
+        function getCartTotalForStripe() {
+            const totalEl = document.getElementById('cartTotal');
+            if (totalEl) {
+                return parseFloat(totalEl.textContent.replace('$', '').replace(',', '')) || 0;
+            }
+            return 0;
+        }
+
+        function completeOrder(paymentIntentId) {
+            const couponData = getAppliedCouponData();
+            const productsData = cart.filter(item => item.type === 'product').map(item => ({
+                id: item.id,
+                quantity: item.quantity || 1
+            }));
+            const skinsData = cart.filter(item => !item.type || item.type === 'skin').map(item => ({
+                id: item.id,
+                quantity: item.quantity || 1
+            }));
+
+            const formData = new FormData();
+            formData.append('buy_skins', '1');
+            formData.append('payment_intent_id', paymentIntentId);
+            formData.append('skin_ids', JSON.stringify(skinsData.map(s => s.id)));
+            formData.append('product_ids', JSON.stringify(productsData.map(p => p.id)));
+            formData.append('quantities', JSON.stringify({
+                products: productsData,
+                skins: skinsData
+            }));
+
+            if (couponData) {
+                formData.append('coupon_id', couponData.id);
+                formData.append('coupon_code', couponData.code);
+                formData.append('discount_amount', couponData.discount_amount);
+                formData.append('final_amount', couponData.final_amount);
+            }
+
+            fetch('trading.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Payment successful! Order placed.', 'success');
+                    localStorage.removeItem('cart');
+                    setTimeout(() => {
+                        window.location.href = 'trading.php';
+                    }, 2000);
+                } else {
+                    showToast('Order failed: ' + (data.error || 'Unknown error'), 'error');
+                    document.getElementById('payNowBtn').disabled = false;
+                    document.getElementById('payNowBtn').innerHTML = '<i class="fas fa-lock"></i> Pay Now';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('An error occurred during final processing.', 'error');
             });
+        }
+
+        function closeStripeModal() {
+            document.getElementById('stripeModal').classList.remove('active');
+            document.getElementById('card-errors').textContent = '';
         }
 
         // ============================================
@@ -1497,6 +1693,31 @@ if ($currentUser && $currentUser->getImage()) {
             </div>
             <div class="game-controls">
                 <span>Avoid the red vision cones! Walls block their sight.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stripe Modal -->
+    <div id="stripeModal" class="stripe-modal">
+        <div class="stripe-card-container">
+            <span class="stripe-close" onclick="closeStripeModal()">&times;</span>
+            <div class="stripe-header">
+                <h2>Secure Checkout</h2>
+                <p style="color: #888;">Complete your purchase via Stripe</p>
+            </div>
+            
+            <div id="card-element">
+                <!-- A Stripe Element will be inserted here. -->
+            </div>
+
+            <!-- Used to display form errors. -->
+            <div id="card-errors" role="alert"></div>
+
+            <button id="payNowBtn" class="stripe-submit-btn" onclick="processStripePayment()">
+                <i class="fas fa-lock"></i> Pay Now
+            </button>
+            <div style="margin-top: 15px; text-align: center;">
+                <img src="https://checkout.stripe.com/img/v3/home/social.png" alt="Stripe" style="width: 100px; opacity: 0.5;">
             </div>
         </div>
     </div>

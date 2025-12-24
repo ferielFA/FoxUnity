@@ -155,6 +155,29 @@ class ConversationModel {
     }
     
     /**
+     * Get list of skins that have active conversations
+     * 
+     * @return array List of skin IDs
+     */
+    public function getSkinsWithActiveConversations(): array {
+        try {
+            $this->ensureConversationsTable();
+            
+            $stmt = $this->db->prepare("
+                SELECT DISTINCT skin_id 
+                FROM trade_conversations 
+                WHERE is_deleted = 0
+            ");
+            $stmt->execute();
+            
+            return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        } catch (PDOException $e) {
+            error_log("ConversationModel::getSkinsWithActiveConversations error: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Get list of buyers who have active conversations for a skin
      */
     public function getActiveConversationsForSkin(int $skinId, int $sellerId): array {

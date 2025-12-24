@@ -1155,6 +1155,23 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
                 }
             });
         }
+
+        // Initialize cart count
+        updateCartCount();
     });
+
+    function updateCartCount() {
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        let totalQuantity = 0;
+        
+        cart.forEach(item => {
+            totalQuantity += item.quantity || 1;
+        });
+        
+        const cartCount = document.querySelector('.cart-count');
+        if (cartCount) {
+            cartCount.textContent = totalQuantity;
+        }
+    }
 </script>
 </html>

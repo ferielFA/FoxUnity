@@ -161,7 +161,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Nine Tailed Fox | Trade History</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=<?php echo time(); ?>">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -1098,7 +1098,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         </div>
     </div>
 
-    <div class="transition-screen"></div>
+  <?php include __DIR__ . '/includes/transition.php'; ?>
 
     <script>
         // Dropdown Menu Toggle
@@ -1127,13 +1127,10 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             }
         });
 
-        // Page transitions
-        window.addEventListener("load", () => {
-            document.querySelector(".transition-screen").classList.add("hidden");
+        // Initialize pagination on page load
+        window.addEventListener('load', function () {
+            if (typeof paginateTable === 'function') paginateTable();
         });
-
-        // Prevent full reload on pagination
-        document.addEventListener('click', function (e) {
             if (e.target.closest('.pagination-arrow')) return; // let pagination handler handle it
 
             const link = e.target.closest('a');

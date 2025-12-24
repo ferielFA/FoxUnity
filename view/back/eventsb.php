@@ -61,7 +61,7 @@ foreach ($evenements as $item) {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Events Management - Dashboard</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=<?php echo time(); ?>">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -1034,7 +1034,7 @@ foreach ($evenements as $item) {
   </div>
 
   <!-- ===== PAGE TRANSITION OVERLAY ===== -->
-  <div class="transition-screen"></div>
+  <?php include __DIR__ . '/includes/transition.php'; ?>
 
   <script>
     // Language Management
@@ -1080,24 +1080,6 @@ foreach ($evenements as $item) {
       updateLanguage();
     });
 
-    // Page transition
-    window.addEventListener("load", () => {
-      document.querySelector(".transition-screen").classList.add("hidden");
-    });
-
-    document.querySelectorAll("a").forEach(link => {
-      link.addEventListener("click", e => {
-        const href = link.getAttribute("href");
-        if (href && !href.startsWith("#") && href !== "") {
-          e.preventDefault();
-          const transition = document.querySelector(".transition-screen");
-          transition.classList.remove("hidden");
-          setTimeout(() => {
-            window.location.href = href;
-          }, 700);
-        }
-      });
-    });
 
     // Modal functions
     function showModal(type) {

@@ -49,7 +49,7 @@ foreach ($articles as $article) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>News History - Dashboard</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=<?php echo time(); ?>">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;600&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -266,16 +266,7 @@ foreach ($articles as $article) {
     </footer>
   </div>
 
-  <div class="transition-screen"></div>
   <script>
-    // Ensure the transition overlay is hidden after page load
-    window.addEventListener('load', function () {
-      try {
-        var t = document.querySelector('.transition-screen');
-        if (t) t.classList.add('hidden');
-      } catch (e) { }
-    });
-
     // Dropdown Menu Toggle
     document.addEventListener('DOMContentLoaded', function () {
       const adminDropdown = document.getElementById('adminDropdown');
