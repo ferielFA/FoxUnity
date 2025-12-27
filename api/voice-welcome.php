@@ -42,7 +42,7 @@ if (!$user) {
 
 // ElevenLabs API Configuration
 // Get your free API key from: https://elevenlabs.io/
-$ELEVENLABS_API_KEY = '';
+$ELEVENLABS_API_KEY = 'sk_b593dbe803331c24865f2d7fdc9b9853913516d641a13b87';
 $VOICE_ID = 'pNInz6obpgDQGcFmaJgB'; // Adam - Professional male voice
 
 // Generate welcome message

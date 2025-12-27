@@ -1053,7 +1053,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                                                 </button>
                                             <?php else: ?>
                                                 <button class="view-conversation-btn"
-                                                    onclick="viewConversation(<?= $conv['skin_id'] ?>, <?= $conv['sender_id'] ?>, <?= $conv['receiver_id'] ?>, '<?= htmlspecialchars($conv['skin_name'] ?: 'Unknown') ?>', '<?= htmlspecialchars($conv['sender_username'] ?? 'Unknown') ?>', '<?= htmlspecialchars($conv['receiver_username'] ?? 'Unknown') ?>', '<?= htmlspecialchars($conv['negotiation_id'] ?? '') ?>')"
+                                                    onclick="viewArchivedChat(<?= $conv['skin_id'] ?>, '<?= htmlspecialchars($conv['negotiation_id'] ?? '') ?>')"
                                                     style="background: <?= in_array($conv['status'], ['Accepted', 'Bought', 'Sold']) ? '#2ed573' : '#ff4757' ?>; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; margin-right: 8px;">
                                                     <i class="fas fa-history"></i> History
                                                 </button>
@@ -1130,16 +1130,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         // Initialize pagination on page load
         window.addEventListener('load', function () {
             if (typeof paginateTable === 'function') paginateTable();
-        });
-            if (e.target.closest('.pagination-arrow')) return; // let pagination handler handle it
-
-            const link = e.target.closest('a');
-            if (link) {
-                const href = link.getAttribute("href");
-                if (href && !href.startsWith("#") && href !== "" && !href.includes('tradingb.php')) {
-                    // allow transition
-                }
-            }
         });
 
         // --- Server-Side Filtering & AJAX Pagination ---
